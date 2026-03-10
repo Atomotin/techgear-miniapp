@@ -41,7 +41,7 @@
     }
 
     body {
-      padding-bottom: 92px;
+      padding-bottom: 68px;
     } 
 
     .container {
@@ -591,12 +591,12 @@
       flex: 1;
       text-align: center;
       text-decoration: none;
-      padding: 14px 10px;
-      border-radius: 16px;
-      border: 1.5px solid var(--border-light);
+      padding: 8px 6px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
       background: rgba(157, 78, 221, 0.05);
       color: white;
-      font-size: 14px;
+      font-size: 12px;
       cursor: pointer;
       transition: all 0.3s ease;
       position: relative;
@@ -741,10 +741,10 @@
 
   <audio id="bgm" crossorigin="anonymous"></audio>
     <div class="bottom-nav">
-    <div class="bottom-nav-inner" style="display:flex; gap:8px;">
-      <button id="shopBtn" class="active" onclick="switchView('shop')">Магазин</button>
-      <button id="cartBtn" onclick="switchView('cart')">Корзина (0)</button>
-      <a class="contact-btn" href="https://t.me/atomotin" target="_blank" rel="noreferrer">Связь</a>
+    <div class="bottom-nav-inner" style="display:flex; gap:4px;">
+      <button id="shopBtn" class="active" onclick="switchView('shop')">🏪 Магазин</button>
+      <button id="cartBtn" onclick="switchView('cart')">🛍️ Корзина (0)</button>
+      <a class="contact-btn" href="https://t.me/atomotin" target="_blank" rel="noreferrer">📱 Связь</a>
       <button id="muteBtn" class="btn btn-outline" onclick="toggleMute()" style="padding:8px 12px; font-size:16px; border: 2px solid var(--primary); background: rgba(157, 78, 221, 0.1);">▶️</button>
     </div>
   </div>
@@ -1167,7 +1167,7 @@
 
     function updateCartButton() {
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
-      document.getElementById("cartBtn").textContent = `Корзина (${totalItems})`;
+      document.getElementById("cartBtn").textContent = `🛍️ Корзина (${totalItems})`;
     }
 
     function switchView(view) {

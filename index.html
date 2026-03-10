@@ -15,6 +15,10 @@
       --accent-1: #7209b7;
       --accent-2: #c77dff;
       --accent-3: #e0aaff;
+      --lime: #c6ff33;
+      --lime-soft: #d7ff70;
+      --lime-deep: #99cf00;
+      --lime-border: #e4ff9a;
       --text: #ffffff;
       --text-muted: rgba(255, 255, 255, 0.7);
       --text-muted-2: rgba(255, 255, 255, 0.45);
@@ -359,27 +363,33 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--accent-2));
-      color: #ffffff;
+      background: linear-gradient(135deg, var(--lime-soft), var(--lime));
+      color: #182100;
+      border: 2px solid var(--lime-border);
       font-weight: bold;
-      box-shadow: 0 8px 24px rgba(157, 78, 221, 0.4);
+      box-shadow: 0 10px 24px rgba(198, 255, 51, 0.28);
       transition: all 0.3s ease;
     }
 
     .btn-primary:hover {
-      box-shadow: 0 12px 32px rgba(157, 78, 221, 0.6);
+      background: linear-gradient(135deg, #dcff87, var(--lime));
+      border-color: #f0ffc2;
+      box-shadow: 0 14px 32px rgba(198, 255, 51, 0.34);
       transform: translateY(-2px);
     }
 
     .btn-primary:active {
-      box-shadow: 0 4px 12px rgba(157, 78, 221, 0.5);
-      transform: scale(0.95);
+      background: linear-gradient(135deg, var(--lime-deep), #b7ef22);
+      color: #101700;
+      border-color: #d6f57d;
+      box-shadow: inset 0 3px 10px rgba(74, 99, 0, 0.28), 0 4px 12px rgba(198, 255, 51, 0.18);
+      transform: scale(0.96);
     }
 
     .btn-outline {
-      background: rgba(157, 78, 221, 0.1);
-      color: var(--primary);
-      border: 2px solid var(--primary);
+      background: rgba(198, 255, 51, 0.12);
+      color: var(--lime-soft);
+      border: 2px solid rgba(198, 255, 51, 0.5);
     }
 
     .btn-danger {
@@ -587,29 +597,36 @@
     }
 
     .bottom-nav-inner {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr 0.9fr 0.72fr;
       gap: 4px;
       width: min(360px, calc(100% - 24px));
       margin: 0 auto;
       padding: 10px 0 12px;
+      align-items: stretch;
     }
 
     .bottom-nav button,
     .bottom-nav a {
-      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
       text-decoration: none;
-      min-height: 54px;
-      padding: 12px 6px;
+      min-height: 72px;
+      padding: 12px 8px;
       border-radius: 12px;
       border: 1px solid var(--border-light);
       background: rgba(157, 78, 221, 0.05);
       color: white;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.25;
       cursor: pointer;
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
+      white-space: normal;
     }
 
     .bottom-nav button:hover,
@@ -627,7 +644,16 @@
     }
 
     .contact-btn {
-      flex: 0.8;
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+
+    #muteBtn {
+      min-height: 72px;
+      padding: 12px;
+      font-size: 24px;
+      border: 2px solid var(--primary);
+      background: rgba(157, 78, 221, 0.1);
     }
 
     .hidden {
@@ -754,7 +780,7 @@
       <button id="shopBtn" class="active" onclick="switchView('shop')">🏪 Магазин</button>
       <button id="cartBtn" onclick="switchView('cart')">🛍️ Корзина (0)</button>
       <a class="contact-btn" href="https://t.me/atomotin" target="_blank" rel="noreferrer">📱 Связь</a>
-      <button id="muteBtn" class="btn btn-outline" onclick="toggleMute()" style="min-height:54px; padding:12px 12px; font-size:16px; border: 2px solid var(--primary); background: rgba(157, 78, 221, 0.1);">▶️</button>
+      <button id="muteBtn" class="btn btn-outline" onclick="toggleMute()">▶️</button>
     </div>
   </div>
 

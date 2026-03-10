@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechGear.uz Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg-dark: #060608;
+      --primary: #9d4edd;
+      --primary-light: #b5a4ff;
+      --primary-dark: #3d2645;
+      --accent-1: #7209b7;
+      --accent-2: #c77dff;
+      --accent-3: #e0aaff;
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.7);
+      --text-muted-2: rgba(255, 255, 255, 0.45);
+      --border: rgba(157, 78, 221, 0.2);
+      --border-light: rgba(157, 78, 221, 0.1);
+      --shadow: 0 8px 32px rgba(157, 78, 221, 0.15);
+      --shadow-lg: 0 20px 60px rgba(157, 78, 221, 0.25);
+      --radius-md: 16px;
+      --radius-lg: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #0d0410 100%);
+      color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      padding-bottom: 92px;
+    } 
+
+    .container {
+      max-width: 430px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .header,
+    .section,
+    .card {
+      background: rgba(15, 15, 25, 0.9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .header {
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+      background: rgba(157,78,221,0.08);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .brand-fallback {
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      display: none;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 6px;
+      line-height: 1.1;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(157, 78, 221, 0.2), rgba(199, 125, 255, 0.15));
+      border: 1.5px solid var(--primary);
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-weight: 600;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .search-box input,
+    .checkout input,
+    .checkout textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 2px solid var(--border);
+      background: rgba(157, 78, 221, 0.05);
+      color: var(--text);
+      outline: none;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .search-box input:focus,
+    .checkout input:focus,
+    .checkout textarea:focus {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(157, 78, 221, 0.2);
+      background: rgba(157, 78, 221, 0.08);
+    }
+
+    .search-box input::placeholder,
+    .checkout input::placeholder,
+    .checkout textarea::placeholder {
+      color: var(--text-muted-2);
+    }
+
+    .categories {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .categories::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      border: 2px solid var(--border);
+      background: rgba(157, 78, 221, 0.05);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 14px;
+      transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+      position: relative;
+    }
+
+    .chip:hover {
+      border-color: var(--primary-light);
+      background: rgba(157, 78, 221, 0.1);
+    }
+
+    .chip.active {
+      background: linear-gradient(135deg, var(--primary), var(--accent-2));
+      color: #ffffff;
+      font-weight: bold;
+      border-color: var(--accent-3);
+      box-shadow: 0 8px 24px rgba(157, 78, 221, 0.4);
+    }
+
+    .product-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      overflow: hidden;
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 120%;
+      height: 120%;
+      background: linear-gradient(45deg, var(--accent-1) 0%, transparent 70%);
+      mix-blend-mode: screen;
+      opacity: 0.15;
+      pointer-events: none;
+      transform: translateX(-100%) skewX(-15deg);
+      transition: transform 0.6s ease, opacity 0.6s ease;
+      z-index: 1;
+    }
+
+    .card:hover::before {
+      transform: translateX(0) skewX(-15deg);
+      opacity: 0.25;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      border-color: var(--primary);
+      box-shadow: var(--shadow-lg), inset 0 0 20px rgba(157, 78, 221, 0.05);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      display: block;
+      border-bottom: 2px solid var(--border);
+      background: linear-gradient(135deg, var(--primary-dark) 0%, rgba(114, 9, 183, 0.2) 100%);
+      transition: transform 0.5s cubic-bezier(0.23, 1, 0.320, 1), filter 0.5s ease;
+      position: relative;
+    }
+
+    .card:hover .product-image {
+      transform: scale(1.08);
+      filter: brightness(1.1) saturate(1.2);
+    }
+
+    .card-content {
+      padding: 16px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .stock {
+      display: inline-block;
+      background: rgba(157, 78, 221, 0.12);
+      border-radius: 12px;
+      padding: 6px 10px;
+      font-size: 12px;
+      margin-bottom: 10px;
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .variants {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .variant {
+      background: rgba(157, 78, 221, 0.08);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #ffffff;
+      transition: background 0.3s ease;
+    }
+
+    .variant:hover {
+      background: rgba(157, 78, 221, 0.2);
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .price {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn:active::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent-2));
+      color: #ffffff;
+      font-weight: bold;
+      box-shadow: 0 8px 24px rgba(157, 78, 221, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 12px 32px rgba(157, 78, 221, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary:active {
+      box-shadow: 0 4px 12px rgba(157, 78, 221, 0.5);
+      transform: scale(0.95);
+    }
+
+    .btn-outline {
+      background: rgba(157, 78, 221, 0.1);
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-danger {
+      background: rgba(255, 95, 95, 0.12);
+      color: #ffd4d4;
+      border: 1px solid rgba(255, 95, 95, 0.25);
+    }
+
+    .section {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .section h2 {
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+
+    .section-subtitle {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .field-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 6px;
+    }
+
+    .location-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary {
+      background: linear-gradient(135deg, rgba(157, 78, 221, 0.1), rgba(114, 9, 183, 0.08));
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 14px;
+      font-size: 14px;
+      border: 2px solid var(--border);
+    }
+
+    .summary-row,
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .summary-row {
+      margin-bottom: 8px;
+    }
+
+    .summary-total {
+      font-size: 17px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .cart-item {
+      background: linear-gradient(135deg, rgba(157, 78, 221, 0.06), rgba(114, 9, 183, 0.04));
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .cart-item:hover {
+      background: linear-gradient(135deg, rgba(157, 78, 221, 0.1), rgba(114, 9, 183, 0.08));
+      border-color: var(--primary);
+      transform: translateX(4px);
+      box-shadow: 0 4px 16px rgba(157, 78, 221, 0.15);
+    }
+
+    .cart-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .cart-top h4 {
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .cart-price {
+      color: #ffffff;
+      font-size: 13px;
+      margin-top: 4px;
+      font-weight: bold;
+    }
+
+    .cart-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qty-controls button {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: rgba(157, 78, 221, 0.08);
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s ease;
+      font-weight: bold;
+    }
+
+    .qty-controls button:hover {
+      background: rgba(157, 78, 221, 0.15);
+      border-color: var(--primary);
+      transform: scale(1.05);
+      box-shadow: 0 2px 12px rgba(157, 78, 221, 0.2);
+    }
+
+    .qty-controls button:active {
+      transform: scale(0.95);
+    }
+
+    .footer {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .footer-inner {
+      text-align: center;
+    }
+
+    .footer-brand {
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .footer-brand span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .footer-links {
+      margin: 12px 0;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      text-decoration: none;
+      color: var(--text-muted-2);
+      font-size: 13px;
+      opacity: 0.85;
+      transition: color 0.3s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-muted);
+    }
+
+    .footer-copy {
+      font-size: 11px;
+      color: var(--text-muted-2);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(10, 10, 15, 0.7), rgba(6, 6, 8, 0.95));
+      border-top: 2px solid var(--border);
+      backdrop-filter: blur(20px);
+      z-index: 10;
+      border-top: 1px solid rgba(157, 78, 221, 0.3);
+    }
+
+    .bottom-nav button,
+    .bottom-nav a {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      padding: 14px 10px;
+      border-radius: 16px;
+      border: 1.5px solid var(--border-light);
+      background: rgba(157, 78, 221, 0.05);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bottom-nav button:hover,
+    .bottom-nav a:hover {
+      background: rgba(157, 78, 221, 0.1);
+      border-color: var(--border);
+    }
+
+    .bottom-nav button.active {
+      background: linear-gradient(135deg, var(--primary), var(--accent-2));
+      color: #ffffff;
+      font-weight: bold;
+      border-color: var(--accent-3);
+      box-shadow: 0 8px 24px rgba(157, 78, 221, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.05);
+    }
+
+    .contact-btn {
+      flex: 0.8;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .empty-text {
+      color: var(--text-muted);
+      line-height: 1.5;
+      text-align: center;
+      padding: 18px 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- нажми, чтобы включить музыку -->
+  <div id="musicPrompt" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);color:white;display:flex;align-items:center;justify-content:center;z-index:1000;cursor:pointer;">
+    Нажми, чтобы включить музыку
+  </div>
+  <div class="container">
+    <div class="header">
+      <div class="header-top">
+        <div class="brand-wrap">
+          <div class="brand-logo">
+            <img src="images.img/Снимок экрана 2026-02-17 092800.png" alt="TechGear logo" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
+            <div id="logoFallback" class="brand-fallback">TG</div>
+          </div>
+          <div>
+            <h1>TechGear.uz</h1>
+            <p>Аксессуары для сетапа, гейминга и рабочего стола</p>
+          </div>
+        </div>
+        <div class="badge-pill">⚡ Mini App</div>
+      </div>
+    </div>
+
+    <div id="shopView">
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Поиск товара" />
+        </div>
+        <div class="categories" id="categories"></div>
+      </div>
+      <div class="product-list" id="productList"></div>
+    </div>
+
+    <div id="cartView" class="hidden">
+      <div class="section">
+        <h2>Корзина</h2>
+        <div id="cartItems"></div>
+      </div>
+
+      <div class="section checkout">
+        <h2>Оформление заказа</h2>
+        <div class="section-subtitle">Заполните данные один раз. Они сохранятся на устройстве для следующих заказов.</div>
+
+        <div class="field-group">
+          <div>
+            <div class="field-label">Имя *</div>
+            <input type="text" id="customerName" placeholder="Ваше имя" />
+          </div>
+
+          <div>
+            <div class="field-label">Телефон *</div>
+            <input type="tel" id="customerPhone" placeholder="Например: +998 94 641 10 10" />
+          </div>
+
+          <div>
+            <div class="field-label">Telegram username</div>
+            <input type="text" id="customerUsername" placeholder="Ваш @username" />
+            <div class="hint">Укажите ваш Telegram username, если он установлен</div>
+          </div>
+
+          <div>
+            <div class="field-label">Точный адрес / ориентир *</div>
+            <textarea id="customerDelivery" rows="3" placeholder="Например: Чиланзар, 19 квартал, возле метро"></textarea>
+          </div>
+
+          <div class="location-row">
+            <div>
+              <div class="field-label">Точная локация *</div>
+              <input type="text" id="customerLocation" placeholder="Сначала нажмите кнопку ниже" readonly />
+            </div>
+            <button class="btn btn-outline" type="button" onclick="requestUserLocation()">📍 Получить мою локацию</button>
+            <div class="hint">Локация откроется в Yandex Maps у тебя в заказе.</div>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="summary-row">
+            <span>Товаров</span>
+            <span id="summaryItems">0</span>
+          </div>
+          <div class="summary-total">
+            <span>Итого</span>
+            <span id="summaryTotal">0 сум</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="submitOrder()">
+          Оформить заказ
+        </button>
+
+        <footer class="footer">
+          <div class="footer-inner">
+            <div class="footer-brand">
+              <strong>TechGear.uz</strong>
+              <span>Аксессуары для сетапа, гейминга и рабочего стола</span>
+            </div>
+            <div class="footer-links">
+              <a href="https://t.me/techgear_uz" target="_blank" rel="noreferrer">📢 Наш канал</a>
+              <a href="https://t.me/atomotin" target="_blank" rel="noreferrer">💬 Написать менеджеру</a>
+            </div>
+            <div class="footer-copy">© 2026 TechGear.uz — Все права защищены</div>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgm" crossorigin="anonymous"></audio>
+    <div class="bottom-nav">
+    <div class="bottom-nav-inner" style="display:flex; gap:8px;">
+      <button id="shopBtn" class="active" onclick="switchView('shop')">Магазин</button>
+      <button id="cartBtn" onclick="switchView('cart')">Корзина (0)</button>
+      <a class="contact-btn" href="https://t.me/atomotin" target="_blank" rel="noreferrer">Связь</a>
+      <button id="muteBtn" class="btn btn-outline" onclick="toggleMute()" style="padding:8px 12px; font-size:16px; border: 2px solid var(--primary); background: rgba(157, 78, 221, 0.1);">▶️</button>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp || null;
+    
+    // Музыка — полная система
+    let audioElement = null;
+    let isPlaying = false;
+    
+    function initAudio() {
+      audioElement = document.getElementById('bgm');
+      if (!audioElement) return;
+      
+      // Попробовать несколько источников (все должны быть прямыми ссылками на mp3)
+      const urls = [
+        'songs/SQWOZ BAB - TOKYO (zaycev.net).mp3',
+        // 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+        // 'https://files.freemusicarchive.org/storage/files/000/000/001/chosic-com-Glance_Back_Lofi_Background_Music_7565.mp3'
+      ];
+      
+      audioElement.src = urls[0];
+      audioElement.loop = true;
+      audioElement.volume = 1.0;
+      
+      audioElement.addEventListener('play', () => {
+        isPlaying = true;
+        updateBtn();
+      });
+      audioElement.addEventListener('pause', () => {
+        isPlaying = false;
+        updateBtn();
+      });
+      let currentIndex = 0;
+      audioElement.addEventListener('error', (e) => {
+        console.error('Ошибка загрузки музыки для', audioElement.src, e);
+        // попробовать следующий URL
+        currentIndex += 1;
+        if (currentIndex < urls.length) {
+          audioElement.src = urls[currentIndex];
+          console.log('Пробуем источник', audioElement.src);
+          audioElement.load();
+          audioElement.play().catch(err => console.warn('Автозапуск после ошибки заблокирован:', err));
+        } else {
+          console.warn('Все источники не загрузились');
+        }
+      });
+      
+      // Автозапуск при загрузке - несколько попыток
+      const autoplay = () => {
+        const playPromise = audioElement.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            isPlaying = true;
+            updateBtn();
+            console.log('Музыка успешно запущена');
+          }).catch((err) => {
+            console.warn('Попытка запуска заблокирована:', err.name);
+            // Попробовать снова через 1 сек
+            setTimeout(autoplay, 1000);
+          });
+        }
+      };
+      
+        // Запустить сразу и при клике/тапе, логируем
+      console.log('Попытка автозапуска музыки');
+      autoplay();
+      document.addEventListener('click', autoplay, { once: true });
+      document.addEventListener('touchstart', autoplay, { once: true });
+
+      // Telegram MainButton (если есть) - ещё один жест
+      if (tg && tg.MainButton) {
+        tg.MainButton.setText('▶ Музыка');
+        tg.MainButton.show();
+        tg.onEvent('mainButtonClicked', () => {
+          autoplay();
+          tg.MainButton.hide();
+          promptHide();
+        });
+      }
+
+      // overlay prompt click hides and triggers
+      const prompt = document.getElementById('musicPrompt');
+      function promptHide() {
+        if (prompt) prompt.style.display = 'none';
+      }
+      if (prompt) {
+        prompt.addEventListener('click', () => {
+          autoplay();
+          promptHide();
+          if (tg && tg.MainButton) tg.MainButton.hide();
+        });
+      }
+    }
+    
+    function toggleMute() {
+      if (!audioElement) {
+        initAudio();
+      }
+      
+      if (audioElement.paused) {
+        audioElement.play().then(() => {
+          isPlaying = true;
+          updateBtn();
+        }).catch(err => console.warn('Ошибка play:', err));
+      } else {
+        audioElement.pause();
+        isPlaying = false;
+        updateBtn();
+      }
+    }
+    
+    function updateBtn() {
+      const btn = document.getElementById('muteBtn');
+      if (!btn) return;
+      btn.textContent = isPlaying ? '⏸️' : '▶️';
+    }
+    
+    // Инициализировать при загрузке страницы
+    window.addEventListener('DOMContentLoaded', initAudio);
+    const STORAGE_KEYS = {
+      cart: "techgear_cart_v1",
+      checkout: "techgear_checkout_v1",
+    };
+
+    const CONFIG = {
+      requireLocation: true,
+    };
+
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      try {
+        tg.setHeaderColor("#0b0b0d");
+        tg.setBackgroundColor("#0b0b0d");
+      } catch (e) {}
+    }
+
+    const PRODUCTS = [
+      { id: 1, name: "Скользящие ножки PTFE 8 шт", category: "mouse", price: 15000, image: "images.img/e3fe645c-66fc-4920-93b4-3481232a0570.png", desc: "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.", stock: "В наличии", variants: ["Белые"] },
+      { id: 2, name: "Скользящие ножки PTFE 8 шт", category: "mouse", price: 20000, image: "images.img/e43af780-7067-406f-aff7-b9f3ac634b4d.png", desc: "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.", stock: "В наличии", variants: ["Чёрные"] },
+      { id: 3, name: "Скользящие ножки PTFE 8 шт", category: "mouse", price: 17000, image: "images.img/1ed7398e-cb88-4183-87fb-39b4143ce9d6.png", desc: "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.", stock: "В наличии", variants: ["Красные"] },
+      { id: 4, name: "Скользящие ножки PTFE 8 шт", category: "mouse", price: 18000, image: "images.img/7a3501c8-057e-4ba9-94cd-4fbcb5c32dfe.png", desc: "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.", stock: "В наличии", variants: ["Фиолетовые"] },
+      { id: 9, name: "Кейкапы PBT Side-Print Profile 4.0", category: "keyboard", price: 120000, image: "images.img/photo_2026-03-09_19-50-59.jpg", desc: "130 клавиш, боковая гравировка, RGB-friendly, для MX-переключателей.", stock: "Под заказ 9–15 дней", variants: ["Белый", "Чёрный", "Зелёный", "Серо-белый", "Чёрно-розовый"] },
+      { id: 10, name: "Набор для чистки механической клавиатуры 3 в 1", category: "keyboard", price: 55000, image: "images.img/photo_2026-03-09_19-51-10.jpg", desc: "Съёмник кейкапов и свитчей, щётка и микрофибра.", stock: "Под заказ 9–15 дней", variants: [] },
+      { id: 11, name: "Rapoo V500 Alloy механическая клавиатура", category: "keyboard", price: 0, image: "images.img/photo_2026-03-09_19-54-48.jpg", desc: "Blue Switch, TKL 87 клавиш, металлическая панель, Anti-Ghosting. Цена уточняется.", stock: "В наличии", variants: [] },
+      { id: 12, name: "Игровая мышь Rapoo V25S", category: "mouse", price: 0, image: "images.img/photo_2026-03-09_19-56-48.jpg", desc: "До 6200 DPI, 1000 Гц, LED-подсветка, проводная USB. Цена уточняется.", stock: "В наличии", variants: [] },
+      { id: 13, name: "ATK A9 SE беспроводная мышь", category: "mouse", price: 350000, image: "images.img/photo_2026-03-09_19-56-53.jpg", desc: "До 18 000 DPI, 1000 Hz, Bluetooth / 2.4G / USB-C, вес ~53 г.", stock: "В наличии", variants: ["Белый"] },
+      { id: 14, name: "ATK DragonFly A9 Plus", category: "mouse", price: 400000, image: "images.img/photo_2026-03-09_23-03-00.jpg", desc: "PixArt PAW3395, до 26 000 DPI, 57 г, NearLink / Bluetooth / USB.", stock: "В наличии", variants: ["Белый", "Чёрный", "Розовый"] },
+      { id: 15, name: "Подставка для наушников универсальная", category: "headphones", price: 60000, image: "images.img/photo_2026-03-09_23-03-33.jpg", desc: "Минималистичная настольная подставка, прочная 3D-печать.", stock: "В наличии", variants: ["Чёрный"] },
+      { id: 16, name: "Фигурка Hollow Knight", category: "decor", price: 50000, image: "images.img/photo_2026-03-09_23-03-53.jpg", desc: "Коллекционная фигурка для сетапа, полки или рабочего стола.", stock: "В наличии", variants: [] },
+      { id: 17, name: "Держатель для наушников LEGO Hand", category: "headphones", price: 80000, image: "images.img/photo_2026-03-09_23-04-09.jpg", desc: "Яркий настольный держатель, высота ~30.5 см.", stock: "В наличии", variants: ["Красный / жёлтый"] },
+      { id: 18, name: "Подставка для наушников Minecraft меч", category: "headphones", price: 100000, image: "images.img/photo_2026-03-09_23-04-21.jpg", desc: "Пиксельный дизайн, прочный пластик, отлично для геймерского сетапа.", stock: "В наличии", variants: [] },
+      { id: 19, name: "Screen Light Bar 34 см", category: "lighting", price: 130000, image: "images.img/photo_2026-03-09_23-05-00.jpg", desc: "Для ноутбуков 14–17 дюймов, без бликов на экране.", stock: "В наличии", variants: [] },
+      { id: 20, name: "Screen Light Bar 51 см", category: "lighting", price: 160000, image: "images.img/photo_2026-03-09_23-05-20.jpg", desc: "Для мониторов 17–24 дюйма, 3 режима температуры.", stock: "В наличии", variants: [] },
+      { id: 21, name: "Screen Light Bar 61 см", category: "lighting", price: 200000, image: "images.img/photo_2026-03-09_23-04-36.jpg", desc: "Для мониторов 27–32 дюйма, USB питание, таймер, диммер.", stock: "В наличии", variants: [] },
+      { id: 22, name: "3D LED лампа Геймпад", category: "decor", price: 80000, image: "images.img/photo_2026-03-09_23-05-44.jpg", desc: "16 цветов, пульт, сенсорное управление, USB или AA батарейки.", stock: "В наличии", variants: ["2 варианта свечения"] }
+    ];
+
+    const CATEGORIES = [
+      { key: "all", label: "Все" },
+      { key: "mouse", label: "Мыши" },
+      { key: "keyboard", label: "Клавиатуры" },
+      { key: "headphones", label: "Подставки" },
+      { key: "lighting", label: "Свет" },
+      { key: "decor", label: "Декор" }
+    ];
+
+    let state = {
+      activeCategory: "all",
+      search: "",
+      cart: loadStorage(STORAGE_KEYS.cart, []),
+      checkout: loadStorage(STORAGE_KEYS.checkout, {
+        name: "",
+        phone: "",
+        username: "",
+        delivery: "",
+        location: "",
+      }),
+    };
+
+    function loadStorage(key, fallback) {
+      try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function saveStorage(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {}
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatPrice(value) {
+      if (!value) return "Цена по запросу";
+      return new Intl.NumberFormat("ru-RU").format(value) + " сум";
+    }
+
+    function getTelegramUser() {
+      return tg?.initDataUnsafe?.user || null;
+    }
+
+    function hydrateCheckoutFromTelegram() {
+      const user = getTelegramUser();
+      const nameInput = document.getElementById("customerName");
+      const usernameInput = document.getElementById("customerUsername");
+
+      if (!user) return false;
+
+      if (user.first_name && !state.checkout.name) {
+        state.checkout.name = user.first_name;
+      }
+
+      if (user.username) {
+        state.checkout.username = "@" + user.username;
+      }
+
+      if (nameInput && state.checkout.name) {
+        nameInput.value = state.checkout.name;
+      }
+
+      if (usernameInput) {
+        usernameInput.value = state.checkout.username || "";
+      }
+
+      saveStorage(STORAGE_KEYS.checkout, state.checkout);
+      return !!user.username;
+    }
+
+    function waitForTelegramUser(attempt = 0) {
+      const success = hydrateCheckoutFromTelegram();
+      if (success) return;
+      if (attempt < 10) {
+        setTimeout(() => waitForTelegramUser(attempt + 1), 500);
+      }
+    }
+
+    function persistCheckoutFields() {
+      state.checkout = {
+        name: document.getElementById("customerName")?.value.trim() || state.checkout.name || "",
+        phone: document.getElementById("customerPhone")?.value.trim() || state.checkout.phone || "",
+        username: document.getElementById("customerUsername")?.value.trim() || state.checkout.username || "",
+        delivery: document.getElementById("customerDelivery")?.value.trim() || state.checkout.delivery || "",
+        location: document.getElementById("customerLocation")?.value.trim() || state.checkout.location || "",
+      };
+      saveStorage(STORAGE_KEYS.checkout, state.checkout);
+    }
+
+    function fillCheckoutFields() {
+      document.getElementById("customerName").value = state.checkout.name || "";
+      document.getElementById("customerPhone").value = state.checkout.phone || "";
+      document.getElementById("customerUsername").value = state.checkout.username || "";
+      document.getElementById("customerDelivery").value = state.checkout.delivery || "";
+      document.getElementById("customerLocation").value = state.checkout.location || "";
+      waitForTelegramUser();
+    }
+
+    function renderCategories() {
+      const wrap = document.getElementById("categories");
+      wrap.innerHTML = "";
+
+      CATEGORIES.forEach((cat) => {
+        const btn = document.createElement("button");
+        btn.className = "chip" + (cat.key === state.activeCategory ? " active" : "");
+        btn.textContent = cat.label;
+        btn.onclick = () => {
+          state.activeCategory = cat.key;
+          renderCategories();
+          renderProducts();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+    function getFilteredProducts() {
+      const query = state.search.trim().toLowerCase();
+      return PRODUCTS.filter((product) => {
+        const byCategory = state.activeCategory === "all" || product.category === state.activeCategory;
+        const bySearch = !query || [product.name, product.desc, ...(product.variants || [])].join(" ").toLowerCase().includes(query);
+        return byCategory && bySearch;
+      });
+    }
+
+    function renderProducts() {
+      const list = document.getElementById("productList");
+      const filtered = getFilteredProducts();
+      list.innerHTML = "";
+
+      if (!filtered.length) {
+        list.innerHTML = '<div class="empty-text">Ничего не найдено.</div>';
+        return;
+      }
+
+      filtered.forEach((product) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const variantsHtml = (product.variants || []).length
+          ? `<div class="variants">${product.variants.map((v) => `<span class="variant">${escapeHtml(v)}</span>`).join("")}</div>`
+          : "";
+
+        card.innerHTML = `
+          ${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" class="product-image">` : ""}
+          <div class="card-content">
+            <h3>${escapeHtml(product.name)}</h3>
+            <div class="desc">${escapeHtml(product.desc)}</div>
+            <div class="stock">${escapeHtml(product.stock)}</div>
+            ${variantsHtml}
+            <div class="meta-row">
+              <div class="price">${formatPrice(product.price)}</div>
+              <button class="btn btn-primary" type="button">В корзину</button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector("button").onclick = () => addToCart(product.id);
+        list.appendChild(card);
+      });
+    }
+
+    function addToCart(productId) {
+      const product = PRODUCTS.find((p) => p.id === productId);
+      const existing = state.cart.find((item) => item.id === productId);
+      if (!product) return;
+
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        state.cart.push({ ...product, qty: 1 });
+      }
+
+      persistCart();
+      renderCart();
+      updateCartButton();
+      tg?.HapticFeedback?.impactOccurred?.("light");
+    }
+
+    function increaseQty(id) {
+      const item = state.cart.find((i) => i.id === id);
+      if (!item) return;
+      item.qty += 1;
+      persistCart();
+      renderCart();
+      updateCartButton();
+    }
+
+    function decreaseQty(id) {
+      const item = state.cart.find((i) => i.id === id);
+      if (!item) return;
+      item.qty -= 1;
+      if (item.qty <= 0) {
+        state.cart = state.cart.filter((i) => i.id !== id);
+      }
+      persistCart();
+      renderCart();
+      updateCartButton();
+    }
+
+    function removeItem(id) {
+      state.cart = state.cart.filter((i) => i.id !== id);
+      persistCart();
+      renderCart();
+      updateCartButton();
+    }
+
+    function persistCart() {
+      saveStorage(STORAGE_KEYS.cart, state.cart);
+    }
+
+    function renderCart() {
+      const wrap = document.getElementById("cartItems");
+      const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+      const total = state.cart.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0);
+
+      document.getElementById("summaryItems").textContent = totalItems;
+      document.getElementById("summaryTotal").textContent = formatPrice(total);
+
+      if (!state.cart.length) {
+        wrap.innerHTML = '<div class="empty-text">Корзина пока пустая.</div>';
+        return;
+      }
+
+      wrap.innerHTML = "";
+      state.cart.forEach((item) => {
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerHTML = `
+          <div class="cart-top">
+            <div>
+              <h4>${escapeHtml(item.name)}</h4>
+              <div class="cart-price">${formatPrice(item.price)}</div>
+            </div>
+            <button class="btn btn-danger" type="button" style="padding:8px 10px;" onclick="removeItem(${item.id})">✕</button>
+          </div>
+          <div class="cart-actions">
+            <div class="qty-controls">
+              <button type="button" onclick="decreaseQty(${item.id})">-</button>
+              <span>${item.qty}</span>
+              <button type="button" onclick="increaseQty(${item.id})">+</button>
+            </div>
+            <div><strong>${formatPrice((item.price || 0) * item.qty)}</strong></div>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+    }
+
+    function updateCartButton() {
+      const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+      document.getElementById("cartBtn").textContent = `Корзина (${totalItems})`;
+    }
+
+    function switchView(view) {
+      const shopView = document.getElementById("shopView");
+      const cartView = document.getElementById("cartView");
+      const shopBtn = document.getElementById("shopBtn");
+      const cartBtn = document.getElementById("cartBtn");
+
+      if (view === "shop") {
+        shopView.classList.remove("hidden");
+        cartView.classList.add("hidden");
+        shopBtn.classList.add("active");
+        cartBtn.classList.remove("active");
+      } else {
+        shopView.classList.add("hidden");
+        cartView.classList.remove("hidden");
+        shopBtn.classList.remove("active");
+        cartBtn.classList.add("active");
+      }
+    }
+
+    function sanitizePhone(phone) {
+      return phone.replace(/[^\d+]/g, "").trim();
+    }
+
+    function requestUserLocation() {
+      if (!navigator.geolocation) {
+        alert("Геолокация не поддерживается на этом устройстве");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = Number(position.coords.latitude).toFixed(6);
+          const lon = Number(position.coords.longitude).toFixed(6);
+          const value = `${lat}, ${lon}`;
+          document.getElementById("customerLocation").value = value;
+          persistCheckoutFields();
+          alert("Локация успешно получена");
+        },
+        () => {
+          alert("Не удалось получить локацию. Разрешите доступ к геопозиции.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function buildYandexMapsLink(location) {
+      const [lat, lon] = location.split(",").map(part => part.trim());
+      if (!lat || !lon) return location;
+      return `https://yandex.uz/maps/?pt=${encodeURIComponent(lon)},${encodeURIComponent(lat)}&z=16&l=map`;
+    }
+
+    function buildOrderText(payload) {
+      const user = getTelegramUser();
+      const tgMeta = [];
+      if (user?.id) tgMeta.push(`Telegram ID: ${user.id}`);
+      if (user?.username) tgMeta.push(`Telegram профиль: @${user.username}`);
+
+      const lines = [
+        "Новый заказ TechGear",
+        "",
+        `Имя: ${payload.name}`,
+        `Телефон: ${payload.phone}`,
+        `Telegram username: ${payload.username}`,
+        `Адрес / ориентир: ${payload.delivery}`,
+        `Локация: ${payload.location}`,
+        ...tgMeta,
+        payload.location ? `Yandex Maps: ${buildYandexMapsLink(payload.location)}` : "",
+        "",
+        "Товары:",
+        ...state.cart.map((item) => `• ${item.name} × ${item.qty} — ${formatPrice((item.price || 0) * item.qty)}`),
+        "",
+        `Итого: ${formatPrice(payload.total)}`,
+      ];
+
+      return lines.filter(Boolean).join("\n");
+    }
+
+    function submitOrder() {
+      if (!state.cart.length) {
+        alert("Корзина пустая");
+        return;
+      }
+
+      const telegramUser = getTelegramUser();
+      const name = document.getElementById("customerName").value.trim();
+      const phone = sanitizePhone(document.getElementById("customerPhone").value.trim());
+      const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "Не указан");
+      const delivery = document.getElementById("customerDelivery").value.trim();
+      const location = document.getElementById("customerLocation").value.trim();
+
+      if (!name) {
+        alert("Введите ваше имя");
+        return;
+      }
+
+      if (!phone) {
+        alert("Введите номер телефона");
+        return;
+      }
+
+      if (phone.replace(/\D/g, "").length < 9) {
+        alert("Введите корректный номер телефона");
+        return;
+      }
+
+      if (!delivery) {
+        alert("Введите точный адрес или ориентир");
+        return;
+      }
+
+      if (CONFIG.requireLocation && !location) {
+        alert("Сначала отправьте точную локацию");
+        return;
+      }
+
+      const total = state.cart.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0);
+      const payload = { name, phone, username, delivery, location, total };
+
+      state.checkout = payload;
+      saveStorage(STORAGE_KEYS.checkout, state.checkout);
+
+      const orderText = buildOrderText(payload);
+
+      if (tg) {
+        tg.sendData(orderText);
+        tg.showAlert("Заказ отправлен. Скоро мы свяжемся с вами.");
+      } else {
+        alert(orderText);
+      }
+    }
+
+    ["customerName", "customerPhone", "customerDelivery", "customerLocation"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", persistCheckoutFields);
+    });
+
+    document.getElementById("searchInput").addEventListener("input", function (e) {
+      state.search = e.target.value;
+      renderProducts();
+    });
+
+    fillCheckoutFields();
+    renderCategories();
+    renderProducts();
+    renderCart();
+    updateCartButton();
+
+    console.log("TG USER:", getTelegramUser());
+  </script>
+</body>
+</html>

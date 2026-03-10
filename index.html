@@ -197,23 +197,6 @@
       margin-top: 14px;
     }
 
-    .analytics-test-wrap {
-      margin-top: 10px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .analytics-test-btn {
-      padding: 10px 14px;
-      border-radius: 14px;
-      border: 2px solid rgba(198, 255, 51, 0.45);
-      background: rgba(198, 255, 51, 0.12);
-      color: #f3ffd0;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
     .quick-point {
       padding: 12px;
       border-radius: 16px;
@@ -996,9 +979,6 @@
         <div class="quick-point"><strong>Связь</strong>Быстрый ответ в Telegram</div>
         <div class="quick-point"><strong>Подбор</strong>Поможем подобрать аксессуары под сетап</div>
       </div>
-      <div class="analytics-test-wrap">
-        <button class="analytics-test-btn" type="button" onclick="sendAnalyticsTest()">Тест аналитики</button>
-      </div>
     </div>
 
     <div id="shopView">
@@ -1372,8 +1352,37 @@
       return tg?.initDataUnsafe?.user || null;
     }
 
+    function getPlatformLabel() {
+      if (tg?.platform) return tg.platform;
+      const ua = navigator.userAgent || "";
+      if (/iphone|ipad|ios/i.test(ua)) return "ios_browser";
+      if (/android/i.test(ua)) return "android_browser";
+      if (/windows|macintosh|linux/i.test(ua)) return "desktop_browser";
+      return "unknown";
+    }
+
+    function getTelegramDiagnostics() {
+      const user = getTelegramUser();
+      return {
+        has_tg_object: !!tg,
+        has_init_data: !!tg?.initData,
+        has_init_data_unsafe: !!tg?.initDataUnsafe,
+        has_telegram_user: !!user,
+        has_username: !!user?.username,
+        start_param: tg?.initDataUnsafe?.start_param || "",
+        query_id: tg?.initDataUnsafe?.query_id || "",
+        chat_type: tg?.initDataUnsafe?.chat_type || "",
+        chat_instance: tg?.initDataUnsafe?.chat_instance || "",
+        init_data_length: tg?.initData?.length || 0,
+        url: window.location.href,
+        referrer: document.referrer || "",
+        user_agent: navigator.userAgent || "",
+      };
+    }
+
     function getAnalyticsPayload(eventName, extra = {}) {
       const user = getTelegramUser();
+      const fullName = [user?.first_name || "", user?.last_name || ""].filter(Boolean).join(" ").trim();
       return {
         event: eventName,
         session_id: getSessionId(),
@@ -1383,8 +1392,12 @@
         first_name: user?.first_name || "",
         last_name: user?.last_name || "",
         language_code: user?.language_code || "",
-        platform: tg?.platform || "",
-        extra,
+        platform: getPlatformLabel(),
+        extra: {
+          ...getTelegramDiagnostics(),
+          full_name: fullName,
+          ...extra,
+        },
       };
     }
 
@@ -1413,14 +1426,6 @@
       trackEvent("mini_app_open", {
         active_view: state.activeView || "shop",
       });
-    }
-
-    function sendAnalyticsTest() {
-      trackEvent("analytics_test", {
-        source: "manual_button",
-        active_view: state.activeView || "shop",
-      });
-      showToast("Тест аналитики отправлен. Обнови Google Sheet через 3-5 секунд.");
     }
 
     function hydrateCheckoutFromTelegram() {

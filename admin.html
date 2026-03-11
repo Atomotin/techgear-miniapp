@@ -501,6 +501,18 @@
         <section class="panel">
           <h2>Заказы</h2>
           <p class="panel-subtitle">Заказы, отправленные из Mini App через backend. Здесь можно менять статус обработки.</p>
+          <div class="grid two">
+            <label>Поиск заказа<input id="orderSearchInput" type="search" placeholder="Имя, телефон, username, адрес" /></label>
+            <label>Статус
+              <select id="orderStatusFilter">
+                <option value="all">Все</option>
+                <option value="new">new</option>
+                <option value="processing">processing</option>
+                <option value="done">done</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+            </label>
+          </div>
           <div class="collection" id="ordersList"></div>
         </section>
       </div>
@@ -524,7 +536,9 @@
       catalog: { categories: [], products: [] },
       orders: [],
       editingId: null,
-      uploadedImages: []
+      uploadedImages: [],
+      orderSearch: "",
+      orderStatusFilter: "all"
     };
 
     async function api(path, options = {}) {
@@ -792,6 +806,83 @@
       });
     }
 
+    function renderOrders() {
+      const list = document.getElementById("ordersList");
+      const searchValue = state.orderSearch.trim().toLowerCase();
+      const filteredOrders = state.orders.filter((order) => {
+        const matchesStatus = state.orderStatusFilter === "all" || order.status === state.orderStatusFilter;
+        if (!matchesStatus) return false;
+        if (!searchValue) return true;
+
+        const haystack = [
+          order.customer?.name,
+          order.customer?.phone,
+          order.customer?.username,
+          order.customer?.delivery,
+          order.customer?.telegramId
+        ].filter(Boolean).join(" ").toLowerCase();
+
+        return haystack.includes(searchValue);
+      });
+
+      if (!state.orders.length) {
+        list.innerHTML = '<div class="hint">Пока заказов нет.</div>';
+        return;
+      }
+
+      if (!filteredOrders.length) {
+        list.innerHTML = '<div class="hint">По выбранным фильтрам заказы не найдены.</div>';
+        return;
+      }
+
+      list.innerHTML = filteredOrders.map((order) => {
+        const username = String(order.customer?.username || "").replace(/^@/, "");
+        const telegramLink = username ? `https://t.me/${encodeURIComponent(username)}` : "";
+        const phoneLink = order.customer?.phone ? `tel:${String(order.customer.phone).replace(/[^\d+]/g, "")}` : "";
+
+        return `
+          <article class="order-card">
+            <div class="order-top">
+              <div>
+                <h3>${escapeHtml(order.customer?.name || "Без имени")}</h3>
+                <div class="muted">${escapeHtml(order.customer?.phone || "")}</div>
+                ${username ? `<div class="muted">@${escapeHtml(username)}</div>` : ""}
+              </div>
+              <span class="status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
+            </div>
+            <div class="badge-row">
+              <span class="badge">${new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+              <span class="badge">${formatPrice(order.total)}</span>
+            </div>
+            <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
+            <div class="muted" style="margin-top:10px;">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
+            <div class="product-actions">
+              ${telegramLink ? `<a class="btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
+              ${phoneLink ? `<a class="btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
+              <button class="btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
+              <button class="btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
+              <button class="btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      list.querySelectorAll("[data-status]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const [orderId, status] = button.dataset.status.split(":");
+          try {
+            await api(`/api/admin/orders/${orderId}`, {
+              method: "PATCH",
+              body: JSON.stringify({ status })
+            });
+            await loadAdminData();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+      });
+    }
+
     function renderAll() {
       renderCategoryOptions();
       renderStats();
@@ -878,6 +969,14 @@
     });
     document.getElementById("refreshBtn").addEventListener("click", loadAdminData);
     document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("orderSearchInput").addEventListener("input", (event) => {
+      state.orderSearch = event.target.value;
+      renderOrders();
+    });
+    document.getElementById("orderStatusFilter").addEventListener("change", (event) => {
+      state.orderStatusFilter = event.target.value;
+      renderOrders();
+    });
     document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
     document.getElementById("newProductBtn").addEventListener("click", () => fillProductForm(null));
     document.getElementById("uploadImagesBtn").addEventListener("click", uploadSelectedImages);

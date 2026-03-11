@@ -8,6 +8,7 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
+const IMAGE_UPLOAD_DIR = path.join(ROOT_DIR, "images.img");
 const CATALOG_PATH = path.join(DATA_DIR, "catalog.json");
 const ORDERS_PATH = path.join(DATA_DIR, "orders.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
@@ -44,6 +45,13 @@ const MIME_TYPES = {
   ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8"
 };
+
+const UPLOAD_EXTENSIONS = new Map([
+  ["image/jpeg", ".jpg"],
+  ["image/png", ".png"],
+  ["image/webp", ".webp"],
+  ["image/svg+xml", ".svg"]
+]);
 
 function createHttpError(statusCode, message) {
   const error = new Error(message);
@@ -653,6 +661,26 @@ function sendText(res, statusCode, payload) {
   res.end(payload);
 }
 
+function readBinaryBody(req, maxSize = 1024 * 1024 * 8) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+
+    req.on("data", (chunk) => {
+      total += chunk.length;
+      if (total > maxSize) {
+        reject(createHttpError(413, "Файл слишком большой"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let raw = "";
@@ -680,6 +708,44 @@ function readBody(req) {
 
     req.on("error", reject);
   });
+}
+
+function sanitizeUploadName(fileName) {
+  const parsed = path.parse(String(fileName || "").trim());
+  const safeName = parsed.name
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48) || "image";
+  return safeName;
+}
+
+async function saveAdminUpload(req, url) {
+  const originalName = normalizeString(url.searchParams.get("filename"));
+  const contentType = normalizeString(req.headers["content-type"]).split(";")[0];
+  const extension = UPLOAD_EXTENSIONS.get(contentType);
+
+  if (!extension) {
+    throw createHttpError(400, "Поддерживаются только JPG, PNG, WEBP и SVG");
+  }
+
+  const buffer = await readBinaryBody(req);
+  if (!buffer.length) {
+    throw createHttpError(400, "Пустой файл");
+  }
+
+  fs.mkdirSync(IMAGE_UPLOAD_DIR, { recursive: true });
+  const safeBaseName = sanitizeUploadName(originalName);
+  const fileName = `${Date.now()}-${safeBaseName}${extension}`;
+  const absolutePath = path.join(IMAGE_UPLOAD_DIR, fileName);
+  fs.writeFileSync(absolutePath, buffer);
+
+  return {
+    ok: true,
+    path: `images.img/${fileName}`,
+    fileName
+  };
 }
 
 async function telegramApi(method, payload) {
@@ -921,6 +987,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/admin/orders") {
     sendJson(res, 200, { orders: await storage.getOrders() });
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/uploads") {
+    sendJson(res, 201, await saveAdminUpload(req, url));
     return true;
   }
 

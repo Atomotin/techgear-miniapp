@@ -198,4 +198,4 @@ https://твой-домен/admin
 - [supabase/schema.sql](/c:/Users/User/Desktop/techgear-miniapp/supabase/schema.sql) — структура базы
 - [.env.example](/c:/Users/User/Desktop/techgear-miniapp/.env.example) — список переменных
 - [SETUP_RAILWAY_SUPABASE_RU.md](/c:/Users/User/Desktop/techgear-miniapp/SETUP_RAILWAY_SUPABASE_RU.md) — эта инструкция
-- [DEPLOY_RAILWAY_SUPABASE.md](/c:/Users/User/Desktop/techgear-miniapp/DEPLOY_RAILWAY_SUPABASE.md) — короткая англоязычная версия
+- Этот файл — основная актуальная инструкция по Railway + Supabase для проекта

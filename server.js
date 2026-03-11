@@ -11,9 +11,15 @@ const DATA_DIR = path.join(ROOT_DIR, "data");
 const CATALOG_PATH = path.join(DATA_DIR, "catalog.json");
 const ORDERS_PATH = path.join(DATA_DIR, "orders.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
+
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "techgear-admin";
 const TOKEN_SECRET = process.env.ADMIN_SECRET || crypto.createHash("sha256").update(ADMIN_PASSWORD).digest("hex");
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 12;
+
+const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const SUPABASE_REST_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/rest/v1` : "";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -30,56 +36,10 @@ const MIME_TYPES = {
   ".txt": "text/plain; charset=utf-8"
 };
 
-function ensureDataFiles() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-
-  if (!fs.existsSync(CATALOG_PATH)) {
-    writeJson(CATALOG_PATH, loadLegacyCatalog());
-  }
-
-  if (!fs.existsSync(ORDERS_PATH)) {
-    writeJson(ORDERS_PATH, []);
-  }
-}
-
-function loadLegacyCatalog() {
-  const fallback = {
-    categories: [{ key: "all", label: "Все" }],
-    products: [],
-    updatedAt: new Date().toISOString()
-  };
-
-  if (!fs.existsSync(LEGACY_CATALOG_PATH)) {
-    return fallback;
-  }
-
-  const source = fs.readFileSync(LEGACY_CATALOG_PATH, "utf8");
-  const sandbox = { window: {} };
-
-  try {
-    vm.runInNewContext(source, sandbox, { filename: "card-tovary.js" });
-  } catch (error) {
-    console.error("Failed to seed catalog from card-tovary.js:", error);
-    return fallback;
-  }
-
-  return {
-    categories: sanitizeCategories(Array.isArray(sandbox.window.TECHGEAR_CATEGORIES) ? sandbox.window.TECHGEAR_CATEGORIES : fallback.categories),
-    products: sanitizeProducts(Array.isArray(sandbox.window.TECHGEAR_PRODUCTS) ? sandbox.window.TECHGEAR_PRODUCTS : fallback.products),
-    updatedAt: new Date().toISOString()
-  };
-}
-
-function readJson(filePath, fallback) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    return fallback;
-  }
-}
-
-function writeJson(filePath, value) {
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+function createHttpError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
 }
 
 function normalizeString(value) {
@@ -115,13 +75,18 @@ function sanitizeCategories(categories) {
 
 function sanitizeProduct(product, fallbackId) {
   const explicitImages = Array.isArray(product?.images) ? product.images : [];
-  const normalizedImages = [...explicitImages, product?.image].map((item) => normalizeString(item)).filter(Boolean);
+  const normalizedImages = [...new Set([...explicitImages, product?.image].map((item) => normalizeString(item)).filter(Boolean))];
+  const parsedId = Number(product?.id);
+  const resolvedId = Number.isFinite(parsedId) && parsedId > 0
+    ? parsedId
+    : (Number.isFinite(Number(fallbackId)) && Number(fallbackId) > 0 ? Number(fallbackId) : null);
+  const parsedSortOrder = Number(product?.sortOrder);
 
   return {
-    id: Number(product?.id) || fallbackId,
+    id: resolvedId,
     name: normalizeString(product?.name),
     category: normalizeString(product?.category),
-    sortOrder: Number.isFinite(Number(product?.sortOrder)) ? Number(product.sortOrder) : fallbackId,
+    sortOrder: Number.isFinite(parsedSortOrder) ? parsedSortOrder : (resolvedId || 1),
     isVisible: product?.isVisible !== false,
     isSoon: Boolean(product?.isSoon),
     price: Number(product?.price) || 0,
@@ -137,42 +102,526 @@ function sanitizeProduct(product, fallbackId) {
 function sanitizeProducts(products) {
   return products
     .map((product, index) => sanitizeProduct(product, index + 1))
-    .filter((product) => product.name && product.category);
+    .filter((product) => product.name && product.category)
+    .map((product, index) => ({
+      ...product,
+      id: product.id || index + 1
+    }));
 }
 
-function getCatalog() {
-  const catalog = readJson(CATALOG_PATH, null);
-  if (!catalog) {
-    const seeded = loadLegacyCatalog();
-    writeJson(CATALOG_PATH, seeded);
-    return seeded;
+function loadLegacyCatalog() {
+  const fallback = {
+    categories: [{ key: "all", label: "Все" }],
+    products: [],
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!fs.existsSync(LEGACY_CATALOG_PATH)) {
+    return fallback;
+  }
+
+  const source = fs.readFileSync(LEGACY_CATALOG_PATH, "utf8");
+  const sandbox = { window: {} };
+
+  try {
+    vm.runInNewContext(source, sandbox, { filename: "card-tovary.js" });
+  } catch (error) {
+    console.error("Failed to seed catalog from card-tovary.js:", error);
+    return fallback;
   }
 
   return {
-    categories: sanitizeCategories(Array.isArray(catalog.categories) ? catalog.categories : []),
-    products: sanitizeProducts(Array.isArray(catalog.products) ? catalog.products : []),
-    updatedAt: catalog.updatedAt || new Date().toISOString()
-  };
-}
-
-function saveCatalog(catalog) {
-  const normalized = {
-    categories: sanitizeCategories(catalog.categories || []),
-    products: sanitizeProducts(catalog.products || []),
+    categories: sanitizeCategories(Array.isArray(sandbox.window.TECHGEAR_CATEGORIES) ? sandbox.window.TECHGEAR_CATEGORIES : fallback.categories),
+    products: sanitizeProducts(Array.isArray(sandbox.window.TECHGEAR_PRODUCTS) ? sandbox.window.TECHGEAR_PRODUCTS : fallback.products),
     updatedAt: new Date().toISOString()
   };
-  writeJson(CATALOG_PATH, normalized);
-  return normalized;
 }
 
-function getOrders() {
-  const orders = readJson(ORDERS_PATH, []);
-  return Array.isArray(orders) ? orders : [];
+function buildOrderRecord(payload, req) {
+  const items = Array.isArray(payload.items) ? payload.items : [];
+
+  return {
+    id: Date.now(),
+    status: "new",
+    createdAt: new Date().toISOString(),
+    source: "miniapp",
+    customer: {
+      name: normalizeString(payload.name),
+      phone: normalizeString(payload.phone),
+      username: normalizeString(payload.username),
+      contactMethod: normalizeString(payload.contactMethod),
+      deliveryTime: normalizeString(payload.deliveryTime),
+      delivery: normalizeString(payload.delivery),
+      comment: normalizeString(payload.comment),
+      location: normalizeString(payload.location)
+    },
+    items: items.map((item) => ({
+      id: Number(item.id) || 0,
+      name: normalizeString(item.name),
+      qty: Number(item.qty) || 0,
+      variant: normalizeString(item.variant),
+      price: Number(item.price) || 0
+    })),
+    total: Number(payload.total) || 0,
+    rawText: normalizeString(payload.orderText),
+    telegram: payload.telegram || {},
+    requestMeta: {
+      userAgent: req.headers["user-agent"] || "",
+      ip: req.socket.remoteAddress || ""
+    }
+  };
 }
 
-function saveOrders(orders) {
-  writeJson(ORDERS_PATH, orders);
+function validateOrderPayload(payload) {
+  if (!normalizeString(payload.name)) return "Введите имя";
+  if (!normalizeString(payload.phone)) return "Введите телефон";
+  if (!normalizeString(payload.delivery)) return "Введите адрес";
+  if (!Array.isArray(payload.items) || payload.items.length === 0) return "Добавьте товары";
+  return "";
 }
+
+function readJson(filePath, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function writeJson(filePath, value) {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+}
+
+function ensureDataFiles() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+
+  if (!fs.existsSync(CATALOG_PATH)) {
+    writeJson(CATALOG_PATH, loadLegacyCatalog());
+  }
+
+  if (!fs.existsSync(ORDERS_PATH)) {
+    writeJson(ORDERS_PATH, []);
+  }
+}
+
+function parseSupabaseError(payload, response) {
+  if (payload && typeof payload === "object") {
+    if (payload.code === "23505") {
+      return createHttpError(409, "Запись уже существует");
+    }
+
+    if (payload.code === "23503") {
+      return createHttpError(409, "Связанная запись не найдена");
+    }
+  }
+
+  return createHttpError(response.status || 500, payload?.message || payload?.error || "Supabase request failed");
+}
+
+async function supabaseRequest(method, resource, { query = "", body, prefer, headers = {} } = {}) {
+  if (!SUPABASE_ENABLED) {
+    throw createHttpError(500, "Supabase is not configured");
+  }
+
+  const response = await fetch(`${SUPABASE_REST_URL}/${resource}${query ? `?${query}` : ""}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      ...(prefer ? { Prefer: prefer } : {}),
+      ...headers
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw parseSupabaseError(data, response);
+  }
+
+  return data;
+}
+
+function categoryRowToModel(row) {
+  return {
+    key: normalizeString(row?.key),
+    label: normalizeString(row?.label)
+  };
+}
+
+function productRowToModel(row) {
+  return sanitizeProduct({
+    id: row?.id,
+    name: row?.name,
+    category: row?.category_key,
+    sortOrder: row?.sort_order,
+    isVisible: row?.is_visible,
+    isSoon: row?.is_soon,
+    price: row?.price,
+    image: row?.image,
+    images: Array.isArray(row?.images) ? row.images : [],
+    desc: row?.description,
+    stock: row?.stock,
+    variants: Array.isArray(row?.variants) ? row.variants : [],
+    badge: row?.badge
+  });
+}
+
+function productModelToRow(product, { includeId = true } = {}) {
+  const row = {
+    name: product.name,
+    category_key: product.category,
+    sort_order: product.sortOrder,
+    is_visible: product.isVisible,
+    is_soon: product.isSoon,
+    price: product.price,
+    image: product.image,
+    images: product.images,
+    description: product.desc,
+    stock: product.stock,
+    variants: product.variants,
+    badge: product.badge || null
+  };
+
+  if (includeId && product.id) {
+    row.id = product.id;
+  }
+
+  return row;
+}
+
+function orderRowToModel(row) {
+  return {
+    id: Number(row?.id) || 0,
+    status: normalizeString(row?.status) || "new",
+    createdAt: row?.created_at || new Date().toISOString(),
+    source: normalizeString(row?.source) || "miniapp",
+    customer: row?.customer || {},
+    items: Array.isArray(row?.items) ? row.items : [],
+    total: Number(row?.total) || 0,
+    rawText: normalizeString(row?.raw_text),
+    telegram: row?.telegram || {},
+    requestMeta: row?.request_meta || {}
+  };
+}
+
+function orderModelToRow(order, { includeId = true } = {}) {
+  const row = {
+    status: order.status,
+    created_at: order.createdAt,
+    source: order.source || "miniapp",
+    customer: order.customer || {},
+    items: order.items || [],
+    total: order.total || 0,
+    raw_text: order.rawText || "",
+    telegram: order.telegram || {},
+    request_meta: order.requestMeta || {}
+  };
+
+  if (includeId && order.id) {
+    row.id = order.id;
+  }
+
+  return row;
+}
+
+function createLocalStorageProvider() {
+  function getCatalog() {
+    const catalog = readJson(CATALOG_PATH, null);
+    if (!catalog) {
+      const seeded = loadLegacyCatalog();
+      writeJson(CATALOG_PATH, seeded);
+      return seeded;
+    }
+
+    return {
+      categories: sanitizeCategories(Array.isArray(catalog.categories) ? catalog.categories : []),
+      products: sanitizeProducts(Array.isArray(catalog.products) ? catalog.products : []),
+      updatedAt: catalog.updatedAt || new Date().toISOString()
+    };
+  }
+
+  function saveCatalog(catalog) {
+    const normalized = {
+      categories: sanitizeCategories(catalog.categories || []),
+      products: sanitizeProducts(catalog.products || []),
+      updatedAt: new Date().toISOString()
+    };
+
+    writeJson(CATALOG_PATH, normalized);
+    return normalized;
+  }
+
+  function getOrders() {
+    const orders = readJson(ORDERS_PATH, []);
+    return Array.isArray(orders) ? orders : [];
+  }
+
+  function saveOrders(orders) {
+    writeJson(ORDERS_PATH, orders);
+  }
+
+  return {
+    mode: "local",
+    async init() {
+      ensureDataFiles();
+    },
+    async getCatalog() {
+      return getCatalog();
+    },
+    async getOrders() {
+      return getOrders();
+    },
+    async createOrder(payload, req) {
+      const orders = getOrders();
+      const order = buildOrderRecord(payload, req);
+      orders.unshift(order);
+      saveOrders(orders);
+      return order;
+    },
+    async updateOrderStatus(orderId, status) {
+      const orders = getOrders();
+      const order = orders.find((item) => item.id === orderId);
+
+      if (!order) {
+        throw createHttpError(404, "Заказ не найден");
+      }
+
+      order.status = status;
+      saveOrders(orders);
+      return order;
+    },
+    async addCategory(category) {
+      const catalog = getCatalog();
+
+      if (catalog.categories.some((item) => item.key === category.key)) {
+        throw createHttpError(409, "Категория уже существует");
+      }
+
+      catalog.categories.push(category);
+      return saveCatalog(catalog);
+    },
+    async deleteCategory(categoryKey) {
+      const catalog = getCatalog();
+
+      if (categoryKey === "all") {
+        throw createHttpError(400, "Категорию all удалять нельзя");
+      }
+
+      if (catalog.products.some((item) => item.category === categoryKey)) {
+        throw createHttpError(409, "Сначала перенесите или удалите товары из этой категории");
+      }
+
+      catalog.categories = catalog.categories.filter((item) => item.key !== categoryKey);
+      return saveCatalog(catalog);
+    },
+    async createProduct(body) {
+      const catalog = getCatalog();
+      const nextId = catalog.products.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+      const product = sanitizeProduct(body, nextId);
+
+      if (!product.name || !product.category) {
+        throw createHttpError(400, "У товара должны быть name и category");
+      }
+
+      catalog.products.unshift(product);
+      return saveCatalog(catalog);
+    },
+    async updateProduct(productId, body) {
+      const catalog = getCatalog();
+      const index = catalog.products.findIndex((item) => item.id === productId);
+
+      if (index === -1) {
+        throw createHttpError(404, "Товар не найден");
+      }
+
+      catalog.products[index] = sanitizeProduct({ ...catalog.products[index], ...body, id: productId }, productId);
+      return saveCatalog(catalog);
+    },
+    async deleteProduct(productId) {
+      const catalog = getCatalog();
+      const nextProducts = catalog.products.filter((item) => item.id !== productId);
+
+      if (nextProducts.length === catalog.products.length) {
+        throw createHttpError(404, "Товар не найден");
+      }
+
+      catalog.products = nextProducts;
+      return saveCatalog(catalog);
+    }
+  };
+}
+
+function createSupabaseStorageProvider() {
+  async function getCatalog() {
+    const [categoriesRows, productRows] = await Promise.all([
+      supabaseRequest("GET", "categories", {
+        query: "select=key,label&order=key.asc"
+      }),
+      supabaseRequest("GET", "products", {
+        query: "select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&order=sort_order.asc,id.asc"
+      })
+    ]);
+
+    return {
+      categories: sanitizeCategories((categoriesRows || []).map(categoryRowToModel)),
+      products: sanitizeProducts((productRows || []).map(productRowToModel)),
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  async function ensureSeeded() {
+    const existingCategories = await supabaseRequest("GET", "categories", {
+      query: "select=key&limit=1"
+    });
+
+    if (Array.isArray(existingCategories) && existingCategories.length > 0) {
+      return;
+    }
+
+    const legacyCatalog = loadLegacyCatalog();
+    const categories = sanitizeCategories(legacyCatalog.categories)
+      .map((category) => ({ key: category.key, label: category.label }));
+    const products = sanitizeProducts(legacyCatalog.products)
+      .map((product) => productModelToRow(product, { includeId: true }));
+
+    if (categories.length) {
+      await supabaseRequest("POST", "categories", {
+        body: categories,
+        prefer: "return=representation,resolution=merge-duplicates"
+      });
+    }
+
+    if (products.length) {
+      await supabaseRequest("POST", "products", {
+        body: products,
+        prefer: "return=representation,resolution=merge-duplicates"
+      });
+    }
+  }
+
+  return {
+    mode: "supabase",
+    async init() {
+      await ensureSeeded();
+    },
+    async getCatalog() {
+      return getCatalog();
+    },
+    async getOrders() {
+      const rows = await supabaseRequest("GET", "orders", {
+        query: "select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta&order=created_at.desc"
+      });
+
+      return (rows || []).map(orderRowToModel);
+    },
+    async createOrder(payload, req) {
+      const order = buildOrderRecord(payload, req);
+      const rows = await supabaseRequest("POST", "orders", {
+        body: [orderModelToRow(order, { includeId: true })],
+        prefer: "return=representation"
+      });
+
+      return orderRowToModel(Array.isArray(rows) ? rows[0] : rows);
+    },
+    async updateOrderStatus(orderId, status) {
+      const rows = await supabaseRequest("PATCH", "orders", {
+        query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta`,
+        body: { status },
+        prefer: "return=representation"
+      });
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        throw createHttpError(404, "Заказ не найден");
+      }
+
+      return orderRowToModel(rows[0]);
+    },
+    async addCategory(category) {
+      await supabaseRequest("POST", "categories", {
+        body: [category],
+        prefer: "return=representation"
+      });
+
+      return getCatalog();
+    },
+    async deleteCategory(categoryKey) {
+      if (categoryKey === "all") {
+        throw createHttpError(400, "Категорию all удалять нельзя");
+      }
+
+      const products = await supabaseRequest("GET", "products", {
+        query: `select=id&category_key=eq.${encodeURIComponent(categoryKey)}&limit=1`
+      });
+
+      if (Array.isArray(products) && products.length > 0) {
+        throw createHttpError(409, "Сначала перенесите или удалите товары из этой категории");
+      }
+
+      await supabaseRequest("DELETE", "categories", {
+        query: `key=eq.${encodeURIComponent(categoryKey)}`,
+        headers: {
+          Prefer: "return=minimal"
+        }
+      });
+
+      return getCatalog();
+    },
+    async createProduct(body) {
+      const product = sanitizeProduct(body);
+
+      if (!product.name || !product.category) {
+        throw createHttpError(400, "У товара должны быть name и category");
+      }
+
+      await supabaseRequest("POST", "products", {
+        body: [productModelToRow(product, { includeId: false })],
+        prefer: "return=representation"
+      });
+
+      return getCatalog();
+    },
+    async updateProduct(productId, body) {
+      const existingRows = await supabaseRequest("GET", "products", {
+        query: `select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&id=eq.${encodeURIComponent(productId)}&limit=1`
+      });
+
+      if (!Array.isArray(existingRows) || existingRows.length === 0) {
+        throw createHttpError(404, "Товар не найден");
+      }
+
+      const existingProduct = productRowToModel(existingRows[0]);
+      const product = sanitizeProduct({ ...existingProduct, ...body, id: productId }, productId);
+
+      await supabaseRequest("PATCH", "products", {
+        query: `id=eq.${encodeURIComponent(productId)}`,
+        body: productModelToRow(product, { includeId: false }),
+        prefer: "return=representation"
+      });
+
+      return getCatalog();
+    },
+    async deleteProduct(productId) {
+      const rows = await supabaseRequest("DELETE", "products", {
+        query: `id=eq.${encodeURIComponent(productId)}&select=id`,
+        headers: {
+          Prefer: "return=representation"
+        }
+      });
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        throw createHttpError(404, "Товар не найден");
+      }
+
+      return getCatalog();
+    }
+  };
+}
+
+const storage = SUPABASE_ENABLED ? createSupabaseStorageProvider() : createLocalStorageProvider();
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -259,52 +708,19 @@ function ensureAdmin(req, res) {
   return false;
 }
 
-function buildOrderRecord(payload, req) {
-  const items = Array.isArray(payload.items) ? payload.items : [];
-
-  return {
-    id: Date.now(),
-    status: "new",
-    createdAt: new Date().toISOString(),
-    source: "miniapp",
-    customer: {
-      name: normalizeString(payload.name),
-      phone: normalizeString(payload.phone),
-      username: normalizeString(payload.username),
-      contactMethod: normalizeString(payload.contactMethod),
-      deliveryTime: normalizeString(payload.deliveryTime),
-      delivery: normalizeString(payload.delivery),
-      comment: normalizeString(payload.comment),
-      location: normalizeString(payload.location)
-    },
-    items: items.map((item) => ({
-      id: Number(item.id) || 0,
-      name: normalizeString(item.name),
-      qty: Number(item.qty) || 0,
-      variant: normalizeString(item.variant),
-      price: Number(item.price) || 0
-    })),
-    total: Number(payload.total) || 0,
-    rawText: normalizeString(payload.orderText),
-    telegram: payload.telegram || {},
-    requestMeta: {
-      userAgent: req.headers["user-agent"] || "",
-      ip: req.socket.remoteAddress || ""
-    }
-  };
-}
-
-function validateOrderPayload(payload) {
-  if (!normalizeString(payload.name)) return "Введите имя";
-  if (!normalizeString(payload.phone)) return "Введите телефон";
-  if (!normalizeString(payload.delivery)) return "Введите адрес";
-  if (!Array.isArray(payload.items) || payload.items.length === 0) return "Добавьте товары";
-  return "";
-}
-
 async function handleApi(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/api/health") {
+    sendJson(res, 200, {
+      ok: true,
+      storage: storage.mode,
+      supabaseEnabled: SUPABASE_ENABLED,
+      timestamp: new Date().toISOString()
+    });
+    return true;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/catalog/public") {
-    sendJson(res, 200, getCatalog());
+    sendJson(res, 200, await storage.getCatalog());
     return true;
   }
 
@@ -317,16 +733,14 @@ async function handleApi(req, res, url) {
       return true;
     }
 
-    const orders = getOrders();
-    const order = buildOrderRecord(body, req);
-    orders.unshift(order);
-    saveOrders(orders);
+    const order = await storage.createOrder(body, req);
     sendJson(res, 201, { ok: true, orderId: order.id });
     return true;
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/login") {
     const body = await readBody(req);
+
     if (normalizeString(body.password) !== ADMIN_PASSWORD) {
       sendJson(res, 401, { error: "Неверный пароль" });
       return true;
@@ -345,12 +759,12 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/catalog") {
-    sendJson(res, 200, getCatalog());
+    sendJson(res, 200, await storage.getCatalog());
     return true;
   }
 
   if (req.method === "GET" && url.pathname === "/api/admin/orders") {
-    sendJson(res, 200, { orders: getOrders() });
+    sendJson(res, 200, { orders: await storage.getOrders() });
     return true;
   }
 
@@ -365,22 +779,13 @@ async function handleApi(req, res, url) {
       return true;
     }
 
-    const orders = getOrders();
-    const order = orders.find((item) => item.id === orderId);
-    if (!order) {
-      sendJson(res, 404, { error: "Заказ не найден" });
-      return true;
-    }
-
-    order.status = nextStatus;
-    saveOrders(orders);
+    const order = await storage.updateOrderStatus(orderId, nextStatus);
     sendJson(res, 200, { ok: true, order });
     return true;
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/categories") {
     const body = await readBody(req);
-    const catalog = getCatalog();
     const category = {
       key: normalizeString(body.key),
       label: normalizeString(body.label)
@@ -391,79 +796,32 @@ async function handleApi(req, res, url) {
       return true;
     }
 
-    if (catalog.categories.some((item) => item.key === category.key)) {
-      sendJson(res, 409, { error: "Категория уже существует" });
-      return true;
-    }
-
-    catalog.categories.push(category);
-    sendJson(res, 201, saveCatalog(catalog));
+    sendJson(res, 201, await storage.addCategory(category));
     return true;
   }
 
   if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/categories/")) {
     const categoryKey = decodeURIComponent(url.pathname.split("/").pop() || "");
-    const catalog = getCatalog();
-
-    if (categoryKey === "all") {
-      sendJson(res, 400, { error: "Категорию all удалять нельзя" });
-      return true;
-    }
-
-    if (catalog.products.some((item) => item.category === categoryKey)) {
-      sendJson(res, 409, { error: "Сначала перенесите или удалите товары из этой категории" });
-      return true;
-    }
-
-    catalog.categories = catalog.categories.filter((item) => item.key !== categoryKey);
-    sendJson(res, 200, saveCatalog(catalog));
+    sendJson(res, 200, await storage.deleteCategory(categoryKey));
     return true;
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/products") {
     const body = await readBody(req);
-    const catalog = getCatalog();
-    const nextId = catalog.products.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
-    const product = sanitizeProduct(body, nextId);
-
-    if (!product.name || !product.category) {
-      sendJson(res, 400, { error: "У товара должны быть name и category" });
-      return true;
-    }
-
-    catalog.products.unshift(product);
-    sendJson(res, 201, saveCatalog(catalog));
+    sendJson(res, 201, await storage.createProduct(body));
     return true;
   }
 
   if (req.method === "PUT" && url.pathname.startsWith("/api/admin/products/")) {
     const productId = Number(url.pathname.split("/").pop());
     const body = await readBody(req);
-    const catalog = getCatalog();
-    const index = catalog.products.findIndex((item) => item.id === productId);
-
-    if (index === -1) {
-      sendJson(res, 404, { error: "Товар не найден" });
-      return true;
-    }
-
-    catalog.products[index] = sanitizeProduct({ ...catalog.products[index], ...body, id: productId }, productId);
-    sendJson(res, 200, saveCatalog(catalog));
+    sendJson(res, 200, await storage.updateProduct(productId, body));
     return true;
   }
 
   if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/products/")) {
     const productId = Number(url.pathname.split("/").pop());
-    const catalog = getCatalog();
-    const nextProducts = catalog.products.filter((item) => item.id !== productId);
-
-    if (nextProducts.length === catalog.products.length) {
-      sendJson(res, 404, { error: "Товар не найден" });
-      return true;
-    }
-
-    catalog.products = nextProducts;
-    sendJson(res, 200, saveCatalog(catalog));
+    sendJson(res, 200, await storage.deleteProduct(productId));
     return true;
   }
 
@@ -486,6 +844,7 @@ function resolveFilePath(urlPathname) {
 
 function serveStatic(res, url) {
   const filePath = resolveFilePath(url.pathname);
+
   if (!filePath || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     sendText(res, 404, "Not found");
     return;
@@ -506,14 +865,27 @@ async function requestListener(req, res) {
     if (handled) return;
     serveStatic(res, url);
   } catch (error) {
+    if (error?.statusCode) {
+      sendJson(res, error.statusCode, { error: error.message });
+      return;
+    }
+
     console.error(error);
     sendJson(res, 500, { error: "Internal server error" });
   }
 }
 
-ensureDataFiles();
+async function main() {
+  await storage.init();
 
-http.createServer(requestListener).listen(PORT, HOST, () => {
-  console.log(`TechGear server running at http://localhost:${PORT}`);
-  console.log(`Admin panel: http://localhost:${PORT}/admin`);
+  http.createServer(requestListener).listen(PORT, HOST, () => {
+    console.log(`TechGear server running at http://localhost:${PORT}`);
+    console.log(`Admin panel: http://localhost:${PORT}/admin`);
+    console.log(`Storage mode: ${storage.mode}`);
+  });
+}
+
+main().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
 });

@@ -722,6 +722,25 @@
       margin-bottom: 14px;
     }
 
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-head h2 {
+      margin-bottom: 0;
+    }
+
+    .section-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .section-subtitle {
       color: var(--text-muted);
       font-size: 13px;
@@ -783,6 +802,26 @@
       font-size: 17px;
       font-weight: bold;
       margin-top: 10px;
+    }
+
+    .summary-note {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .checkout-note {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(198, 255, 51, 0.22);
+      background: linear-gradient(135deg, rgba(198, 255, 51, 0.08), rgba(198, 255, 51, 0.03));
+      color: #f3ffd0;
+      font-size: 13px;
+      line-height: 1.45;
     }
 
     .cart-item {
@@ -1104,7 +1143,16 @@
 
     <div id="cartView" class="hidden">
       <div class="section">
-        <h2>Корзина</h2>
+        <div class="section-head">
+          <div>
+            <h2>Корзина</h2>
+            <div class="section-subtitle">Проверь состав заказа перед оформлением и при необходимости измени количество товаров.</div>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-outline" type="button" onclick="switchView('shop')">В каталог</button>
+            <button class="btn btn-danger" type="button" onclick="clearCart()">Очистить</button>
+          </div>
+        </div>
         <div id="cartItems"></div>
       </div>
 
@@ -1169,18 +1217,27 @@
 
         <div class="summary">
           <div class="summary-row">
-            <span>Товаров</span>
+            <span>Позиций</span>
             <span id="summaryItems">0</span>
+          </div>
+          <div class="summary-row">
+            <span>Уникальных товаров</span>
+            <span id="summaryUniqueItems">0</span>
           </div>
           <div class="summary-total">
             <span>Итого</span>
             <span id="summaryTotal">0 сум</span>
           </div>
+          <div class="summary-note">После отправки заказа менеджер свяжется с тобой в Telegram или по телефону.</div>
         </div>
 
-        <button class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="submitOrder()">
+        <button id="submitOrderBtn" class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="submitOrder()">
           Оформить заказ
         </button>
+
+        <div class="checkout-note">
+          Если хочешь сначала обсудить заказ, можно перейти в раздел <strong>Связь</strong> и написать менеджеру напрямую.
+        </div>
 
         <footer class="footer">
           <div class="footer-inner">
@@ -2041,6 +2098,19 @@
       updateCartButton();
     }
 
+    function clearCart() {
+      if (!state.cart.length) {
+        showToast("Корзина уже пустая");
+        return;
+      }
+
+      state.cart = [];
+      persistCart();
+      renderCart();
+      updateCartButton();
+      showToast("Корзина очищена");
+    }
+
     function persistCart() {
       saveStorage(STORAGE_KEYS.cart, state.cart);
     }
@@ -2048,10 +2118,19 @@
     function renderCart() {
       const wrap = document.getElementById("cartItems");
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
+      const uniqueItems = state.cart.length;
       const total = state.cart.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0);
 
       document.getElementById("summaryItems").textContent = totalItems;
+      document.getElementById("summaryUniqueItems").textContent = uniqueItems;
       document.getElementById("summaryTotal").textContent = formatPrice(total);
+
+      const submitBtn = document.getElementById("submitOrderBtn");
+      if (submitBtn) {
+        submitBtn.disabled = !state.cart.length;
+        submitBtn.style.opacity = state.cart.length ? "1" : "0.6";
+        submitBtn.style.cursor = state.cart.length ? "pointer" : "not-allowed";
+      }
 
       if (!state.cart.length) {
         wrap.innerHTML = '<div class="empty-text">Корзина пока пустая.</div>';
@@ -2329,6 +2408,12 @@
         showToast("Заказ сформирован. Проверьте данные ниже.");
         console.log(orderText);
       }
+
+      state.cart = [];
+      persistCart();
+      renderCart();
+      updateCartButton();
+      switchView("shop");
     }
 
     ["customerName", "customerPhone", "customerDelivery", "customerLocation", "customerComment"].forEach((id) => {

@@ -575,6 +575,65 @@
       justify-content: space-between;
       gap: 10px;
       margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .card-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .card-actions-row .btn-primary {
+      flex: 1;
+    }
+
+    .favorite-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      background: rgba(10, 10, 16, 0.22);
+      color: #fff;
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .favorite-btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(198, 255, 51, 0.5);
+      background: rgba(198, 255, 51, 0.12);
+    }
+
+    .favorite-btn.active {
+      color: #151515;
+      background: linear-gradient(135deg, var(--lime), var(--lime-soft));
+      border-color: var(--lime-border);
+      box-shadow: 0 10px 24px rgba(198, 255, 51, 0.28);
+    }
+
+    .favorites-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .favorites-head h2 {
+      font-size: 24px;
+    }
+
+    .favorites-note {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.45;
     }
 
     .price {
@@ -1138,6 +1197,19 @@
         </footer>
       </div>
     </div>
+
+    <div id="favoritesView" class="hidden">
+      <div class="section">
+        <div class="favorites-head">
+          <div>
+            <h2>Избранное</h2>
+            <div class="favorites-note">Сохраняй интересные товары, чтобы быстро возвращаться к ним без нового поиска.</div>
+          </div>
+          <button class="btn btn-outline" type="button" onclick="switchView('shop')">Вернуться в каталог</button>
+        </div>
+        <div class="product-list" id="favoriteList"></div>
+      </div>
+    </div>
   </div>
 
   <audio id="bgm" crossorigin="anonymous"></audio>
@@ -1154,6 +1226,7 @@
   <div class="bottom-nav">
     <div class="bottom-nav-inner">
       <button id="shopBtn" class="active" onclick="switchView('shop')"><span class="nav-icon">🏪</span><span class="nav-label">Магазин</span></button>
+      <button id="favoritesBtn" onclick="switchView('favorites')"><span class="nav-icon">❤</span><span class="nav-label">Избранное (0)</span></button>
       <button id="cartBtn" onclick="switchView('cart')"><span class="nav-icon">🛍️</span><span class="nav-label">Корзина (0)</span></button>
       <a class="contact-btn" href="https://t.me/atomotin" target="_blank" rel="noreferrer"><span class="nav-icon">📱</span><span class="nav-label">Связь</span></a>
       <button id="muteBtn" class="btn btn-outline" onclick="toggleMute()"><span class="nav-icon">▶️</span></button>
@@ -1283,6 +1356,7 @@
     window.addEventListener('DOMContentLoaded', initAudio);
     const STORAGE_KEYS = {
       cart: "techgear_cart_v1",
+      favorites: "techgear_favorites_v1",
       checkout: "techgear_checkout_v1",
       activeView: "techgear_active_view_v1",
     };
@@ -1311,6 +1385,7 @@
       availability: "all",
       sort: "manual",
       cart: loadStorage(STORAGE_KEYS.cart, []),
+      favorites: loadStorage(STORAGE_KEYS.favorites, []),
       checkout: loadStorage(STORAGE_KEYS.checkout, {
         name: "",
         phone: "",
@@ -1581,6 +1656,31 @@
       return "";
     }
 
+    function isFavorite(productId) {
+      return state.favorites.includes(String(productId));
+    }
+
+    function getFavoriteProducts() {
+      const favoriteIds = new Set(state.favorites.map(String));
+      return normalizeProducts(PRODUCTS).filter((product) => favoriteIds.has(String(product.id)));
+    }
+
+    function toggleFavorite(productId) {
+      const key = String(productId);
+      if (isFavorite(key)) {
+        state.favorites = state.favorites.filter((id) => String(id) !== key);
+        showToast("Товар убран из избранного");
+      } else {
+        state.favorites = [...state.favorites, key];
+        showToast("Товар добавлен в избранное");
+      }
+
+      saveStorage(STORAGE_KEYS.favorites, state.favorites);
+      renderProducts();
+      renderFavorites();
+      updateFavoritesButton();
+    }
+
     function renderCategories() {
       const wrap = document.getElementById("categories");
       wrap.innerHTML = "";
@@ -1665,6 +1765,7 @@
           `
           : "";
         const badgeHtml = getProductBadge(product);
+        const favoriteActive = isFavorite(product.id);
 
         card.innerHTML = `
           ${mediaHtml}
@@ -1677,11 +1778,15 @@
             ${variantSelectHtml}
             <div class="meta-row">
               <div class="price">${formatPrice(product.price)}</div>
-              <button class="btn btn-primary" type="button">${product.isSoon ? "Предзаказ" : "В корзину"}</button>
+              <div class="card-actions-row">
+                <button class="favorite-btn${favoriteActive ? " active" : ""}" type="button" aria-label="${favoriteActive ? "Убрать из избранного" : "Добавить в избранное"}">${favoriteActive ? "❤" : "♡"}</button>
+                <button class="btn btn-primary" type="button">${product.isSoon ? "Предзаказ" : "В корзину"}</button>
+              </div>
             </div>
           </div>
         `;
 
+        card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
         card.querySelector(".btn-primary").onclick = () => {
           const select = card.querySelector(".variant-select");
           const selectedVariant = select?.value || product.variants?.[0] || "";
@@ -1689,6 +1794,57 @@
         };
 
         initCardCarousel(card);
+        list.appendChild(card);
+      });
+    }
+
+    function renderFavorites() {
+      const list = document.getElementById("favoriteList");
+      if (!list) return;
+
+      const favorites = getFavoriteProducts();
+      list.innerHTML = "";
+
+      if (!favorites.length) {
+        list.innerHTML = '<div class="empty-text">Пока пусто. Добавляй понравившиеся товары в избранное прямо из каталога.</div>';
+        return;
+      }
+
+      favorites.forEach((product) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        const images = product.images || [];
+        const imageSrc = images[0] ? escapeHtml(images[0]) : "";
+        const badgeHtml = getProductBadge(product);
+
+        card.innerHTML = `
+          ${imageSrc ? `<div class="product-media zoomable" data-single-image="${imageSrc}"><img src="${imageSrc}" alt="${escapeHtml(product.name)}" class="product-image"></div>` : ""}
+          <div class="card-content">
+            ${badgeHtml ? `<div class="card-badges">${badgeHtml}</div>` : ""}
+            <h3>${escapeHtml(product.name)}</h3>
+            <div class="desc">${escapeHtml(product.desc)}</div>
+            <div class="stock">${escapeHtml(product.stock)}</div>
+            <div class="meta-row">
+              <div class="price">${formatPrice(product.price)}</div>
+              <div class="card-actions-row">
+                <button class="favorite-btn active" type="button" aria-label="Убрать из избранного">❤</button>
+                <button class="btn btn-primary" type="button">Открыть</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const media = card.querySelector("[data-single-image]");
+        media?.addEventListener("click", () => openLightbox([media.dataset.singleImage], 0));
+        card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
+        card.querySelector(".btn-primary").onclick = () => {
+          state.activeCategory = product.category || "all";
+          renderCategories();
+          renderProducts();
+          switchView("shop");
+          showToast(`Открыт товар: ${product.name}`);
+        };
+
         list.appendChild(card);
       });
     }
@@ -1937,22 +2093,43 @@
       }
     }
 
+    function updateFavoritesButton() {
+      const favoriteBtnLabel = document.querySelector("#favoritesBtn .nav-label");
+      if (favoriteBtnLabel) {
+        favoriteBtnLabel.textContent = `Избранное (${state.favorites.length})`;
+      }
+    }
+
     function switchView(view) {
       const shopView = document.getElementById("shopView");
       const cartView = document.getElementById("cartView");
+      const favoritesView = document.getElementById("favoritesView");
       const shopBtn = document.getElementById("shopBtn");
       const cartBtn = document.getElementById("cartBtn");
+      const favoritesBtn = document.getElementById("favoritesBtn");
 
       if (view === "shop") {
         shopView.classList.remove("hidden");
         cartView.classList.add("hidden");
+        favoritesView.classList.add("hidden");
         shopBtn.classList.add("active");
         cartBtn.classList.remove("active");
+        favoritesBtn.classList.remove("active");
+      } else if (view === "favorites") {
+        shopView.classList.add("hidden");
+        cartView.classList.add("hidden");
+        favoritesView.classList.remove("hidden");
+        shopBtn.classList.remove("active");
+        cartBtn.classList.remove("active");
+        favoritesBtn.classList.add("active");
+        renderFavorites();
       } else {
         shopView.classList.add("hidden");
         cartView.classList.remove("hidden");
+        favoritesView.classList.add("hidden");
         shopBtn.classList.remove("active");
         cartBtn.classList.add("active");
+        favoritesBtn.classList.remove("active");
       }
 
       state.activeView = view;
@@ -2216,8 +2393,10 @@
       fillCheckoutFields();
       renderCategories();
       renderProducts();
+      renderFavorites();
       renderCart();
       updateCartButton();
+      updateFavoritesButton();
       switchView(state.activeView || "shop");
       trackMiniAppOpen();
     }

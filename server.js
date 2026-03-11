@@ -20,6 +20,13 @@ const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const SUPABASE_REST_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/rest/v1` : "";
+const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
+const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+const TELEGRAM_CHANNEL_URL = normalizeTelegramUrl(process.env.TELEGRAM_CHANNEL_URL || "https://t.me/techgear_uz");
+const TELEGRAM_MANAGER_URL = normalizeTelegramUrl(process.env.TELEGRAM_MANAGER_URL || "https://t.me/atomotin");
+const TELEGRAM_BOT_ENABLED = Boolean(TELEGRAM_BOT_TOKEN && PUBLIC_BASE_URL);
+const TELEGRAM_API_BASE = TELEGRAM_BOT_ENABLED ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}` : "";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -40,6 +47,11 @@ function createHttpError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+function normalizeTelegramUrl(value) {
+  const normalized = String(value || "").trim();
+  return normalized.startsWith("https://") ? normalized : "";
 }
 
 function normalizeString(value) {
@@ -668,6 +680,99 @@ function readBody(req) {
   });
 }
 
+async function telegramApi(method, payload) {
+  if (!TELEGRAM_BOT_ENABLED) {
+    throw new Error("Telegram bot is not configured");
+  }
+
+  const response = await fetch(`${TELEGRAM_API_BASE}/${method}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.description || `Telegram API request failed: ${method}`);
+  }
+
+  return data;
+}
+
+function buildTelegramStartMessage() {
+  return [
+    "Добро пожаловать в TechGear.",
+    "",
+    "Здесь можно открыть магазин, посмотреть товары и быстро перейти к менеджеру или в канал."
+  ].join("\n");
+}
+
+function buildTelegramStartKeyboard() {
+  const rows = [
+    [{ text: "Открыть магазин", web_app: { url: `${PUBLIC_BASE_URL}/` } }]
+  ];
+
+  const linksRow = [];
+  if (TELEGRAM_CHANNEL_URL) {
+    linksRow.push({ text: "Наш канал", url: TELEGRAM_CHANNEL_URL });
+  }
+  if (TELEGRAM_MANAGER_URL) {
+    linksRow.push({ text: "Личка", url: TELEGRAM_MANAGER_URL });
+  }
+  if (linksRow.length) {
+    rows.push(linksRow);
+  }
+
+  return { inline_keyboard: rows };
+}
+
+async function handleTelegramUpdate(update) {
+  const message = update?.message;
+  if (!message?.chat?.id) return;
+
+  const text = normalizeString(message.text);
+  if (text !== "/start") return;
+
+  await telegramApi("sendMessage", {
+    chat_id: message.chat.id,
+    text: buildTelegramStartMessage(),
+    reply_markup: buildTelegramStartKeyboard()
+  });
+}
+
+async function configureTelegramBot() {
+  if (!TELEGRAM_BOT_ENABLED) {
+    return;
+  }
+
+  const webhookUrl = `${PUBLIC_BASE_URL}/api/telegram/webhook`;
+  const webhookData = {
+    url: webhookUrl,
+    allowed_updates: ["message"]
+  };
+
+  if (TELEGRAM_WEBHOOK_SECRET) {
+    webhookData.secret_token = TELEGRAM_WEBHOOK_SECRET;
+  }
+
+  try {
+    await telegramApi("setWebhook", webhookData);
+    await telegramApi("setChatMenuButton", {
+      menu_button: {
+        type: "web_app",
+        text: "Открыть магазин",
+        web_app: {
+          url: `${PUBLIC_BASE_URL}/`
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to configure Telegram bot:", error);
+  }
+}
+
 function signTokenPayload(payload) {
   return crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("base64url");
 }
@@ -709,11 +814,32 @@ function ensureAdmin(req, res) {
 }
 
 async function handleApi(req, res, url) {
+  if (req.method === "POST" && url.pathname === "/api/telegram/webhook") {
+    if (TELEGRAM_WEBHOOK_SECRET) {
+      const secret = req.headers["x-telegram-bot-api-secret-token"] || "";
+      if (secret !== TELEGRAM_WEBHOOK_SECRET) {
+        sendJson(res, 401, { error: "Invalid Telegram webhook secret" });
+        return true;
+      }
+    }
+
+    if (!TELEGRAM_BOT_ENABLED) {
+      sendJson(res, 503, { error: "Telegram bot is not configured" });
+      return true;
+    }
+
+    const update = await readBody(req);
+    await handleTelegramUpdate(update);
+    sendJson(res, 200, { ok: true });
+    return true;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/health") {
     sendJson(res, 200, {
       ok: true,
       storage: storage.mode,
       supabaseEnabled: SUPABASE_ENABLED,
+      telegramBotEnabled: TELEGRAM_BOT_ENABLED,
       timestamp: new Date().toISOString()
     });
     return true;
@@ -877,6 +1003,7 @@ async function requestListener(req, res) {
 
 async function main() {
   await storage.init();
+  await configureTelegramBot();
 
   http.createServer(requestListener).listen(PORT, HOST, () => {
     console.log(`TechGear server running at http://localhost:${PORT}`);

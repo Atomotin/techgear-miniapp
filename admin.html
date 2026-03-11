@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechGear Admin</title>
+  <style>
+    :root {
+      --bg: #071014;
+      --panel: rgba(11, 20, 27, 0.88);
+      --panel-strong: rgba(17, 28, 37, 0.98);
+      --line: rgba(123, 214, 255, 0.16);
+      --line-strong: rgba(123, 214, 255, 0.32);
+      --accent: #7bd6ff;
+      --accent-strong: #d8ff3e;
+      --text: #f5fbff;
+      --muted: rgba(245, 251, 255, 0.72);
+      --danger: #ff7b8d;
+      --success: #9cff73;
+      --radius: 20px;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(123, 214, 255, 0.18), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(216, 255, 62, 0.14), transparent 28%),
+        linear-gradient(160deg, #05080b 0%, #071014 45%, #03171f 100%);
+      color: var(--text);
+      padding: 28px;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+
+    .hero,
+    .panel,
+    .product-card,
+    .order-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 26px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .hero h1 {
+      font-size: 34px;
+      margin-bottom: 8px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.5;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.6fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .panel-subtitle {
+      color: var(--muted);
+      margin-bottom: 18px;
+      line-height: 1.45;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 26px;
+      margin-top: 4px;
+    }
+
+    .row,
+    .field-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field-grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    input,
+    textarea,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 13px 14px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--line-strong);
+      box-shadow: 0 0 0 4px rgba(123, 214, 255, 0.12);
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      padding: 12px 16px;
+      font-weight: 700;
+      transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-strong), #7bd6ff);
+      color: #082029;
+    }
+
+    .btn-secondary {
+      background: rgba(123, 214, 255, 0.12);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn-danger {
+      background: rgba(255, 123, 141, 0.12);
+      color: #ffd7de;
+      border: 1px solid rgba(255, 123, 141, 0.24);
+    }
+
+    .btn-small {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .login-card {
+      max-width: 460px;
+      margin: 10vh auto 0;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .collection {
+      display: grid;
+      gap: 12px;
+      max-height: 740px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .product-card,
+    .order-card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .product-card h3,
+    .order-card h3 {
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+
+    .meta,
+    .muted,
+    .list-item small {
+      color: var(--muted);
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0 12px;
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(123, 214, 255, 0.12);
+      border: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .order-top,
+    .product-actions,
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .product-actions {
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-item {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status.new { color: #d8ff3e; }
+    .status.processing { color: #7bd6ff; }
+    .status.done { color: var(--success); }
+    .status.cancelled { color: var(--danger); }
+
+    .tip-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .tip {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      line-height: 1.45;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      body {
+        padding: 18px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .field-grid.two,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section id="loginView" class="panel login-card">
+      <h2>Вход в TechGear Admin</h2>
+      <p class="panel-subtitle">Панель для управления товарами, категориями и заказами Mini App.</p>
+      <div class="row">
+        <label>
+          Пароль администратора
+          <input id="passwordInput" type="password" placeholder="Введите ADMIN_PASSWORD" />
+        </label>
+        <button id="loginBtn" class="btn-primary" type="button">Войти</button>
+        <div id="loginMessage" class="hint"></div>
+      </div>
+    </section>
+
+    <section id="appView" class="hidden">
+      <section class="hero">
+        <div>
+          <h1>TechGear Admin</h1>
+          <p>Здесь можно добавлять товары, редактировать существующие карточки, управлять категориями и смотреть входящие заказы из Mini App.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn-secondary" href="/" style="text-decoration:none; display:inline-flex; align-items:center;">Открыть витрину</a>
+          <button id="refreshBtn" class="btn-secondary" type="button">Обновить</button>
+          <button id="logoutBtn" class="btn-danger" type="button">Выйти</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Сводка</h2>
+        <div class="stats">
+          <div class="stat"><span class="muted">Товаров</span><strong id="statProducts">0</strong></div>
+          <div class="stat"><span class="muted">Категорий</span><strong id="statCategories">0</strong></div>
+          <div class="stat"><span class="muted">Новых заказов</span><strong id="statOrders">0</strong></div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Товар</h2>
+          <p class="panel-subtitle">Форма для создания нового товара или редактирования выбранной карточки.</p>
+          <div class="toolbar">
+            <button id="newProductBtn" class="btn-secondary btn-small" type="button">Новый товар</button>
+            <button id="saveProductBtn" class="btn-primary btn-small" type="button">Сохранить</button>
+          </div>
+          <div class="field-grid two">
+            <label>Название<input id="productName" type="text" /></label>
+            <label>Категория<select id="productCategory"></select></label>
+          </div>
+          <div class="field-grid two">
+            <label>Цена (сум)<input id="productPrice" type="number" min="0" step="1000" /></label>
+            <label>Порядок сортировки<input id="productSortOrder" type="number" min="1" step="1" /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Статус наличия<input id="productStock" type="text" placeholder="Например: В наличии" /></label>
+            <label>Badge
+              <select id="productBadge">
+                <option value="">Без badge</option>
+                <option value="new">new</option>
+                <option value="hot">hot</option>
+              </select>
+            </label>
+          </div>
+          <label>Описание<textarea id="productDesc"></textarea></label>
+          <label>Варианты
+            <textarea id="productVariants" placeholder="По одному варианту на строку"></textarea>
+          </label>
+          <label>Изображения
+            <textarea id="productImages" placeholder="Пути к картинкам по одной строке, например images.img/photo.jpg"></textarea>
+          </label>
+          <div class="field-grid two">
+            <label>
+              <span>Видимость</span>
+              <select id="productVisible">
+                <option value="true">Показывать</option>
+                <option value="false">Скрыть</option>
+              </select>
+            </label>
+            <label>
+              <span>Под заказ / скоро</span>
+              <select id="productSoon">
+                <option value="false">Нет</option>
+                <option value="true">Да</option>
+              </select>
+            </label>
+          </div>
+          <div id="productMessage" class="hint"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Каталог</h2>
+          <p class="panel-subtitle">Выбери карточку справа, чтобы быстро редактировать товар. Удаление выполняется сразу.</p>
+          <div class="collection" id="productList"></div>
+        </section>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Категории</h2>
+          <p class="panel-subtitle">Категории управляют фильтрами в магазине и селектором в форме товара.</p>
+          <div class="field-grid two">
+            <label>Key<input id="categoryKey" type="text" placeholder="mouse" /></label>
+            <label>Название<input id="categoryLabel" type="text" placeholder="Мыши" /></label>
+          </div>
+          <div class="toolbar">
+            <button id="addCategoryBtn" class="btn-primary btn-small" type="button">Добавить категорию</button>
+          </div>
+          <div id="categoryMessage" class="hint"></div>
+          <div class="list" id="categoryList"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Заказы</h2>
+          <p class="panel-subtitle">Заказы, отправленные из Mini App через backend. Здесь можно менять статус обработки.</p>
+          <div class="collection" id="ordersList"></div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Что ещё должно быть в админке</h2>
+        <div class="tip-list">
+          <div class="tip">Загрузка файлов: отдельный upload для фото товара, чтобы не вставлять пути вручную.</div>
+          <div class="tip">Управление заказами: фильтры по статусу, поиск по телефону и быстрый переход в Telegram.</div>
+          <div class="tip">Остатки и резерв: отдельное числовое поле наличия, а не только текстовый статус.</div>
+          <div class="tip">История изменений: кто и когда менял цену, описание или видимость товара.</div>
+          <div class="tip">Промо-блоки: баннеры, хиты, новинки, сортировка витрины без правки кода.</div>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      token: localStorage.getItem("techgear_admin_token") || "",
+      catalog: { categories: [], products: [] },
+      orders: [],
+      editingId: null
+    };
+
+    async function api(path, options = {}) {
+      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+      if (state.token) {
+        headers.Authorization = `Bearer ${state.token}`;
+      }
+
+      const response = await fetch(path, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Request failed");
+      }
+
+      return data;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatPrice(value) {
+      if (!value) return "Цена по запросу";
+      return new Intl.NumberFormat("ru-RU").format(value) + " сум";
+    }
+
+    function setText(id, value) {
+      const node = document.getElementById(id);
+      if (node) node.textContent = value;
+    }
+
+    function showMessage(id, value, isError = false) {
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.textContent = value;
+      node.style.color = isError ? "#ff9caa" : "rgba(245,251,255,0.72)";
+    }
+
+    function getProductPayload() {
+      const images = document.getElementById("productImages").value
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      return {
+        name: document.getElementById("productName").value.trim(),
+        category: document.getElementById("productCategory").value,
+        price: Number(document.getElementById("productPrice").value) || 0,
+        sortOrder: Number(document.getElementById("productSortOrder").value) || 1,
+        stock: document.getElementById("productStock").value.trim(),
+        badge: document.getElementById("productBadge").value,
+        desc: document.getElementById("productDesc").value.trim(),
+        variants: document.getElementById("productVariants").value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
+        images,
+        image: images[0] || "",
+        isVisible: document.getElementById("productVisible").value === "true",
+        isSoon: document.getElementById("productSoon").value === "true"
+      };
+    }
+
+    function fillProductForm(product = null) {
+      state.editingId = product ? product.id : null;
+      document.getElementById("productName").value = product?.name || "";
+      document.getElementById("productCategory").value = product?.category || state.catalog.categories.find((item) => item.key !== "all")?.key || "all";
+      document.getElementById("productPrice").value = product?.price ?? "";
+      document.getElementById("productSortOrder").value = product?.sortOrder ?? "";
+      document.getElementById("productStock").value = product?.stock || "";
+      document.getElementById("productBadge").value = product?.badge || "";
+      document.getElementById("productDesc").value = product?.desc || "";
+      document.getElementById("productVariants").value = Array.isArray(product?.variants) ? product.variants.join("\n") : "";
+      document.getElementById("productImages").value = Array.isArray(product?.images) ? product.images.join("\n") : "";
+      document.getElementById("productVisible").value = String(product?.isVisible !== false);
+      document.getElementById("productSoon").value = String(Boolean(product?.isSoon));
+      showMessage("productMessage", product ? `Редактируется товар #${product.id}` : "Форма очищена для нового товара");
+    }
+
+    function renderCategoryOptions() {
+      const select = document.getElementById("productCategory");
+      select.innerHTML = state.catalog.categories
+        .filter((item) => item.key !== "all")
+        .map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`)
+        .join("");
+    }
+
+    function renderStats() {
+      setText("statProducts", state.catalog.products.length);
+      setText("statCategories", state.catalog.categories.filter((item) => item.key !== "all").length);
+      setText("statOrders", state.orders.filter((item) => item.status === "new").length);
+    }
+
+    function renderCategories() {
+      const list = document.getElementById("categoryList");
+      list.innerHTML = state.catalog.categories.map((category) => {
+        const removeButton = category.key === "all"
+          ? ""
+          : `<button class="btn-danger btn-small" type="button" data-delete-category="${escapeHtml(category.key)}">Удалить</button>`;
+
+        return `
+          <div class="list-item">
+            <div>
+              <strong>${escapeHtml(category.label)}</strong><br />
+              <small>${escapeHtml(category.key)}</small>
+            </div>
+            ${removeButton}
+          </div>
+        `;
+      }).join("");
+
+      list.querySelectorAll("[data-delete-category]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          try {
+            state.catalog = await api(`/api/admin/categories/${encodeURIComponent(button.dataset.deleteCategory)}`, { method: "DELETE" });
+            renderAll();
+            showMessage("categoryMessage", "Категория удалена");
+          } catch (error) {
+            showMessage("categoryMessage", error.message, true);
+          }
+        });
+      });
+    }
+
+    function renderProducts() {
+      const list = document.getElementById("productList");
+      const products = [...state.catalog.products].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+      list.innerHTML = products.map((product) => `
+        <article class="product-card">
+          <h3>${escapeHtml(product.name)}</h3>
+          <div class="meta">${escapeHtml(product.stock || "Без статуса")} · ${escapeHtml(product.category)} · ${formatPrice(product.price)}</div>
+          <div class="badge-row">
+            <span class="badge">ID ${product.id}</span>
+            <span class="badge">${product.isVisible !== false ? "Виден" : "Скрыт"}</span>
+            <span class="badge">${product.isSoon ? "Под заказ" : "В наличии / обычный"}</span>
+            ${product.badge ? `<span class="badge">badge: ${escapeHtml(product.badge)}</span>` : ""}
+          </div>
+          <div class="muted">${escapeHtml(product.desc || "Без описания")}</div>
+          <div class="product-actions">
+            <button class="btn-secondary btn-small" type="button" data-edit-product="${product.id}">Редактировать</button>
+            <button class="btn-danger btn-small" type="button" data-delete-product="${product.id}">Удалить</button>
+          </div>
+        </article>
+      `).join("");
+
+      list.querySelectorAll("[data-edit-product]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const product = state.catalog.products.find((item) => item.id === Number(button.dataset.editProduct));
+          fillProductForm(product);
+        });
+      });
+
+      list.querySelectorAll("[data-delete-product]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          try {
+            state.catalog = await api(`/api/admin/products/${button.dataset.deleteProduct}`, { method: "DELETE" });
+            renderAll();
+            if (state.editingId === Number(button.dataset.deleteProduct)) {
+              fillProductForm(null);
+            }
+            showMessage("productMessage", "Товар удалён");
+          } catch (error) {
+            showMessage("productMessage", error.message, true);
+          }
+        });
+      });
+    }
+
+    function renderOrders() {
+      const list = document.getElementById("ordersList");
+      if (!state.orders.length) {
+        list.innerHTML = '<div class="hint">Пока заказов нет.</div>';
+        return;
+      }
+
+      list.innerHTML = state.orders.map((order) => `
+        <article class="order-card">
+          <div class="order-top">
+            <div>
+              <h3>${escapeHtml(order.customer?.name || "Без имени")}</h3>
+              <div class="muted">${escapeHtml(order.customer?.phone || "")}</div>
+            </div>
+            <span class="status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
+          </div>
+          <div class="badge-row">
+            <span class="badge">${new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+            <span class="badge">${formatPrice(order.total)}</span>
+          </div>
+          <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
+          <div class="muted" style="margin-top:10px;">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
+          <div class="product-actions">
+            <button class="btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
+            <button class="btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
+            <button class="btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
+          </div>
+        </article>
+      `).join("");
+
+      list.querySelectorAll("[data-status]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const [orderId, status] = button.dataset.status.split(":");
+          try {
+            await api(`/api/admin/orders/${orderId}`, {
+              method: "PATCH",
+              body: JSON.stringify({ status })
+            });
+            await loadAdminData();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+      });
+    }
+
+    function renderAll() {
+      renderCategoryOptions();
+      renderStats();
+      renderCategories();
+      renderProducts();
+      renderOrders();
+      if (!state.editingId) {
+        fillProductForm(null);
+      }
+    }
+
+    async function loadAdminData() {
+      const [catalog, ordersResponse] = await Promise.all([
+        api("/api/admin/catalog"),
+        api("/api/admin/orders")
+      ]);
+
+      state.catalog = catalog;
+      state.orders = ordersResponse.orders || [];
+      renderAll();
+    }
+
+    async function login() {
+      const password = document.getElementById("passwordInput").value.trim();
+      try {
+        const result = await api("/api/admin/login", {
+          method: "POST",
+          body: JSON.stringify({ password })
+        });
+        state.token = result.token;
+        localStorage.setItem("techgear_admin_token", result.token);
+        document.getElementById("loginView").classList.add("hidden");
+        document.getElementById("appView").classList.remove("hidden");
+        await loadAdminData();
+      } catch (error) {
+        showMessage("loginMessage", error.message, true);
+      }
+    }
+
+    async function saveProduct() {
+      const payload = getProductPayload();
+      try {
+        state.catalog = state.editingId
+          ? await api(`/api/admin/products/${state.editingId}`, { method: "PUT", body: JSON.stringify(payload) })
+          : await api("/api/admin/products", { method: "POST", body: JSON.stringify(payload) });
+
+        renderAll();
+        showMessage("productMessage", state.editingId ? "Товар обновлён" : "Товар создан");
+        if (!state.editingId) {
+          fillProductForm(state.catalog.products[0]);
+        }
+      } catch (error) {
+        showMessage("productMessage", error.message, true);
+      }
+    }
+
+    async function addCategory() {
+      const key = document.getElementById("categoryKey").value.trim();
+      const label = document.getElementById("categoryLabel").value.trim();
+      try {
+        state.catalog = await api("/api/admin/categories", {
+          method: "POST",
+          body: JSON.stringify({ key, label })
+        });
+        document.getElementById("categoryKey").value = "";
+        document.getElementById("categoryLabel").value = "";
+        renderAll();
+        showMessage("categoryMessage", "Категория добавлена");
+      } catch (error) {
+        showMessage("categoryMessage", error.message, true);
+      }
+    }
+
+    function logout() {
+      state.token = "";
+      localStorage.removeItem("techgear_admin_token");
+      document.getElementById("appView").classList.add("hidden");
+      document.getElementById("loginView").classList.remove("hidden");
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("passwordInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") login();
+    });
+    document.getElementById("refreshBtn").addEventListener("click", loadAdminData);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
+    document.getElementById("newProductBtn").addEventListener("click", () => fillProductForm(null));
+    document.getElementById("addCategoryBtn").addEventListener("click", addCategory);
+
+    if (state.token) {
+      document.getElementById("loginView").classList.add("hidden");
+      document.getElementById("appView").classList.remove("hidden");
+      loadAdminData().catch(() => logout());
+    }
+  </script>
+</body>
+</html>

@@ -25,6 +25,8 @@ const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
 const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
 const TELEGRAM_CHANNEL_URL = normalizeTelegramUrl(process.env.TELEGRAM_CHANNEL_URL || "https://t.me/techgear_uz");
 const TELEGRAM_MANAGER_URL = normalizeTelegramUrl(process.env.TELEGRAM_MANAGER_URL || "https://t.me/atomotin");
+const TELEGRAM_LOGO_URL = normalizeTelegramUrl(process.env.TELEGRAM_LOGO_URL || "");
+const TELEGRAM_BOT_NAME = normalizeString(process.env.TELEGRAM_BOT_NAME || "TechGear Store");
 const TELEGRAM_BOT_ENABLED = Boolean(TELEGRAM_BOT_TOKEN && PUBLIC_BASE_URL);
 const TELEGRAM_API_BASE = TELEGRAM_BOT_ENABLED ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}` : "";
 
@@ -703,27 +705,34 @@ async function telegramApi(method, payload) {
 
 function buildTelegramStartMessage() {
   return [
-    "Добро пожаловать в TechGear.",
+    `<b>${TELEGRAM_BOT_NAME}</b>`,
     "",
-    "Здесь можно открыть магазин, посмотреть товары и быстро перейти к менеджеру или в канал."
+    "Добро пожаловать в наш магазин аксессуаров и сетап-товаров.",
+    "",
+    "Здесь можно:",
+    "• открыть Mini App магазин",
+    "• перейти в Telegram-канал",
+    "• быстро написать менеджеру"
   ].join("\n");
 }
 
 function buildTelegramStartKeyboard() {
   const rows = [
-    [{ text: "Открыть магазин", web_app: { url: `${PUBLIC_BASE_URL}/` } }]
+    [{ text: "🛍 Открыть магазин", web_app: { url: `${PUBLIC_BASE_URL}/` } }]
   ];
 
   const linksRow = [];
   if (TELEGRAM_CHANNEL_URL) {
-    linksRow.push({ text: "Наш канал", url: TELEGRAM_CHANNEL_URL });
+    linksRow.push({ text: "📢 Наш канал", url: TELEGRAM_CHANNEL_URL });
   }
   if (TELEGRAM_MANAGER_URL) {
-    linksRow.push({ text: "Личка", url: TELEGRAM_MANAGER_URL });
+    linksRow.push({ text: "💬 Написать менеджеру", url: TELEGRAM_MANAGER_URL });
   }
   if (linksRow.length) {
     rows.push(linksRow);
   }
+
+  rows.push([{ text: "🔥 Новинки и аксессуары", web_app: { url: `${PUBLIC_BASE_URL}/` } }]);
 
   return { inline_keyboard: rows };
 }
@@ -735,10 +744,24 @@ async function handleTelegramUpdate(update) {
   const text = normalizeString(message.text);
   if (text !== "/start") return;
 
-  await telegramApi("sendMessage", {
+  const payload = {
     chat_id: message.chat.id,
-    text: buildTelegramStartMessage(),
+    parse_mode: "HTML",
     reply_markup: buildTelegramStartKeyboard()
+  };
+
+  if (TELEGRAM_LOGO_URL) {
+    await telegramApi("sendPhoto", {
+      ...payload,
+      photo: TELEGRAM_LOGO_URL,
+      caption: buildTelegramStartMessage()
+    });
+    return;
+  }
+
+  await telegramApi("sendMessage", {
+    ...payload,
+    text: buildTelegramStartMessage()
   });
 }
 
@@ -762,11 +785,19 @@ async function configureTelegramBot() {
     await telegramApi("setChatMenuButton", {
       menu_button: {
         type: "web_app",
-        text: "Открыть магазин",
+        text: "🛍 Магазин",
         web_app: {
           url: `${PUBLIC_BASE_URL}/`
         }
       }
+    });
+    await telegramApi("setMyCommands", {
+      commands: [
+        { command: "start", description: "Открыть приветствие и магазин" }
+      ]
+    });
+    await telegramApi("setMyDescription", {
+      description: "TechGear Store: магазин аксессуаров, товаров для сетапа и Mini App заказов."
     });
   } catch (error) {
     console.error("Failed to configure Telegram bot:", error);

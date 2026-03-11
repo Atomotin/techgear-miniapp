@@ -1,0 +1,435 @@
+{
+  "categories": [
+    {
+      "key": "all",
+      "label": "Все"
+    },
+    {
+      "key": "mouse",
+      "label": "Мыши"
+    },
+    {
+      "key": "keyboard",
+      "label": "Клавиатуры"
+    },
+    {
+      "key": "headphones",
+      "label": "Подставки"
+    },
+    {
+      "key": "iphone-case",
+      "label": "Чехлы iPhone"
+    },
+    {
+      "key": "lighting",
+      "label": "Свет"
+    },
+    {
+      "key": "decor",
+      "label": "Декор"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Скользящие ножки PTFE 8 шт",
+      "category": "mouse",
+      "sortOrder": 1,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 15000,
+      "image": "images.img/glayd whith pinsep white.png",
+      "images": [
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd mouse white.png"
+      ],
+      "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
+      "stock": "В наличии",
+      "variants": [
+        "Белые"
+      ],
+      "badge": "hot"
+    },
+    {
+      "id": 2,
+      "name": "Скользящие ножки PTFE 8 шт",
+      "category": "mouse",
+      "sortOrder": 2,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 20000,
+      "image": "images.img/glayd whith pinsep black.png",
+      "images": [
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd mouse black.png"
+      ],
+      "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
+      "stock": "В наличии",
+      "variants": [
+        "Чёрные"
+      ],
+      "badge": ""
+    },
+    {
+      "id": 3,
+      "name": "Скользящие ножки PTFE 8 шт",
+      "category": "mouse",
+      "sortOrder": 3,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 17000,
+      "image": "images.img/glayd whith pinsep red.png",
+      "images": [
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd mouse red.png"
+      ],
+      "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
+      "stock": "В наличии",
+      "variants": [
+        "Красные"
+      ],
+      "badge": ""
+    },
+    {
+      "id": 4,
+      "name": "Скользящие ножки PTFE 8 шт",
+      "category": "mouse",
+      "sortOrder": 4,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 18000,
+      "image": "images.img/glayd whith pinsep purple.png",
+      "images": [
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd mouse purple.png"
+      ],
+      "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
+      "stock": "В наличии",
+      "variants": [
+        "Фиолетовые"
+      ],
+      "badge": ""
+    },
+    {
+      "id": 9,
+      "name": "Кейкапы PBT Side-Print Profile 4.0",
+      "category": "keyboard",
+      "sortOrder": 5,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 120000,
+      "image": "images.img/photo_2026-03-09_19-50-59.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_19-50-59.jpg",
+        "images.img/keykup white.png",
+        "images.img/keykup white fullrakurs.png",
+        "images.img/keykup black fullrakurs.png",
+        "images.img/keykup green fullrakurs.png"
+      ],
+      "desc": "130 клавиш, боковая гравировка, RGB-friendly, для MX-переключателей.",
+      "stock": "Под заказ 9-15 дней",
+      "variants": [
+        "Белый",
+        "Чёрный",
+        "Зелёный",
+        "Серо-белый",
+        "Чёрно-розовый"
+      ],
+      "badge": "new"
+    },
+    {
+      "id": 10,
+      "name": "Набор для чистки механической клавиатуры 3 в 1",
+      "category": "keyboard",
+      "sortOrder": 6,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 55000,
+      "image": "images.img/photo_2026-03-09_19-51-10.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_19-51-10.jpg"
+      ],
+      "desc": "Съёмник кейкапов и свитчей, щётка и микрофибра.",
+      "stock": "Под заказ 9-15 дней",
+      "variants": [],
+      "badge": "new"
+    },
+    {
+      "id": 11,
+      "name": "Rapoo V500 Alloy механическая клавиатура",
+      "category": "keyboard",
+      "sortOrder": 7,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 0,
+      "image": "images.img/photo_2026-03-09_19-54-48.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_19-54-48.jpg"
+      ],
+      "desc": "Blue Switch, TKL 87 клавиш, металлическая панель, Anti-Ghosting. Цена уточняется.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 12,
+      "name": "Игровая мышь Rapoo V25S",
+      "category": "mouse",
+      "sortOrder": 8,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 0,
+      "image": "images.img/photo_2026-03-09_19-56-48.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_19-56-48.jpg"
+      ],
+      "desc": "До 6200 DPI, 1000 Гц, LED-подсветка, проводная USB. Цена уточняется.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 13,
+      "name": "ATK A9 SE беспроводная мышь",
+      "category": "mouse",
+      "sortOrder": 9,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 350000,
+      "image": "images.img/photo_2026-03-09_19-56-53.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_19-56-53.jpg"
+      ],
+      "desc": "До 18 000 DPI, 1000 Hz, Bluetooth / 2.4G / USB-C, вес ~53 г.",
+      "stock": "В наличии",
+      "variants": [
+        "Белый"
+      ],
+      "badge": "hot"
+    },
+    {
+      "id": 14,
+      "name": "ATK DragonFly A9 Plus",
+      "category": "mouse",
+      "sortOrder": 10,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 400000,
+      "image": "images.img/photo_2026-03-09_23-03-00.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-03-00.jpg",
+        "images.img/atk mouse white.jpg",
+        "images.img/keykup white fullrakurs.png",
+        "images.img/keykup black fullrakurs.png",
+        "images.img/keykup green fullrakurs.png"
+      ],
+      "desc": "PixArt PAW3395, до 26 000 DPI, 57 г, NearLink / Bluetooth / USB.",
+      "stock": "В наличии",
+      "variants": [
+        "Белый",
+        "Чёрный",
+        "Розовый"
+      ],
+      "badge": "new"
+    },
+    {
+      "id": 15,
+      "name": "Подставка для наушников универсальная",
+      "category": "headphones",
+      "sortOrder": 11,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 60000,
+      "image": "images.img/photo_2026-03-09_23-03-33.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-03-33.jpg"
+      ],
+      "desc": "Минималистичная настольная подставка, прочная 3D-печать.",
+      "stock": "В наличии",
+      "variants": [
+        "Чёрный"
+      ],
+      "badge": ""
+    },
+    {
+      "id": 16,
+      "name": "Фигурка Hollow Knight",
+      "category": "decor",
+      "sortOrder": 12,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 50000,
+      "image": "images.img/photo_2026-03-09_23-03-53.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-03-53.jpg"
+      ],
+      "desc": "Коллекционная фигурка для сетапа, полки или рабочего стола.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 17,
+      "name": "Держатель для наушников LEGO Hand",
+      "category": "headphones",
+      "sortOrder": 13,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 80000,
+      "image": "images.img/photo_2026-03-09_23-04-09.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-04-09.jpg"
+      ],
+      "desc": "Яркий настольный держатель, высота ~30.5 см.",
+      "stock": "В наличии",
+      "variants": [
+        "Красный / жёлтый"
+      ],
+      "badge": ""
+    },
+    {
+      "id": 18,
+      "name": "Подставка для наушников Minecraft меч",
+      "category": "headphones",
+      "sortOrder": 14,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 100000,
+      "image": "images.img/photo_2026-03-09_23-04-21.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-04-21.jpg"
+      ],
+      "desc": "Пиксельный дизайн, прочный пластик, отлично для геймерского сетапа.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 23,
+      "name": "Чехол iPhone Silicone Case",
+      "category": "iphone-case",
+      "sortOrder": 10,
+      "isVisible": true,
+      "isSoon": true,
+      "price": 0,
+      "image": "",
+      "images": [],
+      "desc": "Мягкий силиконовый чехол. Точная модель и цвета будут обновлены после прихода.",
+      "stock": "Скоро в наличии",
+      "variants": [
+        "iPhone 13",
+        "iPhone 14",
+        "iPhone 15"
+      ],
+      "badge": "new"
+    },
+    {
+      "id": 24,
+      "name": "Чехол iPhone Clear MagSafe",
+      "category": "iphone-case",
+      "sortOrder": 11,
+      "isVisible": true,
+      "isSoon": true,
+      "price": 0,
+      "image": "",
+      "images": [],
+      "desc": "Прозрачный чехол с поддержкой MagSafe. Добавлен как заготовка до поступления.",
+      "stock": "Скоро в наличии",
+      "variants": [
+        "iPhone 13 Pro",
+        "iPhone 14 Pro",
+        "iPhone 15 Pro"
+      ],
+      "badge": "new"
+    },
+    {
+      "id": 25,
+      "name": "Чехол iPhone Shockproof",
+      "category": "iphone-case",
+      "sortOrder": 12,
+      "isVisible": true,
+      "isSoon": true,
+      "price": 0,
+      "image": "",
+      "images": [],
+      "desc": "Усиленный защитный чехол. Фото и цена будут обновлены после получения товара.",
+      "stock": "Скоро в наличии",
+      "variants": [
+        "Чёрный",
+        "Прозрачный"
+      ],
+      "badge": "new"
+    },
+    {
+      "id": 19,
+      "name": "Screen Light Bar 34 см",
+      "category": "lighting",
+      "sortOrder": 18,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 130000,
+      "image": "images.img/photo_2026-03-09_23-05-00.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-05-00.jpg"
+      ],
+      "desc": "Для ноутбуков 14-17 дюймов, без бликов на экране.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 20,
+      "name": "Screen Light Bar 51 см",
+      "category": "lighting",
+      "sortOrder": 19,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 160000,
+      "image": "images.img/photo_2026-03-09_23-05-20.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-05-20.jpg"
+      ],
+      "desc": "Для мониторов 17-24 дюйма, 3 режима температуры.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 21,
+      "name": "Screen Light Bar 61 см",
+      "category": "lighting",
+      "sortOrder": 20,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 200000,
+      "image": "images.img/photo_2026-03-09_23-04-36.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-04-36.jpg"
+      ],
+      "desc": "Для мониторов 27-32 дюйма, USB питание, таймер, диммер.",
+      "stock": "В наличии",
+      "variants": [],
+      "badge": ""
+    },
+    {
+      "id": 22,
+      "name": "3D LED лампа Геймпад",
+      "category": "decor",
+      "sortOrder": 21,
+      "isVisible": true,
+      "isSoon": false,
+      "price": 80000,
+      "image": "images.img/photo_2026-03-09_23-05-44.jpg",
+      "images": [
+        "images.img/photo_2026-03-09_23-05-44.jpg"
+      ],
+      "desc": "16 цветов, пульт, сенсорное управление, USB или AA батарейки.",
+      "stock": "В наличии",
+      "variants": [
+        "2 варианта свечения"
+      ],
+      "badge": ""
+    }
+  ],
+  "updatedAt": "2026-03-11T05:30:56.154Z"
+}

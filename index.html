@@ -1556,6 +1556,7 @@
         <div class="section checkout">
           <h2>Данные клиента</h2>
           <div class="section-subtitle">Профиль хранится на устройстве. После сохранения эти поля будут подставляться в оформление заказа.</div>
+          <div id="profileOnboardingNotice" class="checkout-note" style="margin-bottom:14px;">Сначала заполни профиль. После сохранения магазин будет открываться сразу.</div>
           <div class="field-group">
             <div>
               <div class="field-label">Имя *</div>
@@ -2586,11 +2587,16 @@
       });
 
       document.getElementById("saveProfileBtn")?.addEventListener("click", async () => {
+        const wasLocked = !isRegisteredProfile();
         persistProfileFields();
         applyProfileToCheckout();
         try {
           await saveProfileToServer();
+          updateProfileOnboardingState();
           renderProfile();
+          if (wasLocked && isRegisteredProfile()) {
+            switchView("shop");
+          }
           showToast("Профиль сохранён");
         } catch (error) {
           showToast(error.message || "Не удалось сохранить профиль", "error");
@@ -2621,6 +2627,10 @@
     }
 
     function switchView(view) {
+      if (view !== "profile" && !isRegisteredProfile()) {
+        view = "profile";
+      }
+
       const shopView = document.getElementById("shopView");
       const cartView = document.getElementById("cartView");
       const favoritesView = document.getElementById("favoritesView");
@@ -2936,6 +2946,7 @@
           element.value = value;
         }
       });
+      updateProfileOnboardingState();
     }
 
     function persistProfileFields() {
@@ -3022,6 +3033,24 @@
         saveStorage(STORAGE_KEYS.profile, state.profile);
       } catch (error) {
         console.warn("Profile sync failed:", error);
+      }
+    }
+
+    function isRegisteredProfile() {
+      return Boolean(String(state.profile.name || "").trim() && String(state.profile.phone || "").trim());
+    }
+
+    function updateProfileOnboardingState() {
+      const notice = document.getElementById("profileOnboardingNotice");
+      const fillCheckoutBtn = document.getElementById("fillCheckoutBtn");
+      const registered = isRegisteredProfile();
+
+      if (notice) {
+        notice.style.display = registered ? "none" : "block";
+      }
+
+      if (fillCheckoutBtn) {
+        fillCheckoutBtn.style.display = registered ? "inline-flex" : "none";
       }
     }
 
@@ -3172,13 +3201,14 @@
       applyProfileToCheckout();
       fillCheckoutFields();
       renderProfile();
+      updateProfileOnboardingState();
       renderCategories();
       renderProducts();
       renderFavorites();
       renderCart();
       updateCartButton();
       updateFavoritesButton();
-      switchView(state.activeView || "shop");
+      switchView(isRegisteredProfile() ? (state.activeView || "shop") : "profile");
       trackMiniAppOpen();
     }
 

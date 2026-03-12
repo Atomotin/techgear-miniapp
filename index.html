@@ -273,6 +273,235 @@
       font-size: 13px;
     }
 
+    .promo-shell {
+      margin-bottom: 16px;
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(199, 125, 255, 0.18);
+      background:
+        radial-gradient(circle at top right, rgba(198, 255, 51, 0.12), transparent 34%),
+        linear-gradient(145deg, rgba(13, 11, 22, 0.96), rgba(23, 11, 36, 0.96));
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.28);
+      position: relative;
+      isolation: isolate;
+    }
+
+    .promo-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      pointer-events: none;
+    }
+
+    .promo-track {
+      display: flex;
+      transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+      will-change: transform;
+    }
+
+    .promo-slide {
+      min-width: 100%;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) 128px;
+      gap: 14px;
+      align-items: stretch;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .promo-slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(157, 78, 221, 0.18), rgba(199, 125, 255, 0.06)),
+        radial-gradient(circle at top left, rgba(198, 255, 51, 0.1), transparent 38%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .promo-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .promo-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f4eaff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .promo-title {
+      font-size: 24px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .promo-text {
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.5;
+      font-size: 14px;
+      max-width: 30ch;
+    }
+
+    .promo-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .promo-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(7, 7, 12, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .promo-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: auto;
+      flex-wrap: wrap;
+    }
+
+    .promo-primary,
+    .promo-secondary {
+      min-height: 44px;
+      padding: 11px 14px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .promo-primary {
+      background: linear-gradient(135deg, var(--lime-soft), var(--lime));
+      color: #1b2107;
+      box-shadow: 0 14px 28px rgba(198, 255, 51, 0.22);
+    }
+
+    .promo-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #f1e7ff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .promo-primary:hover,
+    .promo-secondary:hover {
+      transform: translateY(-1px);
+    }
+
+    .promo-visual {
+      position: relative;
+      min-height: 160px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(155deg, rgba(157, 78, 221, 0.26), rgba(11, 11, 18, 0.08)),
+        rgba(8, 8, 12, 0.78);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .promo-visual img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .promo-fallback {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      background:
+        radial-gradient(circle at top, rgba(198, 255, 51, 0.16), transparent 38%),
+        linear-gradient(145deg, rgba(157, 78, 221, 0.32), rgba(17, 12, 28, 0.8));
+    }
+
+    .promo-nav {
+      position: absolute;
+      top: 18px;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 8, 12, 0.62);
+      color: white;
+      cursor: pointer;
+      z-index: 2;
+      backdrop-filter: blur(14px);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .promo-nav.prev {
+      right: 60px;
+    }
+
+    .promo-nav.next {
+      right: 18px;
+    }
+
+    .promo-dots {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 2;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(7, 7, 12, 0.36);
+      backdrop-filter: blur(14px);
+    }
+
+    .promo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      border: none;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.28);
+      cursor: pointer;
+      transition: width 0.22s ease, background 0.22s ease;
+    }
+
+    .promo-dot.active {
+      width: 24px;
+      background: linear-gradient(135deg, var(--lime-soft), var(--lime));
+    }
+
     .categories {
       display: flex;
       gap: 8px;
@@ -1277,6 +1506,41 @@
         padding: 10px 12px;
       }
 
+      .promo-slide {
+        grid-template-columns: 1fr;
+        padding: 16px;
+      }
+
+      .promo-title {
+        font-size: 22px;
+      }
+
+      .promo-text {
+        max-width: none;
+      }
+
+      .promo-visual {
+        min-height: 144px;
+        order: -1;
+      }
+
+      .promo-nav {
+        top: auto;
+        bottom: 16px;
+      }
+
+      .promo-nav.prev {
+        right: 62px;
+      }
+
+      .promo-nav.next {
+        right: 16px;
+      }
+
+      .promo-dots {
+        left: 16px;
+      }
+
       .categories {
         gap: 6px;
       }
@@ -1378,6 +1642,13 @@
     </div>
 
     <div id="shopView">
+      <section class="promo-shell" id="promoBanner" aria-label="Рекламные баннеры магазина">
+        <div class="promo-track" id="promoTrack"></div>
+        <button class="promo-nav prev" id="promoPrev" type="button" aria-label="Предыдущий баннер">‹</button>
+        <button class="promo-nav next" id="promoNext" type="button" aria-label="Следующий баннер">›</button>
+        <div class="promo-dots" id="promoDots"></div>
+      </section>
+
       <div class="toolbar">
         <div class="search-box">
           <input type="text" id="searchInput" placeholder="Поиск товара" />
@@ -1796,6 +2067,12 @@
       touchStartX: 0,
     };
 
+    let promoState = {
+      slides: [],
+      index: 0,
+      timerId: null,
+    };
+
     function getSessionId() {
       const key = "techgear_session_id_v1";
       let sessionId = sessionStorage.getItem(key);
@@ -2179,6 +2456,248 @@
       });
     }
 
+    function setToolbarState() {
+      const searchInput = document.getElementById("searchInput");
+      const availabilityFilter = document.getElementById("availabilityFilter");
+      const sortSelect = document.getElementById("sortSelect");
+
+      if (searchInput) searchInput.value = state.search;
+      if (availabilityFilter) availabilityFilter.value = state.availability;
+      if (sortSelect) sortSelect.value = state.sort;
+    }
+
+    function buildPromoSlides() {
+      const catalog = normalizeProducts(PRODUCTS);
+      const hotProduct = catalog.find((item) => item.badge === "hot" && item.images?.length) || catalog.find((item) => item.badge === "hot");
+      const newProduct = catalog.find((item) => item.badge === "new" && item.images?.length) || catalog.find((item) => item.badge === "new");
+      const setupPick = catalog.find((item) => item.category === "decor" && item.images?.length)
+        || catalog.find((item) => item.category === "headphones" && item.images?.length)
+        || catalog.find((item) => item.images?.length);
+
+      const uniqueSlides = [];
+      const addSlide = (slide) => {
+        if (!slide || uniqueSlides.some((item) => item.id === slide.id)) return;
+        uniqueSlides.push(slide);
+      };
+
+      addSlide(hotProduct && {
+        id: `hot-${hotProduct.id}`,
+        kicker: "Хит продаж",
+        title: hotProduct.name,
+        text: hotProduct.desc || "Популярная позиция, которую чаще всего выбирают в магазине.",
+        chips: ["Хиты", formatPrice(hotProduct.price), hotProduct.stock || "В наличии"],
+        image: hotProduct.images?.[0] || "",
+        cta: "Смотреть хит",
+        secondary: "В каталог",
+        action: {
+          type: "product",
+          productId: hotProduct.id,
+          category: hotProduct.category || "all",
+          sort: "manual",
+        },
+      });
+
+      addSlide(newProduct && {
+        id: `new-${newProduct.id}`,
+        kicker: "Новая поставка",
+        title: "Новинки в каталоге",
+        text: newProduct.name,
+        chips: ["Новинки", newProduct.stock || "Скоро", newProduct.variants?.length ? `${newProduct.variants.length} вариантов` : "Свежий ассортимент"],
+        image: newProduct.images?.[0] || "",
+        cta: "Открыть новинки",
+        secondary: "Все товары",
+        action: {
+          type: "product",
+          productId: newProduct.id,
+          category: newProduct.category || "all",
+          sort: "newest",
+        },
+      });
+
+      addSlide(setupPick && {
+        id: `pick-${setupPick.id}`,
+        kicker: "Подборка TechGear",
+        title: "Аксессуары для сетапа",
+        text: "Собрали подборку декора, подставок и стильных деталей, которые делают рабочее место аккуратнее и дороже визуально.",
+        chips: ["Подборка", "Декор", "Сетап"],
+        image: setupPick.images?.[0] || "",
+        cta: "Смотреть подборку",
+        secondary: "Связаться",
+        action: {
+          type: "category",
+          category: setupPick.category || "decor",
+          sort: "manual",
+        },
+        secondaryAction: {
+          type: "link",
+          href: "https://t.me/atomotin",
+        },
+      });
+
+      if (!uniqueSlides.length) {
+        uniqueSlides.push({
+          id: "fallback",
+          kicker: "TechGear",
+          title: "Новинки, хиты и акции",
+          text: "Следи за свежими аксессуарами и подборками прямо в Mini App.",
+          chips: ["Mini App", "Каталог", "Telegram"],
+          image: "images.img/lolo.png",
+          cta: "Открыть каталог",
+          secondary: "Наш канал",
+          action: { type: "reset" },
+          secondaryAction: { type: "link", href: "https://t.me/techgear_uz" },
+        });
+      }
+
+      return uniqueSlides;
+    }
+
+    function setPromoIndex(nextIndex) {
+      const track = document.getElementById("promoTrack");
+      const dots = document.querySelectorAll(".promo-dot");
+      if (!track || !promoState.slides.length) return;
+
+      promoState.index = (nextIndex + promoState.slides.length) % promoState.slides.length;
+      track.style.transform = `translateX(-${promoState.index * 100}%)`;
+      dots.forEach((dot, index) => {
+        dot.classList.toggle("active", index === promoState.index);
+      });
+    }
+
+    function stopPromoAutoplay() {
+      if (promoState.timerId) {
+        clearInterval(promoState.timerId);
+        promoState.timerId = null;
+      }
+    }
+
+    function startPromoAutoplay() {
+      stopPromoAutoplay();
+      if (promoState.slides.length < 2) return;
+      promoState.timerId = setInterval(() => {
+        setPromoIndex(promoState.index + 1);
+      }, 4600);
+    }
+
+    function focusPromoProduct(productId) {
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`[data-product-id="${productId}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    }
+
+    function applyPromoAction(action) {
+      if (!action) return;
+
+      if (action.type === "link" && action.href) {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      state.search = "";
+      state.availability = "all";
+
+      if (action.type === "reset") {
+        state.activeCategory = "all";
+        state.sort = "manual";
+      }
+
+      if (action.type === "category") {
+        state.activeCategory = action.category || "all";
+        state.sort = action.sort || "manual";
+      }
+
+      if (action.type === "product") {
+        state.activeCategory = action.category || "all";
+        state.sort = action.sort || "manual";
+      }
+
+      setToolbarState();
+      renderCategories();
+      renderProducts();
+      switchView("shop");
+
+      if (action.type === "product" && action.productId) {
+        focusPromoProduct(action.productId);
+      }
+    }
+
+    function renderPromoBanner() {
+      const track = document.getElementById("promoTrack");
+      const dotsWrap = document.getElementById("promoDots");
+      const prevBtn = document.getElementById("promoPrev");
+      const nextBtn = document.getElementById("promoNext");
+      if (!track || !dotsWrap) return;
+
+      promoState.slides = buildPromoSlides();
+      promoState.index = Math.min(promoState.index, Math.max(promoState.slides.length - 1, 0));
+
+      track.innerHTML = promoState.slides.map((slide) => {
+        const chips = Array.isArray(slide.chips) ? slide.chips : [];
+        const imageHtml = slide.image
+          ? `<img src="${escapeHtml(slide.image)}" alt="${escapeHtml(slide.title)}">`
+          : `<div class="promo-fallback">TG</div>`;
+
+        return `
+          <article class="promo-slide">
+            <div class="promo-copy">
+              <div class="promo-kicker">${escapeHtml(slide.kicker)}</div>
+              <h2 class="promo-title">${escapeHtml(slide.title)}</h2>
+              <p class="promo-text">${escapeHtml(slide.text)}</p>
+              <div class="promo-meta">
+                ${chips.map((chip) => `<span class="promo-chip">${escapeHtml(chip)}</span>`).join("")}
+              </div>
+              <div class="promo-actions">
+                <button class="promo-primary" type="button" data-promo-action="${escapeHtml(slide.id)}">${escapeHtml(slide.cta || "Открыть")}</button>
+                ${slide.secondary ? `<button class="promo-secondary" type="button" data-promo-secondary="${escapeHtml(slide.id)}">${escapeHtml(slide.secondary)}</button>` : ""}
+              </div>
+            </div>
+            <div class="promo-visual">${imageHtml}</div>
+          </article>
+        `;
+      }).join("");
+
+      dotsWrap.innerHTML = promoState.slides.map((slide, index) => (
+        `<button class="promo-dot${index === promoState.index ? " active" : ""}" type="button" data-promo-dot="${index}" aria-label="${escapeHtml(slide.kicker)}"></button>`
+      )).join("");
+
+      track.querySelectorAll("[data-promo-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const slide = promoState.slides.find((item) => item.id === button.dataset.promoAction);
+          applyPromoAction(slide?.action);
+        });
+      });
+
+      track.querySelectorAll("[data-promo-secondary]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const slide = promoState.slides.find((item) => item.id === button.dataset.promoSecondary);
+          applyPromoAction(slide?.secondaryAction || { type: "reset" });
+        });
+      });
+
+      dotsWrap.querySelectorAll("[data-promo-dot]").forEach((dot) => {
+        dot.addEventListener("click", () => {
+          setPromoIndex(Number(dot.dataset.promoDot || 0));
+          startPromoAutoplay();
+        });
+      });
+
+      if (prevBtn) prevBtn.onclick = () => {
+        setPromoIndex(promoState.index - 1);
+        startPromoAutoplay();
+      };
+
+      if (nextBtn) nextBtn.onclick = () => {
+        setPromoIndex(promoState.index + 1);
+        startPromoAutoplay();
+      };
+
+      setPromoIndex(promoState.index);
+      startPromoAutoplay();
+    }
+
     function getFilteredProducts() {
       const query = state.search.trim().toLowerCase();
       const filtered = normalizeProducts(PRODUCTS).filter((product) => {
@@ -2219,6 +2738,7 @@
       filtered.forEach((product) => {
         const card = document.createElement("div");
         card.className = "card";
+        card.dataset.productId = String(product.id);
         const images = product.images || [];
         const mediaHtml = images.length > 1
           ? `
@@ -3260,6 +3780,8 @@
       fillCheckoutFields();
       renderProfile();
       updateProfileOnboardingState();
+      setToolbarState();
+      renderPromoBanner();
       renderCategories();
       renderProducts();
       renderFavorites();

@@ -37,10 +37,25 @@ create table if not exists public.orders (
   constraint orders_status_check check (status in ('new', 'processing', 'done', 'cancelled'))
 );
 
+create table if not exists public.customers (
+  key text primary key,
+  telegram_id text not null default '',
+  name text not null default '',
+  phone text not null default '',
+  username text not null default '',
+  delivery text not null default '',
+  comment text not null default '',
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists products_category_key_idx on public.products (category_key);
 create index if not exists products_sort_order_idx on public.products (sort_order, id);
 create index if not exists orders_created_at_idx on public.orders (created_at desc);
 create index if not exists orders_status_idx on public.orders (status);
+create index if not exists customers_phone_idx on public.customers (phone);
+create index if not exists customers_username_idx on public.customers (username);
+create index if not exists customers_updated_at_idx on public.customers (updated_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -55,5 +70,11 @@ $$;
 drop trigger if exists products_set_updated_at on public.products;
 create trigger products_set_updated_at
 before update on public.products
+for each row
+execute function public.set_updated_at();
+
+drop trigger if exists customers_set_updated_at on public.customers;
+create trigger customers_set_updated_at
+before update on public.customers
 for each row
 execute function public.set_updated_at();

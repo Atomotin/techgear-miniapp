@@ -545,6 +545,7 @@
       token: localStorage.getItem("techgear_admin_token") || "",
       catalog: { categories: [], products: [] },
       orders: [],
+      customers: [],
       editingId: null,
       uploadedImages: [],
       orderSearch: "",
@@ -947,6 +948,93 @@
       });
     }
 
+    function buildCustomerKey(customer = {}) {
+      const telegramId = String(customer.telegramId || customer.telegram?.id || "").trim();
+      const phone = String(customer.phone || "").trim();
+      const username = String(customer.username || "").replace(/^@/, "").trim().toLowerCase();
+      const name = String(customer.name || "").trim().toLowerCase();
+      const delivery = String(customer.delivery || "").trim().toLowerCase();
+
+      if (telegramId) return `tg:${telegramId}`;
+      if (phone) return `phone:${phone.replace(/[^\d+]/g, "")}`;
+      if (username) return `user:${username}`;
+      if (name || delivery) return `fallback:${name}|${delivery}`;
+      return "";
+    }
+
+    function getCustomers() {
+      const customers = new Map();
+
+      for (const profile of state.customers) {
+        const key = buildCustomerKey(profile);
+        if (!key) continue;
+        customers.set(key, {
+          key,
+          name: String(profile.name || "").trim() || "Р‘РµР· РёРјРµРЅРё",
+          phone: String(profile.phone || "").trim(),
+          username: String(profile.username || "").replace(/^@/, "").trim(),
+          delivery: String(profile.delivery || "").trim(),
+          comment: String(profile.comment || "").trim(),
+          telegramId: String(profile.telegramId || "").trim(),
+          ordersCount: 0,
+          itemsCount: 0,
+          spent: 0,
+          lastOrderAt: profile.updatedAt || profile.createdAt || "",
+          statuses: new Set()
+        });
+      }
+
+      for (const order of state.orders) {
+        const customer = order.customer || {};
+        const key = buildCustomerKey({
+          ...customer,
+          telegramId: customer.telegramId || order.telegram?.id
+        });
+        if (!key) continue;
+
+        const itemsCount = Array.isArray(order.items)
+          ? order.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+          : 0;
+
+        if (!customers.has(key)) {
+          customers.set(key, {
+            key,
+            name: String(customer.name || "").trim() || "Р‘РµР· РёРјРµРЅРё",
+            phone: String(customer.phone || "").trim(),
+            username: String(customer.username || "").replace(/^@/, "").trim(),
+            delivery: String(customer.delivery || "").trim(),
+            comment: String(customer.comment || "").trim(),
+            telegramId: String(customer.telegramId || order.telegram?.id || "").trim(),
+            ordersCount: 0,
+            itemsCount: 0,
+            spent: 0,
+            lastOrderAt: order.createdAt,
+            statuses: new Set()
+          });
+        }
+
+        const entry = customers.get(key);
+        entry.name = entry.name === "Р‘РµР· РёРјРµРЅРё" && customer.name ? String(customer.name).trim() : entry.name;
+        entry.phone = entry.phone || String(customer.phone || "").trim();
+        entry.username = entry.username || String(customer.username || "").replace(/^@/, "").trim();
+        entry.delivery = entry.delivery || String(customer.delivery || "").trim();
+        entry.comment = entry.comment || String(customer.comment || "").trim();
+        entry.telegramId = entry.telegramId || String(customer.telegramId || order.telegram?.id || "").trim();
+        entry.ordersCount += 1;
+        entry.itemsCount += itemsCount;
+        entry.spent += Number(order.total) || 0;
+        entry.statuses.add(order.status || "new");
+
+        if (!entry.lastOrderAt || new Date(order.createdAt).getTime() > new Date(entry.lastOrderAt).getTime()) {
+          entry.lastOrderAt = order.createdAt;
+        }
+      }
+
+      return [...customers.values()]
+        .map((customer) => ({ ...customer, statuses: [...customer.statuses] }))
+        .sort((a, b) => new Date(b.lastOrderAt || 0).getTime() - new Date(a.lastOrderAt || 0).getTime());
+    }
+
     function renderCustomers() {
       const list = document.getElementById("customersList");
       const summary = document.getElementById("customerSummary");
@@ -982,6 +1070,9 @@
       list.innerHTML = filteredCustomers.map((customer) => {
         const telegramLink = customer.username ? `https://t.me/${encodeURIComponent(customer.username)}` : "";
         const phoneLink = customer.phone ? `tel:${String(customer.phone).replace(/[^\d+]/g, "")}` : "";
+        const lastSeenLabel = customer.lastOrderAt
+          ? new Date(customer.lastOrderAt).toLocaleString("ru-RU")
+          : "Без заказов";
         const statuses = customer.statuses.length
           ? customer.statuses.map((status) => `<span class="badge">${escapeHtml(status)}</span>`).join("")
           : '<span class="badge">без статуса</span>';
@@ -999,7 +1090,7 @@
             <div class="badge-row">
               <span class="badge">Товаров: ${customer.itemsCount}</span>
               <span class="badge">${formatPrice(customer.spent)}</span>
-              <span class="badge">${new Date(customer.lastOrderAt).toLocaleString("ru-RU")}</span>
+              <span class="badge">${escapeHtml(lastSeenLabel)}</span>
             </div>
             <div class="muted">${escapeHtml(customer.delivery || "Адрес не указан")}</div>
             ${customer.comment ? `<div class="muted" style="margin-top:10px;">Комментарий: ${escapeHtml(customer.comment)}</div>` : ""}
@@ -1026,13 +1117,15 @@
     }
 
     async function loadAdminData() {
-      const [catalog, ordersResponse] = await Promise.all([
+      const [catalog, ordersResponse, customersResponse] = await Promise.all([
         api("/api/admin/catalog"),
-        api("/api/admin/orders")
+        api("/api/admin/orders"),
+        api("/api/admin/customers")
       ]);
 
       state.catalog = catalog;
       state.orders = ordersResponse.orders || [];
+      state.customers = customersResponse.customers || [];
       renderAll();
     }
 

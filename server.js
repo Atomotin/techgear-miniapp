@@ -11,6 +11,7 @@ const DATA_DIR = path.join(ROOT_DIR, "data");
 const IMAGE_UPLOAD_DIR = path.join(ROOT_DIR, "images.img");
 const CATALOG_PATH = path.join(DATA_DIR, "catalog.json");
 const ORDERS_PATH = path.join(DATA_DIR, "orders.json");
+const CUSTOMERS_PATH = path.join(DATA_DIR, "customers.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "techgear-admin";
@@ -194,6 +195,44 @@ function buildOrderRecord(payload, req) {
   };
 }
 
+function buildCustomerKey(payload = {}) {
+  const telegramId = normalizeString(payload.telegramId || payload.telegram?.id);
+  const phone = normalizeString(payload.phone);
+  const username = normalizeString(payload.username).replace(/^@/, "");
+  const name = normalizeString(payload.name).toLowerCase();
+  const delivery = normalizeString(payload.delivery).toLowerCase();
+
+  if (telegramId) return `tg:${telegramId}`;
+  if (phone) return `phone:${phone.replace(/[^\d+]/g, "")}`;
+  if (username) return `user:${username.toLowerCase()}`;
+  if (name || delivery) return `fallback:${name}|${delivery}`;
+  return "";
+}
+
+function sanitizeCustomerProfile(payload = {}) {
+  return {
+    key: buildCustomerKey(payload),
+    telegramId: normalizeString(payload.telegramId || payload.telegram?.id),
+    name: normalizeString(payload.name),
+    phone: normalizeString(payload.phone),
+    username: normalizeString(payload.username),
+    delivery: normalizeString(payload.delivery),
+    comment: normalizeString(payload.comment),
+    createdAt: payload.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function validateCustomerProfile(payload) {
+  const profile = sanitizeCustomerProfile(payload);
+  if (!profile.key) return "Нужен хотя бы telegramId, телефон, username или имя";
+  if (!profile.name) return "Введите имя";
+  if (!profile.phone && !profile.username && !profile.telegramId) {
+    return "Нужен хотя бы один контакт: телефон, username или Telegram";
+  }
+  return "";
+}
+
 function validateOrderPayload(payload) {
   if (!normalizeString(payload.name)) return "Введите имя";
   if (!normalizeString(payload.phone)) return "Введите телефон";
@@ -224,6 +263,53 @@ function ensureDataFiles() {
   if (!fs.existsSync(ORDERS_PATH)) {
     writeJson(ORDERS_PATH, []);
   }
+
+  if (!fs.existsSync(CUSTOMERS_PATH)) {
+    writeJson(CUSTOMERS_PATH, []);
+  }
+}
+
+function getFallbackCustomers() {
+  ensureDataFiles();
+  const customers = readJson(CUSTOMERS_PATH, []);
+  return Array.isArray(customers)
+    ? customers.map((customer) => sanitizeCustomerProfile(customer)).filter((customer) => customer.key)
+    : [];
+}
+
+function saveFallbackCustomers(customers) {
+  ensureDataFiles();
+  writeJson(CUSTOMERS_PATH, customers);
+}
+
+function upsertFallbackCustomerProfile(payload) {
+  const profile = sanitizeCustomerProfile(payload);
+  if (!profile.key) {
+    throw createHttpError(400, "Некорректный профиль клиента");
+  }
+
+  const customers = getFallbackCustomers();
+  const existingIndex = customers.findIndex((item) => item.key === profile.key);
+
+  if (existingIndex >= 0) {
+    const existing = customers[existingIndex];
+    customers[existingIndex] = {
+      ...existing,
+      ...profile,
+      createdAt: existing.createdAt || profile.createdAt,
+      updatedAt: new Date().toISOString()
+    };
+  } else {
+    customers.unshift(profile);
+  }
+
+  saveFallbackCustomers(customers);
+  return customers.find((item) => item.key === profile.key) || profile;
+}
+
+function shouldUseCustomerFallback(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("customers") && (message.includes("relation") || message.includes("schema cache") || message.includes("does not exist"));
 }
 
 function parseSupabaseError(payload, response) {
@@ -350,6 +436,39 @@ function orderModelToRow(order, { includeId = true } = {}) {
   return row;
 }
 
+function customerRowToModel(row) {
+  return {
+    key: normalizeString(row?.key),
+    telegramId: normalizeString(row?.telegram_id),
+    name: normalizeString(row?.name),
+    phone: normalizeString(row?.phone),
+    username: normalizeString(row?.username),
+    delivery: normalizeString(row?.delivery),
+    comment: normalizeString(row?.comment),
+    createdAt: row?.created_at || new Date().toISOString(),
+    updatedAt: row?.updated_at || new Date().toISOString()
+  };
+}
+
+function customerModelToRow(profile, { includeKey = true } = {}) {
+  const row = {
+    telegram_id: profile.telegramId || "",
+    name: profile.name || "",
+    phone: profile.phone || "",
+    username: profile.username || "",
+    delivery: profile.delivery || "",
+    comment: profile.comment || "",
+    created_at: profile.createdAt || new Date().toISOString(),
+    updated_at: profile.updatedAt || new Date().toISOString()
+  };
+
+  if (includeKey && profile.key) {
+    row.key = profile.key;
+  }
+
+  return row;
+}
+
 function createLocalStorageProvider() {
   function getCatalog() {
     const catalog = readJson(CATALOG_PATH, null);
@@ -386,6 +505,42 @@ function createLocalStorageProvider() {
     writeJson(ORDERS_PATH, orders);
   }
 
+  function getCustomers() {
+    const customers = readJson(CUSTOMERS_PATH, []);
+    return Array.isArray(customers)
+      ? customers.map((customer) => sanitizeCustomerProfile(customer)).filter((customer) => customer.key)
+      : [];
+  }
+
+  function saveCustomers(customers) {
+    writeJson(CUSTOMERS_PATH, customers);
+  }
+
+  function upsertCustomerProfile(payload) {
+    const profile = sanitizeCustomerProfile(payload);
+    if (!profile.key) {
+      throw createHttpError(400, "Некорректный профиль клиента");
+    }
+
+    const customers = getCustomers();
+    const existingIndex = customers.findIndex((item) => item.key === profile.key);
+
+    if (existingIndex >= 0) {
+      const existing = customers[existingIndex];
+      customers[existingIndex] = {
+        ...existing,
+        ...profile,
+        createdAt: existing.createdAt || profile.createdAt,
+        updatedAt: new Date().toISOString()
+      };
+    } else {
+      customers.unshift(profile);
+    }
+
+    saveCustomers(customers);
+    return customers.find((item) => item.key === profile.key) || profile;
+  }
+
   return {
     mode: "local",
     async init() {
@@ -397,11 +552,22 @@ function createLocalStorageProvider() {
     async getOrders() {
       return getOrders();
     },
+    async getCustomers() {
+      return getCustomers();
+    },
+    async upsertCustomerProfile(payload) {
+      return upsertCustomerProfile(payload);
+    },
     async createOrder(payload, req) {
       const orders = getOrders();
       const order = buildOrderRecord(payload, req);
       orders.unshift(order);
       saveOrders(orders);
+      upsertCustomerProfile({
+        ...order.customer,
+        telegramId: order.telegram?.id,
+        telegram: order.telegram
+      });
       return order;
     },
     async updateOrderStatus(orderId, status) {
@@ -540,11 +706,51 @@ function createSupabaseStorageProvider() {
 
       return (rows || []).map(orderRowToModel);
     },
+    async getCustomers() {
+      try {
+        const rows = await supabaseRequest("GET", "customers", {
+          query: "select=key,telegram_id,name,phone,username,delivery,comment,created_at,updated_at&order=updated_at.desc"
+        });
+
+        return (rows || []).map(customerRowToModel);
+      } catch (error) {
+        if (shouldUseCustomerFallback(error)) {
+          return getFallbackCustomers();
+        }
+        throw error;
+      }
+    },
+    async upsertCustomerProfile(payload) {
+      const profile = sanitizeCustomerProfile(payload);
+      if (!profile.key) {
+        throw createHttpError(400, "Некорректный профиль клиента");
+      }
+
+      try {
+        const rows = await supabaseRequest("POST", "customers", {
+          body: [customerModelToRow(profile, { includeKey: true })],
+          prefer: "return=representation,resolution=merge-duplicates"
+        });
+
+        return customerRowToModel(Array.isArray(rows) ? rows[0] : rows);
+      } catch (error) {
+        if (shouldUseCustomerFallback(error)) {
+          return upsertFallbackCustomerProfile(profile);
+        }
+        throw error;
+      }
+    },
     async createOrder(payload, req) {
       const order = buildOrderRecord(payload, req);
       const rows = await supabaseRequest("POST", "orders", {
         body: [orderModelToRow(order, { includeId: true })],
         prefer: "return=representation"
+      });
+
+      await this.upsertCustomerProfile({
+        ...order.customer,
+        telegramId: order.telegram?.id,
+        telegram: order.telegram
       });
 
       return orderRowToModel(Array.isArray(rows) ? rows[0] : rows);
@@ -960,6 +1166,34 @@ async function handleApi(req, res, url) {
     return true;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/profile") {
+    const customers = await storage.getCustomers();
+    const lookupProfile = sanitizeCustomerProfile({
+      telegramId: normalizeString(url.searchParams.get("telegramId")),
+      phone: normalizeString(url.searchParams.get("phone")),
+      username: normalizeString(url.searchParams.get("username")),
+      name: normalizeString(url.searchParams.get("name")),
+      delivery: normalizeString(url.searchParams.get("delivery"))
+    });
+    const customer = customers.find((item) => item.key === lookupProfile.key) || null;
+    sendJson(res, 200, { ok: true, customer });
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/profile") {
+    const body = await readBody(req);
+    const error = validateCustomerProfile(body);
+
+    if (error) {
+      sendJson(res, 400, { error });
+      return true;
+    }
+
+    const customer = await storage.upsertCustomerProfile(body);
+    sendJson(res, 200, { ok: true, customer });
+    return true;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/admin/login") {
     const body = await readBody(req);
 
@@ -987,6 +1221,11 @@ async function handleApi(req, res, url) {
 
   if (req.method === "GET" && url.pathname === "/api/admin/orders") {
     sendJson(res, 200, { orders: await storage.getOrders() });
+    return true;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/admin/customers") {
+    sendJson(res, 200, { customers: await storage.getCustomers() });
     return true;
   }
 
@@ -1051,7 +1290,7 @@ async function handleApi(req, res, url) {
     sendJson(res, 200, await storage.deleteProduct(productId));
     return true;
   }
-
+  
   sendJson(res, 404, { error: "Not found" });
   return true;
 }
@@ -1103,6 +1342,7 @@ async function requestListener(req, res) {
 }
 
 async function main() {
+  ensureDataFiles();
   await storage.init();
   await configureTelegramBot();
 

@@ -2580,6 +2580,31 @@
       });
     }
 
+    bindProfileControls = function bindProfileControlsWithServerSync() {
+      ["profileName", "profilePhone", "profileUsername", "profileDelivery", "profileComment"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("input", persistProfileFields);
+      });
+
+      document.getElementById("saveProfileBtn")?.addEventListener("click", async () => {
+        persistProfileFields();
+        applyProfileToCheckout();
+        try {
+          await saveProfileToServer();
+          renderProfile();
+          showToast("Профиль сохранён");
+        } catch (error) {
+          showToast(error.message || "Не удалось сохранить профиль", "error");
+        }
+      });
+
+      document.getElementById("fillCheckoutBtn")?.addEventListener("click", () => {
+        persistProfileFields();
+        applyProfileToCheckout();
+        switchView("cart");
+        showToast("Данные профиля подставлены в заказ");
+      });
+    }
+
     function updateCartButton() {
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
       const cartBtnLabel = document.querySelector("#cartBtn .nav-label");
@@ -2944,6 +2969,62 @@
       fillCheckoutFields();
     }
 
+    async function saveProfileToServer() {
+      const telegramUser = getTelegramUser();
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ...state.profile,
+          telegramId: telegramUser?.id ? String(telegramUser.id) : ""
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Не удалось сохранить профиль");
+      }
+
+      if (data.customer) {
+        state.profile = {
+          name: data.customer.name || state.profile.name || "",
+          phone: data.customer.phone || state.profile.phone || "",
+          username: data.customer.username || state.profile.username || "",
+          delivery: data.customer.delivery || state.profile.delivery || "",
+          comment: data.customer.comment || state.profile.comment || "",
+        };
+        saveStorage(STORAGE_KEYS.profile, state.profile);
+      }
+    }
+
+    async function loadProfileFromServer() {
+      const telegramUser = getTelegramUser();
+      const query = new URLSearchParams();
+      if (telegramUser?.id) query.set("telegramId", String(telegramUser.id));
+      if (state.profile.phone) query.set("phone", state.profile.phone);
+      if (state.profile.username) query.set("username", state.profile.username);
+      if (!query.toString()) return;
+
+      try {
+        const response = await fetch(`/api/profile?${query.toString()}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.customer) return;
+
+        state.profile = {
+          name: data.customer.name || state.profile.name || "",
+          phone: data.customer.phone || state.profile.phone || "",
+          username: data.customer.username || state.profile.username || "",
+          delivery: data.customer.delivery || state.profile.delivery || "",
+          comment: data.customer.comment || state.profile.comment || "",
+        };
+        saveStorage(STORAGE_KEYS.profile, state.profile);
+      } catch (error) {
+        console.warn("Profile sync failed:", error);
+      }
+    }
+
     function bindProfileControls() {
       ["profileName", "profilePhone", "profileUsername", "profileDelivery", "profileComment"].forEach((id) => {
         document.getElementById(id)?.addEventListener("input", persistProfileFields);
@@ -3085,6 +3166,7 @@
         };
         saveStorage(STORAGE_KEYS.profile, state.profile);
       }
+      await loadProfileFromServer();
       ensureProfileNavigation();
       bindProfileControls();
       applyProfileToCheckout();

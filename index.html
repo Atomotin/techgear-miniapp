@@ -1827,7 +1827,7 @@
         <div class="section checkout">
           <h2>Данные клиента</h2>
           <div class="section-subtitle">Профиль хранится на устройстве. После сохранения эти поля будут подставляться в оформление заказа.</div>
-          <div id="profileOnboardingNotice" class="checkout-note" style="margin-bottom:14px;">Сначала заполни профиль. После сохранения магазин будет открываться сразу.</div>
+          <div id="profileOnboardingNotice" class="checkout-note" style="margin-bottom:14px;">Профиль можно заполнить позже. Он понадобится только перед оформлением заказа.</div>
           <div class="field-group">
             <div>
               <div class="field-label">Имя *</div>
@@ -3154,10 +3154,6 @@
     }
 
     function switchView(view) {
-      if (view !== "profile" && !isRegisteredProfile()) {
-        view = "profile";
-      }
-
       const shopView = document.getElementById("shopView");
       const cartView = document.getElementById("cartView");
       const favoritesView = document.getElementById("favoritesView");
@@ -3570,7 +3566,6 @@
     function updateProfileOnboardingState() {
       const notice = document.getElementById("profileOnboardingNotice");
       const fillCheckoutBtn = document.getElementById("fillCheckoutBtn");
-      const gatedButtons = ["shopBtn", "favoritesBtn", "cartBtn"];
       const registered = isRegisteredProfile();
 
       if (notice) {
@@ -3578,16 +3573,15 @@
       }
 
       if (fillCheckoutBtn) {
-        fillCheckoutBtn.style.display = registered ? "inline-flex" : "none";
+        fillCheckoutBtn.style.display = "inline-flex";
+        fillCheckoutBtn.textContent = registered ? "Заполнить заказ" : "Сохранить и подставить в заказ";
       }
 
-      gatedButtons.forEach((id) => {
-        const button = document.getElementById(id);
-        if (!button) return;
-        button.disabled = !registered;
-        button.style.opacity = registered ? "1" : "0.45";
-        button.style.pointerEvents = registered ? "auto" : "none";
-      });
+      const profileBtn = document.getElementById("profileBtn");
+      if (profileBtn) {
+        profileBtn.style.opacity = "1";
+        profileBtn.style.pointerEvents = "auto";
+      }
     }
 
     function bindProfileControls() {
@@ -3701,6 +3695,17 @@
       return originalSubmitOrder();
     }
 
+    toggleFavorite = originalToggleFavorite;
+    addToCart = originalAddToCart;
+    increaseQty = originalIncreaseQty;
+    decreaseQty = originalDecreaseQty;
+    removeItem = originalRemoveItem;
+    clearCart = originalClearCart;
+    submitOrder = function gatedSubmitOrderOnly() {
+      if (!requireRegisteredProfile("Чтобы оформить заказ, сначала заполните профиль")) return;
+      return originalSubmitOrder();
+    }
+
     function updateBtn() {
       const btn = document.getElementById("muteBtn");
       if (!btn) return;
@@ -3788,7 +3793,7 @@
       renderCart();
       updateCartButton();
       updateFavoritesButton();
-      switchView(isRegisteredProfile() ? (state.activeView || "shop") : "profile");
+      switchView(state.activeView || "shop");
       trackMiniAppOpen();
     }
 

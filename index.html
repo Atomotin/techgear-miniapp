@@ -1177,6 +1177,40 @@
       animation: toast-in 0.24s ease forwards;
     }
 
+    .music-fab {
+      position: fixed;
+      right: max(14px, calc((100vw - 430px) / 2 + 14px));
+      bottom: 104px;
+      z-index: 1250;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(199, 125, 255, 0.28);
+      background: rgba(11, 10, 18, 0.92);
+      color: #f7efff;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+      backdrop-filter: blur(16px);
+    }
+
+    .music-fab.active {
+      background: linear-gradient(135deg, rgba(157, 78, 221, 0.92), rgba(199, 125, 255, 0.92));
+      border-color: rgba(224, 170, 255, 0.58);
+      color: #fff;
+    }
+
+    .music-fab .nav-icon {
+      margin-bottom: 0;
+      font-size: 16px;
+    }
+
+    .music-fab .nav-label {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     .toast.error {
       border-color: rgba(255, 107, 107, 0.34);
       color: #ffe5e5;
@@ -1269,6 +1303,13 @@
         width: calc(100% - 16px);
         gap: 6px;
         padding: 8px 0 10px;
+      }
+
+      .music-fab {
+        right: 12px;
+        bottom: 96px;
+        min-height: 42px;
+        padding: 9px 12px;
       }
 
       .bottom-nav button,
@@ -1548,6 +1589,10 @@
 
   <audio id="bgm" crossorigin="anonymous"></audio>
   <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+  <button id="muteBtn" class="music-fab" type="button" onclick="toggleMute()">
+    <span class="nav-icon">▶️</span>
+    <span class="nav-label">Музыка</span>
+  </button>
   <div id="imageLightbox" class="lightbox hidden" aria-hidden="true">
     <div class="lightbox-content">
       <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Закрыть">×</button>
@@ -1573,7 +1618,7 @@
     // Музыка — полная система
     let audioElement = null;
     let isPlaying = false;
-    const AUDIO_ENABLED = false;
+    const AUDIO_ENABLED = true;
     
     function initAudio() {
       if (!AUDIO_ENABLED) return;
@@ -2813,9 +2858,7 @@
       if (cartLabel) cartLabel.textContent = `Корзина (${state.cart.reduce((sum, item) => sum + item.qty, 0)})`;
 
       const contactLink = nav.querySelector(".contact-btn");
-      const muteBtn = document.getElementById("muteBtn");
       if (contactLink) contactLink.style.display = "none";
-      if (muteBtn) muteBtn.style.display = "none";
 
       let profileBtn = document.getElementById("profileBtn");
       if (!profileBtn) {
@@ -2968,6 +3011,23 @@
 
       state.activeView = view;
       saveStorage(STORAGE_KEYS.activeView, view);
+    }
+
+    function updateBtn() {
+      const btn = document.getElementById("muteBtn");
+      if (!btn) return;
+      const icon = btn.querySelector(".nav-icon");
+      const label = btn.querySelector(".nav-label");
+
+      if (icon) {
+        icon.textContent = isPlaying ? "⏸️" : "▶️";
+      }
+
+      if (label) {
+        label.textContent = isPlaying ? "Музыка: вкл" : "Музыка";
+      }
+
+      btn.classList.toggle("active", isPlaying);
     }
 
     document.getElementById("searchInput").addEventListener("input", function (e) {

@@ -1694,9 +1694,9 @@
   </style>
 </head>
 <body>
-  <!-- РЅР°Р¶РјРё, С‡С‚РѕР±С‹ РІРєР»СЋС‡РёС‚СЊ РјСѓР·С‹РєСѓ -->
+  <!-- нажми, чтобы включить музыку -->
   <div id="musicPrompt" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);color:white;display:none;align-items:center;justify-content:center;z-index:1000;cursor:pointer;">
-    РќР°Р¶РјРё, С‡С‚РѕР±С‹ РІРєР»СЋС‡РёС‚СЊ РјСѓР·С‹РєСѓ
+    Нажми, чтобы включить музыку
   </div>
   <div class="container">
     <div class="header">
@@ -1768,96 +1768,96 @@
       <div class="section">
         <div class="section-head">
           <div>
-            <h2>РљРѕСЂР·РёРЅР°</h2>
-            <div class="section-subtitle">РџСЂРѕРІРµСЂСЊ СЃРѕСЃС‚Р°РІ Р·Р°РєР°Р·Р° РїРµСЂРµРґ РѕС„РѕСЂРјР»РµРЅРёРµРј Рё РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РёР·РјРµРЅРё РєРѕР»РёС‡РµСЃС‚РІРѕ С‚РѕРІР°СЂРѕРІ.</div>
+            <h2>Корзина</h2>
+            <div class="section-subtitle">Проверь состав заказа перед оформлением и при необходимости измени количество товаров.</div>
           </div>
           <div class="section-actions">
-            <button class="btn btn-outline" type="button" onclick="switchView('shop')">Р’ РєР°С‚Р°Р»РѕРі</button>
-            <button class="btn btn-danger" type="button" onclick="clearCart()">РћС‡РёСЃС‚РёС‚СЊ</button>
+            <button class="btn btn-outline" type="button" onclick="switchView('shop')">В каталог</button>
+            <button class="btn btn-danger" type="button" onclick="clearCart()">Очистить</button>
           </div>
         </div>
         <div id="cartItems"></div>
       </div>
 
       <div class="section checkout">
-        <h2>РћС„РѕСЂРјР»РµРЅРёРµ Р·Р°РєР°Р·Р°</h2>
-        <div class="section-subtitle">РџСЂРѕРІРµСЂСЊ РґР°РЅРЅС‹Рµ Рё РѕС„РѕСЂРјРё Р·Р°РєР°Р·.</div>
+        <h2>Оформление заказа</h2>
+        <div class="section-subtitle">Проверь данные и оформи заказ.</div>
 
         <div class="field-group">
           <div>
-            <div class="field-label">РРјСЏ *</div>
-            <input type="text" id="customerName" placeholder="Р’Р°С€Рµ РёРјСЏ" maxlength="100" />
+            <div class="field-label">Имя *</div>
+            <input type="text" id="customerName" placeholder="Ваше имя" maxlength="100" />
           </div>
 
           <div>
-            <div class="field-label">РўРµР»РµС„РѕРЅ *</div>
-            <input type="tel" id="customerPhone" placeholder="РќР°РїСЂРёРјРµСЂ: +998 94 641 10 10" />
+            <div class="field-label">Телефон *</div>
+            <input type="tel" id="customerPhone" placeholder="Например: +998 94 641 10 10" />
           </div>
 
           <div>
             <div class="field-label">Telegram username</div>
-            <input type="text" id="customerUsername" placeholder="Р’Р°С€ @username" maxlength="50" />
+            <input type="text" id="customerUsername" placeholder="Ваш @username" maxlength="50" />
           </div>
 
           <div class="field-split">
             <div>
-              <div class="field-label">РљР°Рє СЃРІСЏР·Р°С‚СЊСЃСЏ</div>
+              <div class="field-label">Как связаться</div>
               <select id="customerContactMethod">
                 <option value="telegram">Telegram</option>
-                <option value="phone">РўРµР»РµС„РѕРЅ</option>
+                <option value="phone">Телефон</option>
               </select>
             </div>
             <div>
-              <div class="field-label">РљРѕРіРґР° СѓРґРѕР±РЅРѕ</div>
+              <div class="field-label">Когда удобно</div>
               <select id="customerDeliveryTime">
-                <option value="asap">РљР°Рє РјРѕР¶РЅРѕ СЃРєРѕСЂРµРµ</option>
-                <option value="today">РЎРµРіРѕРґРЅСЏ</option>
-                <option value="tomorrow">Р—Р°РІС‚СЂР°</option>
+                <option value="asap">Как можно скорее</option>
+                <option value="today">Сегодня</option>
+                <option value="tomorrow">Завтра</option>
               </select>
             </div>
           </div>
 
           <div>
-            <div class="field-label">РўРѕС‡РЅС‹Р№ Р°РґСЂРµСЃ / РѕСЂРёРµРЅС‚РёСЂ *</div>
-            <textarea id="customerDelivery" rows="3" placeholder="РќР°РїСЂРёРјРµСЂ: Р§РёР»Р°РЅР·Р°СЂ, 19 РєРІР°СЂС‚Р°Р», РІРѕР·Р»Рµ РјРµС‚СЂРѕ" maxlength="300"></textarea>
+            <div class="field-label">Точный адрес / ориентир *</div>
+            <textarea id="customerDelivery" rows="3" placeholder="Например: Чиланзар, 19 квартал, возле метро" maxlength="300"></textarea>
           </div>
 
           <div>
-            <div class="field-label">РљРѕРјРјРµРЅС‚Р°СЂРёР№ Рє Р·Р°РєР°Р·Сѓ</div>
-            <textarea id="customerComment" rows="2" placeholder="РќР°РїСЂРёРјРµСЂ: РґРѕРјРѕС„РѕРЅ, СЌС‚Р°Р¶, С†РІРµС‚ СѓС‚РѕС‡РЅРёС‚СЊ" maxlength="500"></textarea>
+            <div class="field-label">Комментарий к заказу</div>
+            <textarea id="customerComment" rows="2" placeholder="Например: домофон, этаж, цвет уточнить" maxlength="500"></textarea>
           </div>
 
           <div class="location-row">
             <div>
-              <div class="field-label">РўРѕС‡РЅР°СЏ Р»РѕРєР°С†РёСЏ *</div>
-              <input type="text" id="customerLocation" placeholder="РЎРЅР°С‡Р°Р»Р° РЅР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ РЅРёР¶Рµ" readonly />
+              <div class="field-label">Точная локация *</div>
+              <input type="text" id="customerLocation" placeholder="Сначала нажмите кнопку ниже" readonly />
             </div>
-            <button class="btn btn-outline" type="button" onclick="requestUserLocation()">рџ“Ќ РџРѕР»СѓС‡РёС‚СЊ РјРѕСЋ Р»РѕРєР°С†РёСЋ</button>
-            <div class="hint">Р›РѕРєР°С†РёСЏ РѕС‚РєСЂРѕРµС‚СЃСЏ РІ Yandex Maps Сѓ С‚РµР±СЏ РІ Р·Р°РєР°Р·Рµ.</div>
+            <button class="btn btn-outline" type="button" onclick="requestUserLocation()">📍 Получить мою локацию</button>
+            <div class="hint">Локация откроется в Yandex Maps у тебя в заказе.</div>
           </div>
         </div>
 
         <div class="summary">
           <div class="summary-row">
-            <span>РџРѕР·РёС†РёР№</span>
+            <span>Позиций</span>
             <span id="summaryItems">0</span>
           </div>
           <div class="summary-row">
-            <span>РЈРЅРёРєР°Р»СЊРЅС‹С… С‚РѕРІР°СЂРѕРІ</span>
+            <span>Уникальных товаров</span>
             <span id="summaryUniqueItems">0</span>
           </div>
           <div class="summary-total">
-            <span>РС‚РѕРіРѕ</span>
-            <span id="summaryTotal">0 СЃСѓРј</span>
+            <span>Итого</span>
+            <span id="summaryTotal">0 сум</span>
           </div>
-          <div class="summary-note">РњРµРЅРµРґР¶РµСЂ РїРѕРґС‚РІРµСЂРґРёС‚ Р·Р°РєР°Р· РїРѕСЃР»Рµ РѕС‚РїСЂР°РІРєРё.</div>
+          <div class="summary-note">Менеджер подтвердит заказ после отправки.</div>
         </div>
 
         <button id="submitOrderBtn" class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="submitOrder()">
-          РћС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·
+          Оформить заказ
         </button>
 
-        <div class="checkout-note">РќСѓР¶РЅР° РєРѕРЅСЃСѓР»СЊС‚Р°С†РёСЏ? РћС‚РєСЂРѕР№ СЂР°Р·РґРµР» <strong>РЎРІСЏР·СЊ</strong>.</div>
+        <div class="checkout-note">Нужна консультация? Открой раздел <strong>Связь</strong>.</div>
 
       </div>
     </div>
@@ -1866,10 +1866,10 @@
       <div class="section">
         <div class="favorites-head">
           <div>
-            <h2>РР·Р±СЂР°РЅРЅРѕРµ</h2>
+            <h2>Избранное</h2>
             <div class="favorites-note">Сохраняй товары и возвращайся к ним позже.</div>
           </div>
-          <button class="btn btn-outline" type="button" onclick="switchView('shop')">Р’РµСЂРЅСѓС‚СЊСЃСЏ РІ РєР°С‚Р°Р»РѕРі</button>
+          <button class="btn btn-outline" type="button" onclick="switchView('shop')">Вернуться в каталог</button>
         </div>
         <div class="product-list" id="favoriteList"></div>
       </div>
@@ -1881,36 +1881,36 @@
           <div class="profile-top">
             <div class="profile-avatar" id="profileAvatar">TG</div>
             <div>
-              <h2>РџСЂРѕС„РёР»СЊ</h2>
+              <h2>Профиль</h2>
               <p>Сохрани данные один раз для быстрого оформления заказа.</p>
             </div>
           </div>
           <div class="profile-stats">
             <div class="profile-stat">
               <strong id="profileCompletion">0%</strong>
-              <span>Р—Р°РїРѕР»РЅРµРЅРѕ</span>
+              <span>Заполнено</span>
             </div>
             <div class="profile-stat">
               <strong id="profileCartCount">0</strong>
-              <span>Р’ РєРѕСЂР·РёРЅРµ</span>
+              <span>В корзине</span>
             </div>
             <div class="profile-stat">
               <strong id="profileFavoritesCount">0</strong>
-              <span>Р’ РёР·Р±СЂР°РЅРЅРѕРј</span>
+              <span>В избранном</span>
             </div>
           </div>
         </div>
         <div class="section checkout">
-          <h2>Р”Р°РЅРЅС‹Рµ РєР»РёРµРЅС‚Р°</h2>
+          <h2>Данные клиента</h2>
           <div class="section-subtitle">Профиль нужен только для оформления заказа.</div>
           <div id="profileOnboardingNotice" class="checkout-note" style="margin-bottom:14px;">Можно заполнить позже и вернуться к этому перед заказом.</div>
           <div class="field-group">
             <div>
-              <div class="field-label">РРјСЏ *</div>
-              <input type="text" id="profileName" placeholder="Р’Р°С€Рµ РёРјСЏ" maxlength="100" />
+              <div class="field-label">Имя *</div>
+              <input type="text" id="profileName" placeholder="Ваше имя" maxlength="100" />
             </div>
             <div>
-              <div class="field-label">РўРµР»РµС„РѕРЅ *</div>
+              <div class="field-label">Телефон *</div>
               <input type="tel" id="profilePhone" placeholder="+998 90 123 45 67" />
             </div>
             <div>
@@ -1918,17 +1918,17 @@
               <input type="text" id="profileUsername" placeholder="@username" maxlength="50" />
             </div>
             <div>
-              <div class="field-label">РћСЃРЅРѕРІРЅРѕР№ Р°РґСЂРµСЃ</div>
-              <textarea id="profileDelivery" rows="3" placeholder="Р“РѕСЂРѕРґ, СЂР°Р№РѕРЅ, РѕСЂРёРµРЅС‚РёСЂ" maxlength="300"></textarea>
+              <div class="field-label">Основной адрес</div>
+              <textarea id="profileDelivery" rows="3" placeholder="Город, район, ориентир" maxlength="300"></textarea>
             </div>
             <div>
-              <div class="field-label">РљРѕРјРјРµРЅС‚Р°СЂРёР№ РґР»СЏ Р·Р°РєР°Р·РѕРІ</div>
-              <textarea id="profileComment" rows="2" placeholder="РќР°РїСЂРёРјРµСЂ: СЌС‚Р°Р¶, РґРѕРјРѕС„РѕРЅ, РїРѕР·РІРѕРЅРёС‚СЊ Р·Р°СЂР°РЅРµРµ" maxlength="500"></textarea>
+              <div class="field-label">Комментарий для заказов</div>
+              <textarea id="profileComment" rows="2" placeholder="Например: этаж, домофон, позвонить заранее" maxlength="500"></textarea>
             </div>
           </div>
           <div class="hero-actions">
-            <button class="btn btn-primary" type="button" id="saveProfileBtn">РЎРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ</button>
-            <button class="btn btn-outline" type="button" id="fillCheckoutBtn">Р—Р°РїРѕР»РЅРёС‚СЊ Р·Р°РєР°Р·</button>
+            <button class="btn btn-primary" type="button" id="saveProfileBtn">Сохранить профиль</button>
+            <button class="btn btn-outline" type="button" id="fillCheckoutBtn">Заполнить заказ</button>
           </div>
         </div>
       </div>
@@ -1938,24 +1938,24 @@
   <audio id="bgm" crossorigin="anonymous"></audio>
   <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
   <button id="muteBtn" class="music-fab" type="button" onclick="toggleMute()">
-    <span class="nav-icon">в–¶пёЏ</span>
-    <span class="nav-label">РњСѓР·С‹РєР°</span>
+    <span class="nav-icon">▶️</span>
+    <span class="nav-label">Музыка</span>
   </button>
   <div id="imageLightbox" class="lightbox hidden" aria-hidden="true">
     <div class="lightbox-content">
-      <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
-      <button id="lightboxPrev" class="carousel-btn prev" type="button" aria-label="РџСЂРµРґС‹РґСѓС‰РµРµ С„РѕС‚Рѕ">вЂ№</button>
-      <img id="lightboxImage" class="lightbox-image" src="" alt="Р¤РѕС‚Рѕ С‚РѕРІР°СЂР°">
-      <button id="lightboxNext" class="carousel-btn next" type="button" aria-label="РЎР»РµРґСѓСЋС‰РµРµ С„РѕС‚Рѕ">вЂє</button>
+      <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Закрыть">×</button>
+      <button id="lightboxPrev" class="carousel-btn prev" type="button" aria-label="Предыдущее фото">‹</button>
+      <img id="lightboxImage" class="lightbox-image" src="" alt="Фото товара">
+      <button id="lightboxNext" class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
       <div id="lightboxDots" class="carousel-dots"></div>
     </div>
   </div>
   <div class="bottom-nav">
     <div class="bottom-nav-inner">
-      <button id="shopBtn" class="active" onclick="switchView('shop')"><span class="nav-icon">рџЏЄ</span><span class="nav-label">РњР°РіР°Р·РёРЅ</span></button>
-      <button id="favoritesBtn" onclick="switchView('favorites')"><span class="nav-icon">вќ¤</span><span class="nav-label">РР·Р±СЂР°РЅРЅРѕРµ (0)</span></button>
-      <button id="cartBtn" onclick="switchView('cart')"><span class="nav-icon">рџ›ЌпёЏ</span><span class="nav-label">РљРѕСЂР·РёРЅР° (0)</span></button>
-      <button id="profileBtn" type="button" onclick="switchView('profile')"><span class="nav-icon">рџ‘¤</span><span class="nav-label">РџСЂРѕС„РёР»СЊ</span></button>
+      <button id="shopBtn" class="active" onclick="switchView('shop')"><span class="nav-icon">🏪</span><span class="nav-label">Магазин</span></button>
+      <button id="favoritesBtn" onclick="switchView('favorites')"><span class="nav-icon">❤</span><span class="nav-label">Избранное (0)</span></button>
+      <button id="cartBtn" onclick="switchView('cart')"><span class="nav-icon">🛍</span><span class="nav-label">Корзина (0)</span></button>
+      <button id="profileBtn" type="button" onclick="switchView('profile')"><span class="nav-icon">👤</span><span class="nav-label">Профиль</span></button>
     </div>
   </div>
 
@@ -1963,7 +1963,7 @@
   <script>
     const tg = window.Telegram?.WebApp || null;
     
-    // РњСѓР·С‹РєР° вЂ” РїРѕР»РЅР°СЏ СЃРёСЃС‚РµРјР°
+    // Музыка
     let audioElement = null;
     let isPlaying = false;
     const AUDIO_ENABLED = true;
@@ -1973,7 +1973,7 @@
       audioElement = document.getElementById('bgm');
       if (!audioElement) return;
       
-      // РџРѕРїСЂРѕР±РѕРІР°С‚СЊ РЅРµСЃРєРѕР»СЊРєРѕ РёСЃС‚РѕС‡РЅРёРєРѕРІ (РІСЃРµ РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ РїСЂСЏРјС‹РјРё СЃСЃС‹Р»РєР°РјРё РЅР° mp3)
+      // Несколько источников на случай, если один не загрузится
       const urls = [
         // 'songs/SQWOZ BAB - TOKYO (zaycev.net).mp3',
         'songs/asrorrrrrga1.mp3',
@@ -1994,44 +1994,44 @@
       });
       let currentIndex = 0;
       audioElement.addEventListener('error', (e) => {
-        console.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РјСѓР·С‹РєРё РґР»СЏ', audioElement.src, e);
-        // РїРѕРїСЂРѕР±РѕРІР°С‚СЊ СЃР»РµРґСѓСЋС‰РёР№ URL
+        console.error('Ошибка загрузки музыки для', audioElement.src, e);
+        // Попробовать следующий URL
         currentIndex += 1;
         if (currentIndex < urls.length) {
           audioElement.src = urls[currentIndex];
-          console.log('РџСЂРѕР±СѓРµРј РёСЃС‚РѕС‡РЅРёРє', audioElement.src);
+          console.log('Пробуем источник', audioElement.src);
           audioElement.load();
-          audioElement.play().catch(err => console.warn('РђРІС‚РѕР·Р°РїСѓСЃРє РїРѕСЃР»Рµ РѕС€РёР±РєРё Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ:', err));
+          audioElement.play().catch(err => console.warn('Автозапуск после ошибки заблокирован:', err));
         } else {
-          console.warn('Р’СЃРµ РёСЃС‚РѕС‡РЅРёРєРё РЅРµ Р·Р°РіСЂСѓР·РёР»РёСЃСЊ');
+          console.warn('Все источники не загрузились');
         }
       });
       
-      // РђРІС‚РѕР·Р°РїСѓСЃРє РїСЂРё Р·Р°РіСЂСѓР·РєРµ - РЅРµСЃРєРѕР»СЊРєРѕ РїРѕРїС‹С‚РѕРє
+      // Автозапуск при загрузке
       const autoplay = () => {
         const playPromise = audioElement.play();
         if (playPromise !== undefined) {
           playPromise.then(() => {
             isPlaying = true;
             updateBtn();
-            console.log('РњСѓР·С‹РєР° СѓСЃРїРµС€РЅРѕ Р·Р°РїСѓС‰РµРЅР°');
+            console.log('Музыка успешно запущена');
           }).catch((err) => {
-            console.warn('РџРѕРїС‹С‚РєР° Р·Р°РїСѓСЃРєР° Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅР°:', err.name);
-            // РџРѕРїСЂРѕР±РѕРІР°С‚СЊ СЃРЅРѕРІР° С‡РµСЂРµР· 1 СЃРµРє
+            console.warn('Попытка запуска заблокирована:', err.name);
+            // Попробовать снова через 1 секунду
             setTimeout(autoplay, 1000);
           });
         }
       };
       
-        // Р—Р°РїСѓСЃС‚РёС‚СЊ СЃСЂР°Р·Сѓ Рё РїСЂРё РєР»РёРєРµ/С‚Р°РїРµ, Р»РѕРіРёСЂСѓРµРј
-      console.log('РџРѕРїС‹С‚РєР° Р°РІС‚РѕР·Р°РїСѓСЃРєР° РјСѓР·С‹РєРё');
+        // Запустить сразу и при клике/тапе
+      console.log('Попытка автозапуска музыки');
       autoplay();
       document.addEventListener('click', autoplay, { once: true });
       document.addEventListener('touchstart', autoplay, { once: true });
 
-      // Telegram MainButton (РµСЃР»Рё РµСЃС‚СЊ) - РµС‰С‘ РѕРґРёРЅ Р¶РµСЃС‚
+      // Telegram MainButton — ещё один жест
       if (tg && tg.MainButton) {
-        tg.MainButton.setText('в–¶ РњСѓР·С‹РєР°');
+        tg.MainButton.setText('▶ Музыка');
         tg.MainButton.show();
         tg.onEvent('mainButtonClicked', () => {
           autoplay();
@@ -2064,7 +2064,7 @@
         audioElement.play().then(() => {
           isPlaying = true;
           updateBtn();
-        }).catch(err => console.warn('РћС€РёР±РєР° play:', err));
+        }).catch(err => console.warn('Ошибка play:', err));
       } else {
         audioElement.pause();
         isPlaying = false;
@@ -2077,11 +2077,11 @@
       if (!btn) return;
       const icon = btn.querySelector(".nav-icon");
       if (icon) {
-        icon.textContent = isPlaying ? 'вЏёпёЏ' : 'в–¶пёЏ';
+        icon.textContent = isPlaying ? '⏸️' : '▶️';
       }
     }
     
-    // РРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ РїСЂРё Р·Р°РіСЂСѓР·РєРµ СЃС‚СЂР°РЅРёС†С‹
+    // Инициализация после загрузки страницы
     window.addEventListener('DOMContentLoaded', initAudio);
     const STORAGE_KEYS = {
       cart: "techgear_cart_v1",
@@ -2176,7 +2176,7 @@
     }
 
     function escapeHtml(text) {
-      return String(text ?? "")
+      return String(text ? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -2185,8 +2185,8 @@
     }
 
     function formatPrice(value) {
-      if (!value) return "Р¦РµРЅР° РїРѕ Р·Р°РїСЂРѕСЃСѓ";
-      return new Intl.NumberFormat("ru-RU").format(value) + " СЃСѓРј";
+      if (!value) return "Цена по запросу";
+      return new Intl.NumberFormat("ru-RU").format(value) + " сум";
     }
 
     function normalizeProducts(products) {
@@ -2201,7 +2201,7 @@
             : (product.image ? [product.image] : []),
           isSoon: typeof product.isSoon === "boolean"
             ? product.isSoon
-            : /СЃРєРѕСЂРѕ|РїРѕРґ Р·Р°РєР°Р·/i.test(product.stock || ""),
+            : /скоро|под заказ/i.test(product.stock || ""),
         }));
     }
 
@@ -2437,7 +2437,7 @@
       return Math.round((filled / fields.length) * 100);
     }
 
-    function requireRegisteredProfile(message = "РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ") {
+    function requireRegisteredProfile(message = "Сначала заполни профиль") {
       if (isRegisteredProfile()) return true;
       switchView("profile");
       showToast(message, "error");
@@ -2472,7 +2472,7 @@
     function saveProfile() {
       persistProfileFields();
       syncProfileToCheckout();
-      showToast("РџСЂРѕС„РёР»СЊ СЃРѕС…СЂР°РЅС‘РЅ");
+      showToast("Профиль сохранён");
     }
 
     function showToast(message, type = "success") {
@@ -2495,10 +2495,10 @@
     }
 
     function getProductBadge(product) {
-      if (product.badge === "hot") return '<span class="card-badge hot">РҐРёС‚</span>';
-      if (product.badge === "new") return '<span class="card-badge new">РќРѕРІРёРЅРєР°</span>';
-      if (product.isSoon || (product.stock || "").toLowerCase().includes("РїРѕРґ Р·Р°РєР°Р·")) {
-        return '<span class="card-badge preorder">РџРѕРґ Р·Р°РєР°Р·</span>';
+      if (product.badge === "hot") return '<span class="card-badge hot">Хит</span>';
+      if (product.badge === "new") return '<span class="card-badge new">Новинка</span>';
+      if (product.isSoon || (product.stock || "").toLowerCase().includes("под заказ")) {
+        return '<span class="card-badge preorder">Под заказ</span>';
       }
       return "";
     }
@@ -2516,10 +2516,10 @@
       const key = String(productId);
       if (isFavorite(key)) {
         state.favorites = state.favorites.filter((id) => String(id) !== key);
-        showToast("РўРѕРІР°СЂ СѓР±СЂР°РЅ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ");
+        showToast("Товар убран из избранного");
       } else {
         state.favorites = [...state.favorites, key];
-        showToast("РўРѕРІР°СЂ РґРѕР±Р°РІР»РµРЅ РІ РёР·Р±СЂР°РЅРЅРѕРµ");
+        showToast("Товар добавлен в избранное");
       }
 
       saveStorage(STORAGE_KEYS.favorites, state.favorites);
@@ -2571,11 +2571,11 @@
           return {
             id: `banner-${banner.id || index}`,
             kicker: banner.kicker || "TechGear",
-            title: banner.title || "РќРѕРІР°СЏ РїРѕРґР±РѕСЂРєР°",
+            title: banner.title || "Новая подборка",
             text: "",
             chips: [],
             image: banner.image || "images.img/lolo.png",
-            cta: banner.ctaLabel || "РћС‚РєСЂС‹С‚СЊ",
+            cta: banner.ctaLabel || "Открыть",
             secondary: banner.secondaryLabel || "",
             action: mapAction(banner.actionType, banner.actionValue),
             secondaryAction: mapAction(banner.secondaryActionType, banner.secondaryActionValue),
@@ -2602,10 +2602,10 @@
 
       addSlide(hotProduct && {
         id: `hot-${hotProduct.id}`,
-        kicker: "РҐРёС‚ РїСЂРѕРґР°Р¶",
+        kicker: "Хит продаж",
         title: hotProduct.name,
         text: "",
-        chips: ["РҐРёС‚С‹", formatPrice(hotProduct.price), hotProduct.stock || "Р’ РЅР°Р»РёС‡РёРё"],
+        chips: ["Хиты", formatPrice(hotProduct.price), hotProduct.stock || "В наличии"],
         image: hotProduct.images?.[0] || "",
         cta: "Смотреть",
         secondary: "",
@@ -2619,10 +2619,10 @@
 
       addSlide(newProduct && {
         id: `new-${newProduct.id}`,
-        kicker: "РќРѕРІР°СЏ РїРѕСЃС‚Р°РІРєР°",
-        title: "РќРѕРІРёРЅРєРё РІ РєР°С‚Р°Р»РѕРіРµ",
+        kicker: "Новая поставка",
+        title: "Новинки в каталоге",
         text: "",
-        chips: ["РќРѕРІРёРЅРєРё", newProduct.stock || "РЎРєРѕСЂРѕ", newProduct.variants?.length ? `${newProduct.variants.length} РІР°СЂРёР°РЅС‚РѕРІ` : "РЎРІРµР¶РёР№ Р°СЃСЃРѕСЂС‚РёРјРµРЅС‚"],
+        chips: ["Новинки", newProduct.stock || "Скоро", newProduct.variants?.length ? `${newProduct.variants.length} вариантов` : "Свежий ассортимент"],
         image: newProduct.images?.[0] || "",
         cta: "Новинки",
         secondary: "",
@@ -2636,10 +2636,10 @@
 
       addSlide(setupPick && {
         id: `pick-${setupPick.id}`,
-        kicker: "РџРѕРґР±РѕСЂРєР° TechGear",
-        title: "РђРєСЃРµСЃСЃСѓР°СЂС‹ РґР»СЏ СЃРµС‚Р°РїР°",
+        kicker: "Подборка TechGear",
+        title: "Аксессуары для сетапа",
         text: "",
-        chips: ["РџРѕРґР±РѕСЂРєР°", "Р”РµРєРѕСЂ", "РЎРµС‚Р°Рї"],
+        chips: ["Подборка", "Декор", "Сетап"],
         image: setupPick.images?.[0] || "",
         cta: "Подборка",
         secondary: "",
@@ -2654,9 +2654,9 @@
         uniqueSlides.push({
           id: "fallback",
           kicker: "TechGear",
-          title: "РќРѕРІРёРЅРєРё, С…РёС‚С‹ Рё Р°РєС†РёРё",
+          title: "Новинки, хиты и акции",
           text: "",
-          chips: ["Mini App", "РљР°С‚Р°Р»РѕРі", "Telegram"],
+          chips: ["Mini App", "Каталог", "Telegram"],
           image: "images.img/lolo.png",
           cta: "Каталог",
           secondary: "",
@@ -2760,7 +2760,7 @@
               <div class="promo-kicker">${escapeHtml(slide.kicker)}</div>
               <h2 class="promo-title">${escapeHtml(slide.title)}</h2>
               <div class="promo-actions">
-                <button class="promo-primary" type="button" data-promo-action="${escapeHtml(slide.id)}">${escapeHtml(slide.cta || "РћС‚РєСЂС‹С‚СЊ")}</button>
+                <button class="promo-primary" type="button" data-promo-action="${escapeHtml(slide.id)}">${escapeHtml(slide.cta || "Открыть")}</button>
                 ${slide.secondary ? `<button class="promo-secondary" type="button" data-promo-secondary="${escapeHtml(slide.id)}">${escapeHtml(slide.secondary)}</button>` : ""}
               </div>
             </div>
@@ -2841,7 +2841,7 @@
       list.innerHTML = "";
 
       if (!filtered.length) {
-        list.innerHTML = '<div class="empty-text">РќРёС‡РµРіРѕ РЅРµ РЅР°Р№РґРµРЅРѕ.</div>';
+        list.innerHTML = '<div class="empty-text">Ничего не найдено.</div>';
         return;
       }
 
@@ -2856,10 +2856,10 @@
               <div class="product-track">
                 ${images.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(product.name)}" class="product-image">`).join("")}
               </div>
-              <button class="carousel-btn prev" type="button" aria-label="РџСЂРµРґС‹РґСѓС‰РµРµ С„РѕС‚Рѕ">вЂ№</button>
-              <button class="carousel-btn next" type="button" aria-label="РЎР»РµРґСѓСЋС‰РµРµ С„РѕС‚Рѕ">вЂє</button>
+              <button class="carousel-btn prev" type="button" aria-label="Предыдущее фото">‹</button>
+              <button class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
               <div class="carousel-dots">
-                ${images.map((_, index) => `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-index="${index}" aria-label="Р¤РѕС‚Рѕ ${index + 1}"></button>`).join("")}
+                ${images.map((_, index) => `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-index="${index}" aria-label="Фото ${index + 1}"></button>`).join("")}
               </div>
             </div>
           `
@@ -2890,8 +2890,8 @@
             <div class="meta-row">
               <div class="price">${formatPrice(product.price)}</div>
               <div class="card-actions-row">
-                <button class="favorite-btn${favoriteActive ? " active" : ""}" type="button" aria-label="${favoriteActive ? "РЈР±СЂР°С‚СЊ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ" : "Р”РѕР±Р°РІРёС‚СЊ РІ РёР·Р±СЂР°РЅРЅРѕРµ"}">${favoriteActive ? "вќ¤" : "в™Ў"}</button>
-                <button class="btn btn-primary" type="button">${product.isSoon ? "РџСЂРµРґР·Р°РєР°Р·" : "Р’ РєРѕСЂР·РёРЅСѓ"}</button>
+                <button class="favorite-btn${favoriteActive ? " active" : ""}" type="button" aria-label="${favoriteActive ? "Убрать из избранного" : "Добавить в избранное"}">${favoriteActive ? "❤" : "♡"}</button>
+                <button class="btn btn-primary" type="button">${product.isSoon ? "Предзаказ" : "В корзину"}</button>
               </div>
             </div>
           </div>
@@ -2917,7 +2917,7 @@
       list.innerHTML = "";
 
       if (!favorites.length) {
-        list.innerHTML = '<div class="empty-text">РџРѕРєР° РїСѓСЃС‚Рѕ. Р”РѕР±Р°РІР»СЏР№ РїРѕРЅСЂР°РІРёРІС€РёРµСЃСЏ С‚РѕРІР°СЂС‹ РІ РёР·Р±СЂР°РЅРЅРѕРµ РїСЂСЏРјРѕ РёР· РєР°С‚Р°Р»РѕРіР°.</div>';
+        list.innerHTML = '<div class="empty-text">Пока пусто. Добавляй понравившиеся товары в избранное прямо из каталога.</div>';
         return;
       }
 
@@ -2938,8 +2938,8 @@
             <div class="meta-row">
               <div class="price">${formatPrice(product.price)}</div>
               <div class="card-actions-row">
-                <button class="favorite-btn active" type="button" aria-label="РЈР±СЂР°С‚СЊ РёР· РёР·Р±СЂР°РЅРЅРѕРіРѕ">вќ¤</button>
-                <button class="btn btn-primary" type="button">РћС‚РєСЂС‹С‚СЊ</button>
+                <button class="favorite-btn active" type="button" aria-label="Убрать из избранного">❤</button>
+                <button class="btn btn-primary" type="button">Открыть</button>
               </div>
             </div>
           </div>
@@ -2953,7 +2953,7 @@
           renderCategories();
           renderProducts();
           switchView("shop");
-          showToast(`РћС‚РєСЂС‹С‚ С‚РѕРІР°СЂ: ${product.name}`);
+          showToast(`Открыт товар: ${product.name}`);
         };
 
         list.appendChild(card);
@@ -3062,7 +3062,7 @@
 
       image.src = lightboxState.images[lightboxState.index];
       dots.innerHTML = lightboxState.images.map((_, index) =>
-        `<button class="carousel-dot${index === lightboxState.index ? " active" : ""}" type="button" data-lightbox-index="${index}" aria-label="Р¤РѕС‚Рѕ ${index + 1}"></button>`
+        `<button class="carousel-dot${index === lightboxState.index ? " active" : ""}" type="button" data-lightbox-index="${index}" aria-label="Фото ${index + 1}"></button>`
       ).join("");
 
       dots.querySelectorAll("[data-lightbox-index]").forEach((dot) => {
@@ -3121,7 +3121,7 @@
       renderCart();
       updateCartButton();
       tg?.HapticFeedback?.impactOccurred?.("light");
-      showToast(`Р”РѕР±Р°РІР»РµРЅРѕ РІ РєРѕСЂР·РёРЅСѓ: ${product.name}${selectedVariant ? ` (${selectedVariant})` : ""}`);
+      showToast(`Добавлено в корзину: ${product.name}${selectedVariant ? ` (${selectedVariant})` : ""}`);
     }
 
     function increaseQty(cartKey) {
@@ -3154,7 +3154,7 @@
 
     function clearCart() {
       if (!state.cart.length) {
-        showToast("РљРѕСЂР·РёРЅР° СѓР¶Рµ РїСѓСЃС‚Р°СЏ");
+        showToast("Корзина уже пустая");
         return;
       }
 
@@ -3162,7 +3162,7 @@
       persistCart();
       renderCart();
       updateCartButton();
-      showToast("РљРѕСЂР·РёРЅР° РѕС‡РёС‰РµРЅР°");
+      showToast("Корзина очищена");
     }
 
     function persistCart() {
@@ -3187,7 +3187,7 @@
       }
 
       if (!state.cart.length) {
-        wrap.innerHTML = '<div class="empty-text">РљРѕСЂР·РёРЅР° РїРѕРєР° РїСѓСЃС‚Р°СЏ.</div>';
+        wrap.innerHTML = '<div class="empty-text">Корзина пока пустая.</div>';
         return;
       }
 
@@ -3203,7 +3203,7 @@
               ${item.selectedVariant ? `<div class="hint">${escapeHtml(item.selectedVariant)}</div>` : ""}
               <div class="cart-price">${formatPrice(item.price)}</div>
             </div>
-            <button class="btn btn-danger" type="button" style="padding:8px 10px;" onclick="removeItem('${escapeHtml(itemKey)}')">вњ•</button>
+            <button class="btn btn-danger" type="button" style="padding:8px 10px;" onclick="removeItem('${escapeHtml(itemKey)}')">✕</button>
           </div>
           <div class="cart-actions">
             <div class="qty-controls">
@@ -3238,9 +3238,9 @@
           if (wasLocked && isRegisteredProfile()) {
             switchView("shop");
           }
-          showToast("РџСЂРѕС„РёР»СЊ СЃРѕС…СЂР°РЅС‘РЅ");
+          showToast("Профиль сохранён");
         } catch (error) {
-          showToast(error.message || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ", "error");
+          showToast(error.message || "Не удалось сохранить профиль", "error");
         }
       });
 
@@ -3248,7 +3248,7 @@
         persistProfileFields();
         applyProfileToCheckout();
         switchView("cart");
-        showToast("Р”Р°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ РїРѕРґСЃС‚Р°РІР»РµРЅС‹ РІ Р·Р°РєР°Р·");
+        showToast("Данные профиля подставлены в заказ");
       });
     }
 
@@ -3256,14 +3256,14 @@
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
       const cartBtnLabel = document.querySelector("#cartBtn .nav-label");
       if (cartBtnLabel) {
-        cartBtnLabel.textContent = `РљРѕСЂР·РёРЅР° (${totalItems})`;
+        cartBtnLabel.textContent = `Корзина (${totalItems})`;
       }
     }
 
     function updateFavoritesButton() {
       const favoriteBtnLabel = document.querySelector("#favoritesBtn .nav-label");
       if (favoriteBtnLabel) {
-        favoriteBtnLabel.textContent = `РР·Р±СЂР°РЅРЅРѕРµ (${state.favorites.length})`;
+        favoriteBtnLabel.textContent = `Избранное (${state.favorites.length})`;
       }
     }
 
@@ -3366,7 +3366,7 @@
 
     function requestUserLocation() {
       if (!navigator.geolocation) {
-        showToast("Р“РµРѕР»РѕРєР°С†РёСЏ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ РЅР° СЌС‚РѕРј СѓСЃС‚СЂРѕР№СЃС‚РІРµ", "error");
+        showToast("Геолокация не поддерживается на этом устройстве", "error");
         return;
       }
 
@@ -3377,10 +3377,10 @@
           const value = `${lat}, ${lon}`;
           document.getElementById("customerLocation").value = value;
           persistCheckoutFields();
-          showToast("Р›РѕРєР°С†РёСЏ СѓСЃРїРµС€РЅРѕ РїРѕР»СѓС‡РµРЅР°");
+          showToast("Локация успешно получена");
         },
         () => {
-          showToast("РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ Р»РѕРєР°С†РёСЋ. Р Р°Р·СЂРµС€РёС‚Рµ РґРѕСЃС‚СѓРї Рє РіРµРѕРїРѕР·РёС†РёРё.", "error");
+          showToast("Не удалось получить локацию. Разрешите доступ к геопозиции.", "error");
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -3396,26 +3396,26 @@
       const user = getTelegramUser();
       const tgMeta = [];
       if (user?.id) tgMeta.push(`Telegram ID: ${user.id}`);
-      if (user?.username) tgMeta.push(`Telegram РїСЂРѕС„РёР»СЊ: @${user.username}`);
+      if (user?.username) tgMeta.push(`Telegram профиль: @${user.username}`);
 
       const lines = [
-        "РќРѕРІС‹Р№ Р·Р°РєР°Р· TechGear",
+        "Новый заказ TechGear",
         "",
-        `РРјСЏ: ${payload.name}`,
-        `РўРµР»РµС„РѕРЅ: ${payload.phone}`,
+        `Имя: ${payload.name}`,
+        `Телефон: ${payload.phone}`,
         `Telegram username: ${payload.username}`,
-        `РЎРїРѕСЃРѕР± СЃРІСЏР·Рё: ${payload.contactMethod}`,
-        `РљРѕРіРґР° СѓРґРѕР±РЅРѕ: ${payload.deliveryTime}`,
-        `РђРґСЂРµСЃ / РѕСЂРёРµРЅС‚РёСЂ: ${payload.delivery}`,
-        `РљРѕРјРјРµРЅС‚Р°СЂРёР№: ${payload.comment || "РќРµС‚"}`,
-        `Р›РѕРєР°С†РёСЏ: ${payload.location}`,
+        `Способ связи: ${payload.contactMethod}`,
+        `Когда удобно: ${payload.deliveryTime}`,
+        `Адрес / ориентир: ${payload.delivery}`,
+        `Комментарий: ${payload.comment || "Нет"}`,
+        `Локация: ${payload.location}`,
         ...tgMeta,
         payload.location ? `Yandex Maps: ${buildYandexMapsLink(payload.location)}` : "",
         "",
-        "РўРѕРІР°СЂС‹:",
-        ...state.cart.map((item) => `вЂў ${item.name} Г— ${item.qty} вЂ” ${formatPrice((item.price || 0) * item.qty)}`),
+        "Товары:",
+        ...state.cart.map((item) => `• ${item.name} × ${item.qty} — ${formatPrice((item.price || 0) * item.qty)}`),
         "",
-        `РС‚РѕРіРѕ: ${formatPrice(payload.total)}`,
+        `Итого: ${formatPrice(payload.total)}`,
       ];
 
       return lines.filter(Boolean).join("\n");
@@ -3458,7 +3458,7 @@
 
     function submitOrder() {
       if (!state.cart.length) {
-        showToast("РљРѕСЂР·РёРЅР° РїСѓСЃС‚Р°СЏ", "error");
+        showToast("Корзина пустая", "error");
         return;
       }
 
@@ -3474,7 +3474,7 @@
 
       const name = document.getElementById("customerName").value.trim();
       const phone = sanitizePhone(document.getElementById("customerPhone").value.trim());
-      const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "РќРµ СѓРєР°Р·Р°РЅ");
+      const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "Не указан");
       const contactMethod = document.getElementById("customerContactMethod").value;
       const deliveryTime = document.getElementById("customerDeliveryTime").value;
       const delivery = document.getElementById("customerDelivery").value.trim();
@@ -3482,37 +3482,37 @@
       const location = document.getElementById("customerLocation").value.trim();
 
       if (!name) {
-        showToast("Р’РІРµРґРёС‚Рµ РІР°С€Рµ РёРјСЏ", "error");
+        showToast("Введите ваше имя", "error");
         return;
       }
 
       if (name.length > 100) {
-        showToast("РРјСЏ СЃР»РёС€РєРѕРј РґР»РёРЅРЅРѕРµ", "error");
+        showToast("Имя слишком длинное", "error");
         return;
       }
 
       if (!/^[\p{L}\s'-]+$/u.test(name)) {
-        showToast("Р’ РёРјРµРЅРё РЅРµР»СЊР·СЏ С†РёС„СЂС‹ Рё СЌРјРѕРґР·Рё", "error");
+        showToast("В имени нельзя цифры и эмодзи", "error");
         return;
       }
 
       if (!phone) {
-        showToast("Р’РІРµРґРёС‚Рµ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°", "error");
+        showToast("Введите номер телефона", "error");
         return;
       }
 
       if (phone.replace(/\D/g, "").length < 9) {
-        showToast("Р’РІРµРґРёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°", "error");
+        showToast("Введите корректный номер телефона", "error");
         return;
       }
 
       if (!delivery) {
-        showToast("Р’РІРµРґРёС‚Рµ С‚РѕС‡РЅС‹Р№ Р°РґСЂРµСЃ РёР»Рё РѕСЂРёРµРЅС‚РёСЂ", "error");
+        showToast("Введите точный адрес или ориентир", "error");
         return;
       }
 
       if (CONFIG.requireLocation && !location) {
-        showToast("РЎРЅР°С‡Р°Р»Р° РѕС‚РїСЂР°РІСЊС‚Рµ С‚РѕС‡РЅСѓСЋ Р»РѕРєР°С†РёСЋ", "error");
+        showToast("Сначала отправьте точную локацию", "error");
         return;
       }
 
@@ -3528,8 +3528,8 @@
 
       if (tg) {
         tg.sendData(orderText);
-        tg.showAlert("Р—Р°РєР°Р· РѕС‚РїСЂР°РІР»РµРЅ. РЎРєРѕСЂРѕ РјС‹ СЃРІСЏР¶РµРјСЃСЏ СЃ РІР°РјРё.");
-        showToast("Р—Р°РєР°Р· РѕС‚РїСЂР°РІР»РµРЅ");
+        tg.showAlert("Заказ отправлен. Скоро мы свяжемся с вами.");
+        showToast("Заказ отправлен");
         trackEvent("order_submitted", {
           total,
           items: state.cart.map((item) => ({
@@ -3540,7 +3540,7 @@
           })),
         });
       } else {
-        showToast("Р—Р°РєР°Р· СЃС„РѕСЂРјРёСЂРѕРІР°РЅ. РџСЂРѕРІРµСЂСЊС‚Рµ РґР°РЅРЅС‹Рµ РЅРёР¶Рµ.");
+        showToast("Заказ сформирован. Проверьте данные ниже.");
         console.log(orderText);
       }
 
@@ -3572,9 +3572,9 @@
       const shopLabel = nav.querySelector("#shopBtn .nav-label");
       const favoritesLabel = nav.querySelector("#favoritesBtn .nav-label");
       const cartLabel = nav.querySelector("#cartBtn .nav-label");
-      if (shopLabel) shopLabel.textContent = "РњР°РіР°Р·РёРЅ";
-      if (favoritesLabel) favoritesLabel.textContent = `РР·Р±СЂР°РЅРЅРѕРµ (${state.favorites.length})`;
-      if (cartLabel) cartLabel.textContent = `РљРѕСЂР·РёРЅР° (${state.cart.reduce((sum, item) => sum + item.qty, 0)})`;
+      if (shopLabel) shopLabel.textContent = "Магазин";
+      if (favoritesLabel) favoritesLabel.textContent = `Избранное (${state.favorites.length})`;
+      if (cartLabel) cartLabel.textContent = `Корзина (${state.cart.reduce((sum, item) => sum + item.qty, 0)})`;
 
       const contactLink = nav.querySelector(".contact-btn");
       if (contactLink) contactLink.style.display = "none";
@@ -3584,7 +3584,7 @@
         profileBtn = document.createElement("button");
         profileBtn.id = "profileBtn";
         profileBtn.type = "button";
-        profileBtn.innerHTML = '<span class="nav-icon">рџ‘¤</span><span class="nav-label">РџСЂРѕС„РёР»СЊ</span>';
+        profileBtn.innerHTML = '<span class="nav-icon">👤</span><span class="nav-label">Профиль</span>';
         profileBtn.addEventListener("click", () => switchView("profile"));
         nav.appendChild(profileBtn);
       }
@@ -3675,11 +3675,11 @@
 
     async function saveProfileToServer() {
       if (!state.profile.name) {
-        throw new Error("Р’РІРµРґРёС‚Рµ РёРјСЏ");
+        throw new Error("Введите имя");
       }
 
       if (!/^[\p{L}\s'-]+$/u.test(state.profile.name)) {
-        throw new Error("Р’ РёРјРµРЅРё РЅРµР»СЊР·СЏ С†РёС„СЂС‹ Рё СЌРјРѕРґР·Рё");
+        throw new Error("В имени нельзя цифры и эмодзи");
       }
 
       const telegramUser = getTelegramUser();
@@ -3696,7 +3696,7 @@
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ");
+        throw new Error(data.error || "Не удалось сохранить профиль");
       }
 
       if (data.customer) {
@@ -3752,7 +3752,7 @@
 
       if (fillCheckoutBtn) {
         fillCheckoutBtn.style.display = "inline-flex";
-        fillCheckoutBtn.textContent = registered ? "Р—Р°РїРѕР»РЅРёС‚СЊ Р·Р°РєР°Р·" : "РЎРѕС…СЂР°РЅРёС‚СЊ Рё РїРѕРґСЃС‚Р°РІРёС‚СЊ РІ Р·Р°РєР°Р·";
+        fillCheckoutBtn.textContent = registered ? "Заполнить заказ" : "Сохранить и подставить в заказ";
       }
 
       const profileBtn = document.getElementById("profileBtn");
@@ -3770,14 +3770,14 @@
       document.getElementById("saveProfileBtn")?.addEventListener("click", () => {
         persistProfileFields();
         applyProfileToCheckout();
-        showToast("РџСЂРѕС„РёР»СЊ СЃРѕС…СЂР°РЅС‘РЅ");
+        showToast("Профиль сохранён");
       });
 
       document.getElementById("fillCheckoutBtn")?.addEventListener("click", () => {
         persistProfileFields();
         applyProfileToCheckout();
         switchView("cart");
-        showToast("Р”Р°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ РїРѕРґСЃС‚Р°РІР»РµРЅС‹ РІ Р·Р°РєР°Р·");
+        showToast("Данные профиля подставлены в заказ");
       });
     }
 
@@ -3785,7 +3785,7 @@
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
       const cartBtnLabel = document.querySelector("#cartBtn .nav-label");
       if (cartBtnLabel) {
-        cartBtnLabel.textContent = `РљРѕСЂР·РёРЅР° (${totalItems})`;
+        cartBtnLabel.textContent = `Корзина (${totalItems})`;
       }
       renderProfile();
     }
@@ -3793,7 +3793,7 @@
     function updateFavoritesButton() {
       const favoriteBtnLabel = document.querySelector("#favoritesBtn .nav-label");
       if (favoriteBtnLabel) {
-        favoriteBtnLabel.textContent = `РР·Р±СЂР°РЅРЅРѕРµ (${state.favorites.length})`;
+        favoriteBtnLabel.textContent = `Избранное (${state.favorites.length})`;
       }
       renderProfile();
     }
@@ -3833,43 +3833,43 @@
 
     const originalToggleFavorite = toggleFavorite;
     toggleFavorite = function gatedToggleFavorite(productId) {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ, С‡С‚РѕР±С‹ РїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ РёР·Р±СЂР°РЅРЅС‹Рј")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль, чтобы пользоваться избранным")) return;
       return originalToggleFavorite(productId);
     }
 
     const originalAddToCart = addToCart;
     addToCart = function gatedAddToCart(productId, selectedVariant = "") {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ, С‡С‚РѕР±С‹ РґРѕР±Р°РІР»СЏС‚СЊ С‚РѕРІР°СЂС‹ РІ РєРѕСЂР·РёРЅСѓ")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль, чтобы добавлять товары в корзину")) return;
       return originalAddToCart(productId, selectedVariant);
     }
 
     const originalIncreaseQty = increaseQty;
     increaseQty = function gatedIncreaseQty(cartKey) {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
       return originalIncreaseQty(cartKey);
     }
 
     const originalDecreaseQty = decreaseQty;
     decreaseQty = function gatedDecreaseQty(cartKey) {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
       return originalDecreaseQty(cartKey);
     }
 
     const originalRemoveItem = removeItem;
     removeItem = function gatedRemoveItem(cartKey) {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
       return originalRemoveItem(cartKey);
     }
 
     const originalClearCart = clearCart;
     clearCart = function gatedClearCart() {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
       return originalClearCart();
     }
 
     const originalSubmitOrder = submitOrder;
     submitOrder = function gatedSubmitOrder() {
-      if (!requireRegisteredProfile("РЎРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРё РїСЂРѕС„РёР»СЊ РїРµСЂРµРґ РѕС„РѕСЂРјР»РµРЅРёРµРј Р·Р°РєР°Р·Р°")) return;
+      if (!requireRegisteredProfile("Сначала заполни профиль перед оформлением заказа")) return;
       return originalSubmitOrder();
     }
 
@@ -3880,7 +3880,7 @@
     removeItem = originalRemoveItem;
     clearCart = originalClearCart;
     submitOrder = function gatedSubmitOrderOnly() {
-      if (!requireRegisteredProfile("Р§С‚РѕР±С‹ РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·, СЃРЅР°С‡Р°Р»Р° Р·Р°РїРѕР»РЅРёС‚Рµ РїСЂРѕС„РёР»СЊ")) return;
+      if (!requireRegisteredProfile("Чтобы оформить заказ, сначала заполните профиль")) return;
       return originalSubmitOrder();
     }
 
@@ -3891,11 +3891,11 @@
       const label = btn.querySelector(".nav-label");
 
       if (icon) {
-        icon.textContent = isPlaying ? "вЏёпёЏ" : "в–¶пёЏ";
+        icon.textContent = isPlaying ? "⏸️" : "▶️";
       }
 
       if (label) {
-        label.textContent = isPlaying ? "РњСѓР·С‹РєР°: РІРєР»" : "РњСѓР·С‹РєР°";
+        label.textContent = isPlaying ? "Музыка: вкл" : "Музыка";
       }
 
       btn.classList.toggle("active", isPlaying);

@@ -2071,6 +2071,13 @@
       return Math.round((filled / fields.length) * 100);
     }
 
+    function requireRegisteredProfile(message = "Сначала заполни профиль") {
+      if (isRegisteredProfile()) return true;
+      switchView("profile");
+      showToast(message, "error");
+      return false;
+    }
+
     function renderProfile() {
       fillProfileFields();
 
@@ -3043,6 +3050,7 @@
     function updateProfileOnboardingState() {
       const notice = document.getElementById("profileOnboardingNotice");
       const fillCheckoutBtn = document.getElementById("fillCheckoutBtn");
+      const gatedButtons = ["shopBtn", "favoritesBtn", "cartBtn"];
       const registered = isRegisteredProfile();
 
       if (notice) {
@@ -3052,6 +3060,14 @@
       if (fillCheckoutBtn) {
         fillCheckoutBtn.style.display = registered ? "inline-flex" : "none";
       }
+
+      gatedButtons.forEach((id) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.disabled = !registered;
+        button.style.opacity = registered ? "1" : "0.45";
+        button.style.pointerEvents = registered ? "auto" : "none";
+      });
     }
 
     function bindProfileControls() {
@@ -3121,6 +3137,48 @@
 
       state.activeView = view;
       saveStorage(STORAGE_KEYS.activeView, view);
+    }
+
+    const originalToggleFavorite = toggleFavorite;
+    toggleFavorite = function gatedToggleFavorite(productId) {
+      if (!requireRegisteredProfile("Сначала заполни профиль, чтобы пользоваться избранным")) return;
+      return originalToggleFavorite(productId);
+    }
+
+    const originalAddToCart = addToCart;
+    addToCart = function gatedAddToCart(productId, selectedVariant = "") {
+      if (!requireRegisteredProfile("Сначала заполни профиль, чтобы добавлять товары в корзину")) return;
+      return originalAddToCart(productId, selectedVariant);
+    }
+
+    const originalIncreaseQty = increaseQty;
+    increaseQty = function gatedIncreaseQty(cartKey) {
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
+      return originalIncreaseQty(cartKey);
+    }
+
+    const originalDecreaseQty = decreaseQty;
+    decreaseQty = function gatedDecreaseQty(cartKey) {
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
+      return originalDecreaseQty(cartKey);
+    }
+
+    const originalRemoveItem = removeItem;
+    removeItem = function gatedRemoveItem(cartKey) {
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
+      return originalRemoveItem(cartKey);
+    }
+
+    const originalClearCart = clearCart;
+    clearCart = function gatedClearCart() {
+      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
+      return originalClearCart();
+    }
+
+    const originalSubmitOrder = submitOrder;
+    submitOrder = function gatedSubmitOrder() {
+      if (!requireRegisteredProfile("Сначала заполни профиль перед оформлением заказа")) return;
+      return originalSubmitOrder();
     }
 
     function updateBtn() {

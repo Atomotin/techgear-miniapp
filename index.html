@@ -159,6 +159,10 @@
       line-height: 1;
     }
 
+    .hero-meta.minimal .hero-chip:last-child {
+      display: none;
+    }
+
     .hero-actions {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -271,6 +275,79 @@
       color: #f5ffd4;
       margin-bottom: 4px;
       font-size: 13px;
+    }
+
+    .header > .hero-actions,
+    .header > .quick-points {
+      display: none;
+    }
+
+    .contact-hub {
+      display: grid;
+      gap: 12px;
+      margin: 0 0 16px;
+      padding: 14px;
+      border-radius: 24px;
+      border: 1px solid rgba(157, 78, 221, 0.16);
+      background: linear-gradient(180deg, rgba(11, 10, 18, 0.96), rgba(14, 10, 22, 0.92));
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+    }
+
+    .section-mini-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .section-mini-head strong {
+      font-size: 15px;
+      color: #fff;
+    }
+
+    .section-mini-head span {
+      font-size: 12px;
+      color: var(--text-muted-2);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .contact-link-card {
+      display: grid;
+      gap: 4px;
+      min-height: 74px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      text-decoration: none;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+    }
+
+    .contact-link-card.channel {
+      background: linear-gradient(135deg, rgba(198, 255, 51, 0.16), rgba(198, 255, 51, 0.08));
+      border: 1px solid rgba(198, 255, 51, 0.25);
+      color: #f5ffd1;
+    }
+
+    .contact-link-card.manager {
+      background: rgba(157, 78, 221, 0.1);
+      border: 1px solid rgba(199, 125, 255, 0.22);
+      color: #f4e9ff;
+    }
+
+    .contact-link-card strong {
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .contact-label {
+      font-size: 11px;
+      color: var(--text-muted-2);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
     .promo-shell {
@@ -1436,9 +1513,9 @@
       z-index: 1250;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      min-height: 46px;
-      padding: 10px 14px;
+      gap: 6px;
+      min-height: 42px;
+      padding: 9px 12px;
       border-radius: 999px;
       border: 1px solid rgba(199, 125, 255, 0.28);
       background: rgba(11, 10, 18, 0.92);
@@ -1459,7 +1536,7 @@
     }
 
     .music-fab .nav-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
     }
 
@@ -1514,6 +1591,15 @@
 
       .hero-meta {
         gap: 6px;
+      }
+
+      .section-mini-head {
+        display: grid;
+        gap: 4px;
+      }
+
+      .contact-grid {
+        grid-template-columns: 1fr 1fr;
       }
 
       .hero-chip {
@@ -1589,8 +1675,8 @@
       .music-fab {
         right: 12px;
         bottom: 96px;
-        min-height: 42px;
-        padding: 9px 12px;
+        min-height: 40px;
+        padding: 8px 11px;
       }
 
       .bottom-nav button,
@@ -1643,7 +1729,7 @@
         </div>
         <div class="badge-pill">🛍 Каталог</div>
       </div>
-      <div class="hero-meta">
+      <div class="hero-meta minimal">
         <div class="hero-chip">⚡ Mini App</div>
         <div class="hero-chip">🚚 Ташкент и отправка</div>
         <div class="hero-chip">💬 Быстрая связь</div>
@@ -1665,6 +1751,23 @@
         <button class="promo-nav prev" id="promoPrev" type="button" aria-label="Предыдущий баннер">‹</button>
         <button class="promo-nav next" id="promoNext" type="button" aria-label="Следующий баннер">›</button>
         <div class="promo-dots" id="promoDots"></div>
+      </section>
+
+      <section class="contact-hub" aria-label="Связь и канал">
+        <div class="section-mini-head">
+          <strong>Связь</strong>
+          <span>Быстрые ссылки без лишнего шума</span>
+        </div>
+        <div class="contact-grid">
+          <a class="contact-link-card channel" href="https://t.me/techgear_uz" target="_blank" rel="noreferrer">
+            <span class="contact-label">Канал</span>
+            <strong>Наш канал</strong>
+          </a>
+          <a class="contact-link-card manager" href="https://t.me/atomotin" target="_blank" rel="noreferrer">
+            <span class="contact-label">Связь</span>
+            <strong>Менеджер</strong>
+          </a>
+        </div>
       </section>
 
       <div class="toolbar">
@@ -2050,6 +2153,7 @@
 
     let PRODUCTS = Array.isArray(window.TECHGEAR_PRODUCTS) ? window.TECHGEAR_PRODUCTS : [];
     let CATEGORIES = Array.isArray(window.TECHGEAR_CATEGORIES) ? window.TECHGEAR_CATEGORIES : [];
+    let PROMO_BANNERS = Array.isArray(window.TECHGEAR_BANNERS) ? window.TECHGEAR_BANNERS : [];
 
     let state = {
       activeCategory: "all",
@@ -2246,6 +2350,9 @@
         }
         if (Array.isArray(data.categories)) {
           CATEGORIES = data.categories;
+        }
+        if (Array.isArray(data.banners)) {
+          PROMO_BANNERS = data.banners;
         }
       } catch (error) {
         console.warn("Catalog API unavailable, fallback to local data");
@@ -2485,6 +2592,37 @@
     }
 
     function buildPromoSlides() {
+      const adminSlides = (Array.isArray(PROMO_BANNERS) ? PROMO_BANNERS : [])
+        .filter((banner) => banner && banner.isActive !== false)
+        .sort((left, right) => (left.sortOrder || 0) - (right.sortOrder || 0))
+        .map((banner, index) => {
+          const mapAction = (type, value) => {
+            if (!type) return null;
+            if (type === "link") return value ? { type: "link", href: value } : null;
+            if (type === "category") return { type: "category", category: value || "all", sort: "manual" };
+            if (type === "product") return { type: "product", productId: Number(value), sort: "manual" };
+            return { type: "reset" };
+          };
+
+          return {
+            id: `banner-${banner.id || index}`,
+            kicker: banner.kicker || "TechGear",
+            title: banner.title || "Новая подборка",
+            text: "",
+            chips: [],
+            image: banner.image || "images.img/lolo.png",
+            cta: banner.ctaLabel || "Открыть",
+            secondary: banner.secondaryLabel || "",
+            action: mapAction(banner.actionType, banner.actionValue),
+            secondaryAction: mapAction(banner.secondaryActionType, banner.secondaryActionValue),
+          };
+        })
+        .filter((slide) => slide.image && slide.title);
+
+      if (adminSlides.length) {
+        return adminSlides;
+      }
+
       const catalog = normalizeProducts(PRODUCTS);
       const hotProduct = catalog.find((item) => item.badge === "hot" && item.images?.length) || catalog.find((item) => item.badge === "hot");
       const newProduct = catalog.find((item) => item.badge === "new" && item.images?.length) || catalog.find((item) => item.badge === "new");

@@ -527,6 +527,74 @@
         <div class="collection" id="customersList"></div>
       </section>
 
+      <div class="grid">
+        <section class="panel">
+          <h2>Баннеры</h2>
+          <p class="panel-subtitle">Управление верхней каруселью Mini App: картинка, заголовок, кнопки и действия без правки кода.</p>
+          <div class="toolbar">
+            <button id="newBannerBtn" class="btn-secondary btn-small" type="button">Новый баннер</button>
+            <button id="saveBannerBtn" class="btn-primary btn-small" type="button">Сохранить баннер</button>
+          </div>
+          <div class="field-grid two">
+            <label>Заголовок<input id="bannerTitle" type="text" placeholder="Новинки в каталоге" /></label>
+            <label>Kicker<input id="bannerKicker" type="text" placeholder="Новинки" /></label>
+          </div>
+          <label>Картинка баннера<input id="bannerImage" type="text" placeholder="images.img/banner.jpg" /></label>
+          <div class="upload-row">
+            <label>Загрузка картинки
+              <input id="bannerImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+            </label>
+            <div class="upload-actions">
+              <button id="uploadBannerImageBtn" class="btn-secondary btn-small" type="button">Загрузить картинку</button>
+              <span id="bannerUploadMessage" class="hint"></span>
+            </div>
+          </div>
+          <div class="field-grid two">
+            <label>Кнопка 1<input id="bannerCta" type="text" placeholder="Открыть" /></label>
+            <label>Кнопка 2<input id="bannerSecondary" type="text" placeholder="Все товары" /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Действие 1
+              <select id="bannerActionType">
+                <option value="reset">reset</option>
+                <option value="category">category</option>
+                <option value="product">product</option>
+                <option value="link">link</option>
+              </select>
+            </label>
+            <label>Значение 1<input id="bannerActionValue" type="text" placeholder="decor / 12 / https://..." /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Действие 2
+              <select id="bannerSecondaryActionType">
+                <option value="">Без действия</option>
+                <option value="reset">reset</option>
+                <option value="category">category</option>
+                <option value="product">product</option>
+                <option value="link">link</option>
+              </select>
+            </label>
+            <label>Значение 2<input id="bannerSecondaryActionValue" type="text" placeholder="https://t.me/..." /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Порядок<input id="bannerSortOrder" type="number" min="1" step="1" /></label>
+            <label>Активен
+              <select id="bannerActive">
+                <option value="true">Да</option>
+                <option value="false">Нет</option>
+              </select>
+            </label>
+          </div>
+          <div id="bannerMessage" class="hint"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Список баннеров</h2>
+          <p class="panel-subtitle">Активные баннеры показываются в карусели сверху. Порядок задаётся полем sort order.</p>
+          <div class="collection" id="bannerList"></div>
+        </section>
+      </div>
+
       <section class="panel">
         <h2>Что ещё должно быть в админке</h2>
         <div class="tip-list">
@@ -541,12 +609,16 @@
   </div>
 
   <script>
+    document.querySelector(".tip-list")?.closest(".panel")?.remove();
+
     const state = {
       token: localStorage.getItem("techgear_admin_token") || "",
       catalog: { categories: [], products: [] },
       orders: [],
       customers: [],
+      banners: [],
       editingId: null,
+      editingBannerId: null,
       uploadedImages: [],
       orderSearch: "",
       orderStatusFilter: "all",
@@ -660,6 +732,117 @@
     function renderUploadedImages(images) {
       const list = document.getElementById("uploadedImagesList");
       list.innerHTML = (images || []).map((imagePath) => `<div class="upload-chip">${escapeHtml(imagePath)}</div>`).join("");
+    }
+
+    function getBannerPayload() {
+      return {
+        title: document.getElementById("bannerTitle").value.trim(),
+        kicker: document.getElementById("bannerKicker").value.trim(),
+        image: document.getElementById("bannerImage").value.trim(),
+        cta: document.getElementById("bannerCta").value.trim(),
+        secondary: document.getElementById("bannerSecondary").value.trim(),
+        actionType: document.getElementById("bannerActionType").value,
+        actionValue: document.getElementById("bannerActionValue").value.trim(),
+        secondaryActionType: document.getElementById("bannerSecondaryActionType").value,
+        secondaryActionValue: document.getElementById("bannerSecondaryActionValue").value.trim(),
+        sortOrder: Number(document.getElementById("bannerSortOrder").value) || 1,
+        isActive: document.getElementById("bannerActive").value === "true"
+      };
+    }
+
+    function fillBannerForm(banner = null) {
+      state.editingBannerId = banner ? banner.id : null;
+      document.getElementById("bannerTitle").value = banner?.title || "";
+      document.getElementById("bannerKicker").value = banner?.kicker || "";
+      document.getElementById("bannerImage").value = banner?.image || "";
+      document.getElementById("bannerImageUpload").value = "";
+      document.getElementById("bannerCta").value = banner?.cta || "";
+      document.getElementById("bannerSecondary").value = banner?.secondary || "";
+      document.getElementById("bannerActionType").value = banner?.actionType || "reset";
+      document.getElementById("bannerActionValue").value = banner?.actionValue || "";
+      document.getElementById("bannerSecondaryActionType").value = banner?.secondaryActionType || "";
+      document.getElementById("bannerSecondaryActionValue").value = banner?.secondaryActionValue || "";
+      document.getElementById("bannerSortOrder").value = banner?.sortOrder ?? "";
+      document.getElementById("bannerActive").value = String(banner?.isActive !== false);
+      showMessage("bannerUploadMessage", "");
+      showMessage("bannerMessage", banner ? `Редактируется баннер #${banner.id}` : "Форма очищена для нового баннера");
+    }
+
+    async function uploadBannerImage() {
+      const input = document.getElementById("bannerImageUpload");
+      const file = Array.from(input.files || [])[0];
+
+      if (!file) {
+        showMessage("bannerUploadMessage", "Сначала выбери файл", true);
+        return;
+      }
+
+      showMessage("bannerUploadMessage", "Загружаю картинку...");
+      try {
+        const result = await api(`/api/admin/uploads?filename=${encodeURIComponent(file.name)}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream"
+          },
+          body: file
+        });
+        document.getElementById("bannerImage").value = result.path;
+        input.value = "";
+        showMessage("bannerUploadMessage", "Картинка загружена");
+      } catch (error) {
+        showMessage("bannerUploadMessage", error.message, true);
+      }
+    }
+
+    function renderBanners() {
+      const list = document.getElementById("bannerList");
+      if (!state.banners.length) {
+        list.innerHTML = '<div class="hint">Пока баннеров нет.</div>';
+        return;
+      }
+
+      list.innerHTML = [...state.banners]
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || (a.id || 0) - (b.id || 0))
+        .map((banner) => `
+          <article class="product-card">
+            <h3>${escapeHtml(banner.title)}</h3>
+            <div class="meta">${escapeHtml(banner.kicker || "Без kicker")} · sort ${banner.sortOrder || 1}</div>
+            <div class="badge-row">
+              <span class="badge">${banner.isActive !== false ? "Активен" : "Скрыт"}</span>
+              <span class="badge">${escapeHtml(banner.actionType || "reset")}</span>
+              ${banner.secondaryActionType ? `<span class="badge">${escapeHtml(banner.secondaryActionType)}</span>` : ""}
+            </div>
+            <div class="muted">${escapeHtml(banner.image || "Без картинки")}</div>
+            <div class="muted" style="margin-top:10px;">${escapeHtml(banner.cta || "Без кнопки")} / ${escapeHtml(banner.secondary || "Без второй кнопки")}</div>
+            <div class="product-actions">
+              <button class="btn-secondary btn-small" type="button" data-edit-banner="${banner.id}">Редактировать</button>
+              <button class="btn-danger btn-small" type="button" data-delete-banner="${banner.id}">Удалить</button>
+            </div>
+          </article>
+        `).join("");
+
+      list.querySelectorAll("[data-edit-banner]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const banner = state.banners.find((item) => item.id === Number(button.dataset.editBanner));
+          fillBannerForm(banner);
+        });
+      });
+
+      list.querySelectorAll("[data-delete-banner]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          try {
+            const response = await api(`/api/admin/banners/${button.dataset.deleteBanner}`, { method: "DELETE" });
+            state.banners = response.banners || [];
+            renderBanners();
+            if (state.editingBannerId === Number(button.dataset.deleteBanner)) {
+              fillBannerForm(null);
+            }
+            showMessage("bannerMessage", "Баннер удалён");
+          } catch (error) {
+            showMessage("bannerMessage", error.message, true);
+          }
+        });
+      });
     }
 
     function getCustomers() {
@@ -1111,21 +1294,27 @@
       renderProducts();
       renderOrders();
       renderCustomers();
+      renderBanners();
       if (!state.editingId) {
         fillProductForm(null);
+      }
+      if (!state.editingBannerId) {
+        fillBannerForm(null);
       }
     }
 
     async function loadAdminData() {
-      const [catalog, ordersResponse, customersResponse] = await Promise.all([
+      const [catalog, ordersResponse, customersResponse, bannersResponse] = await Promise.all([
         api("/api/admin/catalog"),
         api("/api/admin/orders"),
-        api("/api/admin/customers")
+        api("/api/admin/customers"),
+        api("/api/admin/banners")
       ]);
 
       state.catalog = catalog;
       state.orders = ordersResponse.orders || [];
       state.customers = customersResponse.customers || [];
+      state.banners = bannersResponse.banners || [];
       renderAll();
     }
 
@@ -1180,6 +1369,24 @@
       }
     }
 
+    async function saveBanner() {
+      const payload = getBannerPayload();
+      try {
+        const response = state.editingBannerId
+          ? await api(`/api/admin/banners/${state.editingBannerId}`, { method: "PUT", body: JSON.stringify(payload) })
+          : await api("/api/admin/banners", { method: "POST", body: JSON.stringify(payload) });
+
+        state.banners = response.banners || [];
+        renderBanners();
+        showMessage("bannerMessage", state.editingBannerId ? "Баннер обновлён" : "Баннер создан");
+        if (!state.editingBannerId) {
+          fillBannerForm(state.banners[0] || null);
+        }
+      } catch (error) {
+        showMessage("bannerMessage", error.message, true);
+      }
+    }
+
     function logout() {
       state.token = "";
       localStorage.removeItem("techgear_admin_token");
@@ -1209,6 +1416,9 @@
     document.getElementById("newProductBtn").addEventListener("click", () => fillProductForm(null));
     document.getElementById("uploadImagesBtn").addEventListener("click", uploadSelectedImages);
     document.getElementById("addCategoryBtn").addEventListener("click", addCategory);
+    document.getElementById("saveBannerBtn").addEventListener("click", saveBanner);
+    document.getElementById("newBannerBtn").addEventListener("click", () => fillBannerForm(null));
+    document.getElementById("uploadBannerImageBtn").addEventListener("click", uploadBannerImage);
 
     if (state.token) {
       document.getElementById("loginView").classList.add("hidden");

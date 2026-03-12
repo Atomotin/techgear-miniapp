@@ -12,6 +12,7 @@ const IMAGE_UPLOAD_DIR = path.join(ROOT_DIR, "images.img");
 const CATALOG_PATH = path.join(DATA_DIR, "catalog.json");
 const ORDERS_PATH = path.join(DATA_DIR, "orders.json");
 const CUSTOMERS_PATH = path.join(DATA_DIR, "customers.json");
+const BANNERS_PATH = path.join(DATA_DIR, "banners.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "techgear-admin";
@@ -223,6 +224,123 @@ function sanitizeCustomerProfile(payload = {}) {
   };
 }
 
+function sanitizePromoBanner(payload = {}, fallbackId) {
+  const explicitId = Number(payload?.id);
+  const id = Number.isFinite(explicitId) && explicitId > 0
+    ? explicitId
+    : (Number.isFinite(Number(fallbackId)) && Number(fallbackId) > 0 ? Number(fallbackId) : null);
+  const sortOrder = Number(payload?.sortOrder);
+  const actionType = normalizeString(payload?.actionType || "reset").toLowerCase();
+  const secondaryActionType = normalizeString(payload?.secondaryActionType || "").toLowerCase();
+  const allowedActionTypes = ["reset", "category", "product", "link"];
+  const image = normalizeString(payload?.image);
+
+  return {
+    id,
+    title: normalizeString(payload?.title),
+    kicker: normalizeString(payload?.kicker),
+    image,
+    cta: normalizeString(payload?.cta || payload?.ctaLabel),
+    secondary: normalizeString(payload?.secondary || payload?.secondaryLabel),
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : (id || 1),
+    isActive: payload?.isActive !== false,
+    actionType: allowedActionTypes.includes(actionType) ? actionType : "reset",
+    actionValue: normalizeString(payload?.actionValue),
+    secondaryActionType: secondaryActionType && allowedActionTypes.includes(secondaryActionType) ? secondaryActionType : "",
+    secondaryActionValue: normalizeString(payload?.secondaryActionValue),
+  };
+}
+
+function sanitizePromoBanners(banners) {
+  return (Array.isArray(banners) ? banners : [])
+    .map((banner, index) => sanitizePromoBanner(banner, index + 1))
+    .filter((banner) => banner.title && banner.image)
+    .map((banner, index) => ({
+      ...banner,
+      id: banner.id || index + 1,
+      sortOrder: Number.isFinite(Number(banner.sortOrder)) ? Number(banner.sortOrder) : index + 1,
+    }))
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0) || (a.id || 0) - (b.id || 0));
+}
+
+function buildDefaultPromoBanners(products = []) {
+  const catalog = sanitizeProducts(products);
+  const withImage = catalog.filter((product) => product.images?.[0]);
+  const hot = withImage.find((product) => product.badge === "hot") || withImage[0];
+  const fresh = withImage.find((product) => product.badge === "new") || withImage[1] || hot;
+  const setup = withImage.find((product) => ["decor", "headphones", "stands"].includes(product.category)) || withImage[2] || fresh;
+
+  const banners = [];
+
+  if (hot) {
+    banners.push({
+      id: 1,
+      kicker: "Хит",
+      title: hot.name,
+      image: hot.images[0],
+      cta: "Смотреть",
+      secondary: "Каталог",
+      actionType: "product",
+      actionValue: String(hot.id),
+      secondaryActionType: "reset",
+      sortOrder: 1,
+      isActive: true
+    });
+  }
+
+  if (fresh) {
+    banners.push({
+      id: 2,
+      kicker: "Новинки",
+      title: "Новая поставка",
+      image: fresh.images[0],
+      cta: "Открыть",
+      secondary: "Все товары",
+      actionType: "product",
+      actionValue: String(fresh.id),
+      secondaryActionType: "reset",
+      sortOrder: 2,
+      isActive: true
+    });
+  }
+
+  if (setup) {
+    banners.push({
+      id: 3,
+      kicker: "Подборка",
+      title: "Для стильного сетапа",
+      image: setup.images[0],
+      cta: "Подборка",
+      secondary: "Связь",
+      actionType: "category",
+      actionValue: setup.category || "all",
+      secondaryActionType: "link",
+      secondaryActionValue: TELEGRAM_MANAGER_URL,
+      sortOrder: 3,
+      isActive: true
+    });
+  }
+
+  if (!banners.length) {
+    banners.push({
+      id: 1,
+      kicker: "TechGear",
+      title: "Новинки и акции",
+      image: "images.img/lolo.png",
+      cta: "Каталог",
+      secondary: "Канал",
+      actionType: "reset",
+      actionValue: "",
+      secondaryActionType: "link",
+      secondaryActionValue: TELEGRAM_CHANNEL_URL,
+      sortOrder: 1,
+      isActive: true
+    });
+  }
+
+  return sanitizePromoBanners(banners);
+}
+
 function validateCustomerProfile(payload) {
   const profile = sanitizeCustomerProfile(payload);
   if (!profile.key) return "Нужен хотя бы telegramId, телефон, username или имя";
@@ -267,6 +385,11 @@ function ensureDataFiles() {
   if (!fs.existsSync(CUSTOMERS_PATH)) {
     writeJson(CUSTOMERS_PATH, []);
   }
+
+  if (!fs.existsSync(BANNERS_PATH)) {
+    const catalog = fs.existsSync(CATALOG_PATH) ? readJson(CATALOG_PATH, loadLegacyCatalog()) : loadLegacyCatalog();
+    writeJson(BANNERS_PATH, buildDefaultPromoBanners(Array.isArray(catalog?.products) ? catalog.products : []));
+  }
 }
 
 function getFallbackCustomers() {
@@ -310,6 +433,11 @@ function upsertFallbackCustomerProfile(payload) {
 function shouldUseCustomerFallback(error) {
   const message = String(error?.message || "").toLowerCase();
   return message.includes("customers") && (message.includes("relation") || message.includes("schema cache") || message.includes("does not exist"));
+}
+
+function shouldUseBannerFallback(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("promo_banners") && (message.includes("relation") || message.includes("schema cache") || message.includes("does not exist"));
 }
 
 function parseSupabaseError(payload, response) {
@@ -469,6 +597,45 @@ function customerModelToRow(profile, { includeKey = true } = {}) {
   return row;
 }
 
+function bannerRowToModel(row) {
+  return sanitizePromoBanner({
+    id: row?.id,
+    title: row?.title,
+    kicker: row?.kicker,
+    image: row?.image,
+    cta: row?.cta_label,
+    secondary: row?.secondary_label,
+    sortOrder: row?.sort_order,
+    isActive: row?.is_active,
+    actionType: row?.action_type,
+    actionValue: row?.action_value,
+    secondaryActionType: row?.secondary_action_type,
+    secondaryActionValue: row?.secondary_action_value,
+  }, row?.id);
+}
+
+function bannerModelToRow(banner, { includeId = true } = {}) {
+  const row = {
+    title: banner.title,
+    kicker: banner.kicker || "",
+    image: banner.image,
+    cta_label: banner.cta || "",
+    secondary_label: banner.secondary || "",
+    sort_order: banner.sortOrder || 1,
+    is_active: banner.isActive !== false,
+    action_type: banner.actionType || "reset",
+    action_value: banner.actionValue || "",
+    secondary_action_type: banner.secondaryActionType || "",
+    secondary_action_value: banner.secondaryActionValue || "",
+  };
+
+  if (includeId && banner.id) {
+    row.id = banner.id;
+  }
+
+  return row;
+}
+
 function createLocalStorageProvider() {
   function getCatalog() {
     const catalog = readJson(CATALOG_PATH, null);
@@ -516,6 +683,30 @@ function createLocalStorageProvider() {
     writeJson(CUSTOMERS_PATH, customers);
   }
 
+  function getBanners() {
+    const banners = readJson(BANNERS_PATH, null);
+    if (!banners) {
+      const seeded = buildDefaultPromoBanners(getCatalog().products);
+      writeJson(BANNERS_PATH, seeded);
+      return seeded;
+    }
+
+    const normalized = sanitizePromoBanners(banners);
+    if (!normalized.length) {
+      const seeded = buildDefaultPromoBanners(getCatalog().products);
+      writeJson(BANNERS_PATH, seeded);
+      return seeded;
+    }
+
+    return normalized;
+  }
+
+  function saveBanners(banners) {
+    const normalized = sanitizePromoBanners(banners);
+    writeJson(BANNERS_PATH, normalized);
+    return normalized;
+  }
+
   function upsertCustomerProfile(payload) {
     const profile = sanitizeCustomerProfile(payload);
     if (!profile.key) {
@@ -547,13 +738,20 @@ function createLocalStorageProvider() {
       ensureDataFiles();
     },
     async getCatalog() {
-      return getCatalog();
+      const catalog = getCatalog();
+      return {
+        ...catalog,
+        banners: getBanners()
+      };
     },
     async getOrders() {
       return getOrders();
     },
     async getCustomers() {
       return getCustomers();
+    },
+    async getBanners() {
+      return getBanners();
     },
     async upsertCustomerProfile(payload) {
       return upsertCustomerProfile(payload);
@@ -639,6 +837,33 @@ function createLocalStorageProvider() {
 
       catalog.products = nextProducts;
       return saveCatalog(catalog);
+    },
+    async createBanner(body) {
+      const banners = getBanners();
+      const nextId = banners.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+      const banner = sanitizePromoBanner(body, nextId);
+      if (!banner.title || !banner.image) {
+        throw createHttpError(400, "У баннера должны быть title и image");
+      }
+      banners.unshift(banner);
+      return saveBanners(banners);
+    },
+    async updateBanner(bannerId, body) {
+      const banners = getBanners();
+      const index = banners.findIndex((item) => item.id === bannerId);
+      if (index === -1) {
+        throw createHttpError(404, "Баннер не найден");
+      }
+      banners[index] = sanitizePromoBanner({ ...banners[index], ...body, id: bannerId }, bannerId);
+      return saveBanners(banners);
+    },
+    async deleteBanner(bannerId) {
+      const banners = getBanners();
+      const nextBanners = banners.filter((item) => item.id !== bannerId);
+      if (nextBanners.length === banners.length) {
+        throw createHttpError(404, "Баннер не найден");
+      }
+      return saveBanners(nextBanners);
     }
   };
 }
@@ -689,6 +914,26 @@ function createSupabaseStorageProvider() {
         prefer: "return=representation,resolution=merge-duplicates"
       });
     }
+
+    try {
+      const existingBanners = await supabaseRequest("GET", "promo_banners", {
+        query: "select=id&limit=1"
+      });
+
+      if (Array.isArray(existingBanners) && existingBanners.length === 0) {
+        const banners = buildDefaultPromoBanners(legacyCatalog.products).map((banner) => bannerModelToRow(banner, { includeId: true }));
+        if (banners.length) {
+          await supabaseRequest("POST", "promo_banners", {
+            body: banners,
+            prefer: "return=representation,resolution=merge-duplicates"
+          });
+        }
+      }
+    } catch (error) {
+      if (!shouldUseBannerFallback(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -697,7 +942,26 @@ function createSupabaseStorageProvider() {
       await ensureSeeded();
     },
     async getCatalog() {
-      return getCatalog();
+      const catalog = await getCatalog();
+      let banners = [];
+
+      try {
+        const rows = await supabaseRequest("GET", "promo_banners", {
+          query: "select=id,title,kicker,image,cta_label,secondary_label,sort_order,is_active,action_type,action_value,secondary_action_type,secondary_action_value&order=sort_order.asc,id.asc"
+        });
+        banners = sanitizePromoBanners((rows || []).map(bannerRowToModel));
+      } catch (error) {
+        if (shouldUseBannerFallback(error)) {
+          banners = readJson(BANNERS_PATH, buildDefaultPromoBanners(catalog.products));
+        } else {
+          throw error;
+        }
+      }
+
+      return {
+        ...catalog,
+        banners
+      };
     },
     async getOrders() {
       const rows = await supabaseRequest("GET", "orders", {
@@ -716,6 +980,19 @@ function createSupabaseStorageProvider() {
       } catch (error) {
         if (shouldUseCustomerFallback(error)) {
           return getFallbackCustomers();
+        }
+        throw error;
+      }
+    },
+    async getBanners() {
+      try {
+        const rows = await supabaseRequest("GET", "promo_banners", {
+          query: "select=id,title,kicker,image,cta_label,secondary_label,sort_order,is_active,action_type,action_value,secondary_action_type,secondary_action_value&order=sort_order.asc,id.asc"
+        });
+        return sanitizePromoBanners((rows || []).map(bannerRowToModel));
+      } catch (error) {
+        if (shouldUseBannerFallback(error)) {
+          return readJson(BANNERS_PATH, buildDefaultPromoBanners(loadLegacyCatalog().products));
         }
         throw error;
       }
@@ -845,6 +1122,81 @@ function createSupabaseStorageProvider() {
       }
 
       return getCatalog();
+    },
+    async createBanner(body) {
+      const banner = sanitizePromoBanner(body);
+      if (!banner.title || !banner.image) {
+        throw createHttpError(400, "У баннера должны быть title и image");
+      }
+
+      try {
+        await supabaseRequest("POST", "promo_banners", {
+          body: [bannerModelToRow(banner, { includeId: false })],
+          prefer: "return=representation"
+        });
+      } catch (error) {
+        if (shouldUseBannerFallback(error)) {
+          const banners = readJson(BANNERS_PATH, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          const nextId = banners.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+          banners.unshift(sanitizePromoBanner(body, nextId));
+          writeJson(BANNERS_PATH, sanitizePromoBanners(banners));
+          return sanitizePromoBanners(banners);
+        }
+        throw error;
+      }
+
+      return this.getBanners();
+    },
+    async updateBanner(bannerId, body) {
+      try {
+        const existingRows = await supabaseRequest("GET", "promo_banners", {
+          query: `id=eq.${encodeURIComponent(bannerId)}&select=id,title,kicker,image,cta_label,secondary_label,sort_order,is_active,action_type,action_value,secondary_action_type,secondary_action_value&limit=1`
+        });
+        const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+        if (!existing) {
+          throw createHttpError(404, "Баннер не найден");
+        }
+        const merged = sanitizePromoBanner({ ...bannerRowToModel(existing), ...body, id: bannerId }, bannerId);
+        await supabaseRequest("PATCH", "promo_banners", {
+          query: `id=eq.${encodeURIComponent(bannerId)}`,
+          body: bannerModelToRow(merged, { includeId: false }),
+          prefer: "return=representation"
+        });
+      } catch (error) {
+        if (shouldUseBannerFallback(error)) {
+          const banners = readJson(BANNERS_PATH, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          const index = banners.findIndex((item) => Number(item.id) === bannerId);
+          if (index === -1) {
+            throw createHttpError(404, "Баннер не найден");
+          }
+          banners[index] = sanitizePromoBanner({ ...banners[index], ...body, id: bannerId }, bannerId);
+          writeJson(BANNERS_PATH, sanitizePromoBanners(banners));
+          return sanitizePromoBanners(banners);
+        }
+        throw error;
+      }
+
+      return this.getBanners();
+    },
+    async deleteBanner(bannerId) {
+      try {
+        await supabaseRequest("DELETE", "promo_banners", {
+          query: `id=eq.${encodeURIComponent(bannerId)}`
+        });
+      } catch (error) {
+        if (shouldUseBannerFallback(error)) {
+          const banners = readJson(BANNERS_PATH, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          const nextBanners = banners.filter((item) => Number(item.id) !== bannerId);
+          if (nextBanners.length === banners.length) {
+            throw createHttpError(404, "Баннер не найден");
+          }
+          writeJson(BANNERS_PATH, sanitizePromoBanners(nextBanners));
+          return sanitizePromoBanners(nextBanners);
+        }
+        throw error;
+      }
+
+      return this.getBanners();
     }
   };
 }
@@ -1229,6 +1581,11 @@ async function handleApi(req, res, url) {
     return true;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/admin/banners") {
+    sendJson(res, 200, { banners: await storage.getBanners() });
+    return true;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/admin/uploads") {
     sendJson(res, 201, await saveAdminUpload(req, url));
     return true;
@@ -1288,6 +1645,25 @@ async function handleApi(req, res, url) {
   if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/products/")) {
     const productId = Number(url.pathname.split("/").pop());
     sendJson(res, 200, await storage.deleteProduct(productId));
+    return true;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/banners") {
+    const body = await readBody(req);
+    sendJson(res, 201, { banners: await storage.createBanner(body) });
+    return true;
+  }
+
+  if (req.method === "PUT" && url.pathname.startsWith("/api/admin/banners/")) {
+    const bannerId = Number(url.pathname.split("/").pop());
+    const body = await readBody(req);
+    sendJson(res, 200, { banners: await storage.updateBanner(bannerId, body) });
+    return true;
+  }
+
+  if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/banners/")) {
+    const bannerId = Number(url.pathname.split("/").pop());
+    sendJson(res, 200, { banners: await storage.deleteBanner(bannerId) });
     return true;
   }
   

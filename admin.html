@@ -518,6 +518,16 @@
       </div>
 
       <section class="panel">
+        <h2>Клиенты</h2>
+        <p class="panel-subtitle">Список клиентов собирается из уже оформленных заказов. Здесь можно найти контакт, посмотреть количество заказов и быстро открыть Telegram или звонок.</p>
+        <div class="field-grid two">
+          <label>Поиск клиента<input id="customerSearchInput" type="search" placeholder="Имя, телефон, username, адрес" /></label>
+          <label>Сводка<input id="customerSummary" type="text" value="Клиенты загрузятся после обновления" readonly /></label>
+        </div>
+        <div class="collection" id="customersList"></div>
+      </section>
+
+      <section class="panel">
         <h2>Что ещё должно быть в админке</h2>
         <div class="tip-list">
           <div class="tip">Загрузка файлов: отдельный upload для фото товара, чтобы не вставлять пути вручную.</div>
@@ -538,7 +548,8 @@
       editingId: null,
       uploadedImages: [],
       orderSearch: "",
-      orderStatusFilter: "all"
+      orderStatusFilter: "all",
+      customerSearch: ""
     };
 
     async function api(path, options = {}) {
@@ -648,6 +659,59 @@
     function renderUploadedImages(images) {
       const list = document.getElementById("uploadedImagesList");
       list.innerHTML = (images || []).map((imagePath) => `<div class="upload-chip">${escapeHtml(imagePath)}</div>`).join("");
+    }
+
+    function getCustomers() {
+      const customers = new Map();
+
+      for (const order of state.orders) {
+        const customer = order.customer || {};
+        const phone = String(customer.phone || "").trim();
+        const username = String(customer.username || "").replace(/^@/, "").trim().toLowerCase();
+        const name = String(customer.name || "").trim();
+        const fallbackKey = `${name}|${String(customer.delivery || "").trim()}`.toLowerCase();
+        const key = phone || username || fallbackKey;
+        if (!key) continue;
+
+        const itemsCount = Array.isArray(order.items)
+          ? order.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+          : 0;
+
+        if (!customers.has(key)) {
+          customers.set(key, {
+            key,
+            name: name || "Без имени",
+            phone,
+            username,
+            delivery: String(customer.delivery || "").trim(),
+            comment: String(customer.comment || "").trim(),
+            ordersCount: 0,
+            itemsCount: 0,
+            spent: 0,
+            lastOrderAt: order.createdAt,
+            statuses: new Set()
+          });
+        }
+
+        const entry = customers.get(key);
+        entry.name = entry.name === "Без имени" && name ? name : entry.name;
+        entry.phone = entry.phone || phone;
+        entry.username = entry.username || username;
+        entry.delivery = entry.delivery || String(customer.delivery || "").trim();
+        entry.comment = entry.comment || String(customer.comment || "").trim();
+        entry.ordersCount += 1;
+        entry.itemsCount += itemsCount;
+        entry.spent += Number(order.total) || 0;
+        entry.statuses.add(order.status || "new");
+
+        if (!entry.lastOrderAt || new Date(order.createdAt).getTime() > new Date(entry.lastOrderAt).getTime()) {
+          entry.lastOrderAt = order.createdAt;
+        }
+      }
+
+      return [...customers.values()]
+        .map((customer) => ({ ...customer, statuses: [...customer.statuses] }))
+        .sort((a, b) => new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime());
     }
 
     function fillProductForm(product = null) {
@@ -883,12 +947,79 @@
       });
     }
 
+    function renderCustomers() {
+      const list = document.getElementById("customersList");
+      const summary = document.getElementById("customerSummary");
+      const searchValue = state.customerSearch.trim().toLowerCase();
+      const customers = getCustomers();
+      const filteredCustomers = customers.filter((customer) => {
+        if (!searchValue) return true;
+        const haystack = [
+          customer.name,
+          customer.phone,
+          customer.username,
+          customer.delivery,
+          customer.comment
+        ].filter(Boolean).join(" ").toLowerCase();
+        return haystack.includes(searchValue);
+      });
+
+      if (summary) {
+        const totalSpent = filteredCustomers.reduce((sum, customer) => sum + customer.spent, 0);
+        summary.value = `Клиентов: ${filteredCustomers.length} • Заказов: ${filteredCustomers.reduce((sum, customer) => sum + customer.ordersCount, 0)} • Сумма: ${formatPrice(totalSpent)}`;
+      }
+
+      if (!customers.length) {
+        list.innerHTML = '<div class="hint">Пока нет клиентов. Они появятся после первых заказов.</div>';
+        return;
+      }
+
+      if (!filteredCustomers.length) {
+        list.innerHTML = '<div class="hint">По выбранному запросу клиенты не найдены.</div>';
+        return;
+      }
+
+      list.innerHTML = filteredCustomers.map((customer) => {
+        const telegramLink = customer.username ? `https://t.me/${encodeURIComponent(customer.username)}` : "";
+        const phoneLink = customer.phone ? `tel:${String(customer.phone).replace(/[^\d+]/g, "")}` : "";
+        const statuses = customer.statuses.length
+          ? customer.statuses.map((status) => `<span class="badge">${escapeHtml(status)}</span>`).join("")
+          : '<span class="badge">без статуса</span>';
+
+        return `
+          <article class="order-card">
+            <div class="order-top">
+              <div>
+                <h3>${escapeHtml(customer.name)}</h3>
+                <div class="muted">${escapeHtml(customer.phone || "Телефон не указан")}</div>
+                ${customer.username ? `<div class="muted">@${escapeHtml(customer.username)}</div>` : ""}
+              </div>
+              <span class="status done">${customer.ordersCount} заказов</span>
+            </div>
+            <div class="badge-row">
+              <span class="badge">Товаров: ${customer.itemsCount}</span>
+              <span class="badge">${formatPrice(customer.spent)}</span>
+              <span class="badge">${new Date(customer.lastOrderAt).toLocaleString("ru-RU")}</span>
+            </div>
+            <div class="muted">${escapeHtml(customer.delivery || "Адрес не указан")}</div>
+            ${customer.comment ? `<div class="muted" style="margin-top:10px;">Комментарий: ${escapeHtml(customer.comment)}</div>` : ""}
+            <div class="badge-row">${statuses}</div>
+            <div class="product-actions">
+              ${telegramLink ? `<a class="btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
+              ${phoneLink ? `<a class="btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
     function renderAll() {
       renderCategoryOptions();
       renderStats();
       renderCategories();
       renderProducts();
       renderOrders();
+      renderCustomers();
       if (!state.editingId) {
         fillProductForm(null);
       }
@@ -976,6 +1107,10 @@
     document.getElementById("orderStatusFilter").addEventListener("change", (event) => {
       state.orderStatusFilter = event.target.value;
       renderOrders();
+    });
+    document.getElementById("customerSearchInput").addEventListener("input", (event) => {
+      state.customerSearch = event.target.value;
+      renderCustomers();
     });
     document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
     document.getElementById("newProductBtn").addEventListener("click", () => fillProductForm(null));

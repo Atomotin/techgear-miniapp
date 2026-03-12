@@ -1810,12 +1810,12 @@
 
       <div class="section checkout">
         <h2>Оформление заказа</h2>
-        <div class="section-subtitle">Заполните данные один раз. Они сохранятся на устройстве для следующих заказов.</div>
+        <div class="section-subtitle">Проверь данные и оформи заказ.</div>
 
         <div class="field-group">
           <div>
             <div class="field-label">Имя *</div>
-            <input type="text" id="customerName" placeholder="Ваше имя" />
+            <input type="text" id="customerName" placeholder="Ваше имя" maxlength="100" />
           </div>
 
           <div>
@@ -1825,8 +1825,7 @@
 
           <div>
             <div class="field-label">Telegram username</div>
-            <input type="text" id="customerUsername" placeholder="Ваш @username" />
-            <div class="hint">Укажите ваш Telegram username, если он установлен</div>
+            <input type="text" id="customerUsername" placeholder="Ваш @username" maxlength="50" />
           </div>
 
           <div class="field-split">
@@ -1849,12 +1848,12 @@
 
           <div>
             <div class="field-label">Точный адрес / ориентир *</div>
-            <textarea id="customerDelivery" rows="3" placeholder="Например: Чиланзар, 19 квартал, возле метро"></textarea>
+            <textarea id="customerDelivery" rows="3" placeholder="Например: Чиланзар, 19 квартал, возле метро" maxlength="300"></textarea>
           </div>
 
           <div>
             <div class="field-label">Комментарий к заказу</div>
-            <textarea id="customerComment" rows="2" placeholder="Например: домофон, этаж, цвет уточнить"></textarea>
+            <textarea id="customerComment" rows="2" placeholder="Например: домофон, этаж, цвет уточнить" maxlength="500"></textarea>
           </div>
 
           <div class="location-row">
@@ -1880,16 +1879,14 @@
             <span>Итого</span>
             <span id="summaryTotal">0 сум</span>
           </div>
-          <div class="summary-note">После отправки заказа менеджер свяжется с тобой в Telegram или по телефону.</div>
+          <div class="summary-note">Менеджер подтвердит заказ после отправки.</div>
         </div>
 
         <button id="submitOrderBtn" class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="submitOrder()">
           Оформить заказ
         </button>
 
-        <div class="checkout-note">
-          Если хочешь сначала обсудить заказ, можно перейти в раздел <strong>Связь</strong> и написать менеджеру напрямую.
-        </div>
+        <div class="checkout-note">Нужна консультация? Открой раздел <strong>Связь</strong>.</div>
 
         <footer class="footer">
           <div class="footer-inner">
@@ -1947,12 +1944,12 @@
         </div>
         <div class="section checkout">
           <h2>Данные клиента</h2>
-          <div class="section-subtitle">Профиль хранится на устройстве. После сохранения эти поля будут подставляться в оформление заказа.</div>
+          <div class="section-subtitle">Сохрани профиль один раз, чтобы заказ оформлялся быстрее.</div>
           <div id="profileOnboardingNotice" class="checkout-note" style="margin-bottom:14px;">Профиль можно заполнить позже. Он понадобится только перед оформлением заказа.</div>
           <div class="field-group">
             <div>
               <div class="field-label">Имя *</div>
-              <input type="text" id="profileName" placeholder="Ваше имя" />
+              <input type="text" id="profileName" placeholder="Ваше имя" maxlength="100" />
             </div>
             <div>
               <div class="field-label">Телефон *</div>
@@ -1960,15 +1957,15 @@
             </div>
             <div>
               <div class="field-label">Telegram username</div>
-              <input type="text" id="profileUsername" placeholder="@username" />
+              <input type="text" id="profileUsername" placeholder="@username" maxlength="50" />
             </div>
             <div>
               <div class="field-label">Основной адрес</div>
-              <textarea id="profileDelivery" rows="3" placeholder="Город, район, ориентир"></textarea>
+              <textarea id="profileDelivery" rows="3" placeholder="Город, район, ориентир" maxlength="300"></textarea>
             </div>
             <div>
               <div class="field-label">Комментарий для заказов</div>
-              <textarea id="profileComment" rows="2" placeholder="Например: этаж, домофон, позвонить заранее"></textarea>
+              <textarea id="profileComment" rows="2" placeholder="Например: этаж, домофон, позвонить заранее" maxlength="500"></textarea>
             </div>
           </div>
           <div class="hero-actions">
@@ -2402,6 +2399,15 @@
     }
 
     function persistCheckoutFields() {
+      const customerName = document.getElementById("customerName");
+      const customerUsername = document.getElementById("customerUsername");
+      const customerDelivery = document.getElementById("customerDelivery");
+      const customerComment = document.getElementById("customerComment");
+      if (customerName) customerName.value = sanitizeNameInput(customerName.value);
+      if (customerUsername) customerUsername.value = sanitizeUsernameInput(customerUsername.value);
+      if (customerDelivery) customerDelivery.value = sanitizeLongText(customerDelivery.value, 300);
+      if (customerComment) customerComment.value = sanitizeLongText(customerComment.value, 500);
+
       state.checkout = {
         name: document.getElementById("customerName")?.value.trim() || state.checkout.name || "",
         phone: document.getElementById("customerPhone")?.value.trim() || state.checkout.phone || "",
@@ -3264,6 +3270,10 @@
         document.getElementById(id)?.addEventListener("input", persistProfileFields);
       });
 
+      ["customerName", "customerUsername", "customerDelivery", "customerComment"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("input", persistCheckoutFields);
+      });
+
       document.getElementById("saveProfileBtn")?.addEventListener("click", async () => {
         const wasLocked = !isRegisteredProfile();
         persistProfileFields();
@@ -3373,6 +3383,34 @@
       return formatted;
     }
 
+    function stripEmoji(value) {
+      return String(value || "").replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, "");
+    }
+
+    function sanitizeNameInput(value) {
+      return stripEmoji(value)
+        .replace(/[0-9]/g, "")
+        .replace(/[^\p{L}\s'-]/gu, "")
+        .replace(/\s{2,}/g, " ")
+        .trim()
+        .slice(0, 100);
+    }
+
+    function sanitizeUsernameInput(value) {
+      return stripEmoji(String(value || ""))
+        .replace(/\s+/g, "")
+        .replace(/[^A-Za-z0-9_@]/g, "")
+        .replace(/^@(.*)@+/g, "@$1")
+        .slice(0, 50);
+    }
+
+    function sanitizeLongText(value, maxLength) {
+      return stripEmoji(String(value || ""))
+        .replace(/\s{3,}/g, "  ")
+        .trim()
+        .slice(0, maxLength);
+    }
+
     function requestUserLocation() {
       if (!navigator.geolocation) {
         showToast("Геолокация не поддерживается на этом устройстве", "error");
@@ -3472,6 +3510,15 @@
       }
 
       const telegramUser = getTelegramUser();
+      const customerNameInput = document.getElementById("customerName");
+      const customerUsernameInput = document.getElementById("customerUsername");
+      const customerDeliveryInput = document.getElementById("customerDelivery");
+      const customerCommentInput = document.getElementById("customerComment");
+      if (customerNameInput) customerNameInput.value = sanitizeNameInput(customerNameInput.value);
+      if (customerUsernameInput) customerUsernameInput.value = sanitizeUsernameInput(customerUsernameInput.value);
+      if (customerDeliveryInput) customerDeliveryInput.value = sanitizeLongText(customerDeliveryInput.value, 300);
+      if (customerCommentInput) customerCommentInput.value = sanitizeLongText(customerCommentInput.value, 500);
+
       const name = document.getElementById("customerName").value.trim();
       const phone = sanitizePhone(document.getElementById("customerPhone").value.trim());
       const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "Не указан");
@@ -3483,6 +3530,16 @@
 
       if (!name) {
         showToast("Введите ваше имя", "error");
+        return;
+      }
+
+      if (name.length > 100) {
+        showToast("Имя слишком длинное", "error");
+        return;
+      }
+
+      if (!/^[\p{L}\s'-]+$/u.test(name)) {
+        showToast("В имени нельзя цифры и эмодзи", "error");
         return;
       }
 
@@ -3629,6 +3686,15 @@
         profilePhone.value = formatPhoneInput(profilePhone.value);
       }
 
+      const profileName = document.getElementById("profileName");
+      const profileUsername = document.getElementById("profileUsername");
+      const profileDelivery = document.getElementById("profileDelivery");
+      const profileComment = document.getElementById("profileComment");
+      if (profileName) profileName.value = sanitizeNameInput(profileName.value);
+      if (profileUsername) profileUsername.value = sanitizeUsernameInput(profileUsername.value);
+      if (profileDelivery) profileDelivery.value = sanitizeLongText(profileDelivery.value, 300);
+      if (profileComment) profileComment.value = sanitizeLongText(profileComment.value, 500);
+
       state.profile = {
         name: document.getElementById("profileName")?.value.trim() || "",
         phone: document.getElementById("profilePhone")?.value.trim() || "",
@@ -3655,6 +3721,14 @@
     }
 
     async function saveProfileToServer() {
+      if (!state.profile.name) {
+        throw new Error("Введите имя");
+      }
+
+      if (!/^[\p{L}\s'-]+$/u.test(state.profile.name)) {
+        throw new Error("В имени нельзя цифры и эмодзи");
+      }
+
       const telegramUser = getTelegramUser();
       const response = await fetch("/api/profile", {
         method: "POST",

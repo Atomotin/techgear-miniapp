@@ -70,6 +70,37 @@ function normalizeString(value) {
   return String(value ?? "").trim();
 }
 
+function limitString(value, maxLength) {
+  return normalizeString(value).slice(0, maxLength);
+}
+
+function stripEmoji(value) {
+  return normalizeString(value).replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, "");
+}
+
+function sanitizePersonName(value) {
+  return stripEmoji(value)
+    .replace(/[0-9]/g, "")
+    .replace(/[^\p{L}\s'-]/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    .slice(0, 100);
+}
+
+function sanitizeTelegramUsername(value) {
+  return stripEmoji(value)
+    .replace(/\s+/g, "")
+    .replace(/[^A-Za-z0-9_@]/g, "")
+    .slice(0, 50);
+}
+
+function sanitizeLongText(value, maxLength) {
+  return stripEmoji(value)
+    .replace(/\s{3,}/g, "  ")
+    .trim()
+    .slice(0, maxLength);
+}
+
 function normalizeArray(value) {
   if (Array.isArray(value)) {
     return value.map((item) => normalizeString(item)).filter(Boolean);
@@ -170,14 +201,14 @@ function buildOrderRecord(payload, req) {
     createdAt: new Date().toISOString(),
     source: "miniapp",
     customer: {
-      name: normalizeString(payload.name),
-      phone: normalizeString(payload.phone),
-      username: normalizeString(payload.username),
+      name: sanitizePersonName(payload.name),
+      phone: limitString(payload.phone, 32),
+      username: sanitizeTelegramUsername(payload.username),
       contactMethod: normalizeString(payload.contactMethod),
       deliveryTime: normalizeString(payload.deliveryTime),
-      delivery: normalizeString(payload.delivery),
-      comment: normalizeString(payload.comment),
-      location: normalizeString(payload.location)
+      delivery: sanitizeLongText(payload.delivery, 300),
+      comment: sanitizeLongText(payload.comment, 500),
+      location: sanitizeLongText(payload.location, 300)
     },
     items: items.map((item) => ({
       id: Number(item.id) || 0,
@@ -214,11 +245,11 @@ function sanitizeCustomerProfile(payload = {}) {
   return {
     key: buildCustomerKey(payload),
     telegramId: normalizeString(payload.telegramId || payload.telegram?.id),
-    name: normalizeString(payload.name),
-    phone: normalizeString(payload.phone),
-    username: normalizeString(payload.username),
-    delivery: normalizeString(payload.delivery),
-    comment: normalizeString(payload.comment),
+    name: sanitizePersonName(payload.name),
+    phone: limitString(payload.phone, 32),
+    username: sanitizeTelegramUsername(payload.username),
+    delivery: sanitizeLongText(payload.delivery, 300),
+    comment: sanitizeLongText(payload.comment, 500),
     createdAt: payload.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -345,6 +376,7 @@ function validateCustomerProfile(payload) {
   const profile = sanitizeCustomerProfile(payload);
   if (!profile.key) return "Нужен хотя бы telegramId, телефон, username или имя";
   if (!profile.name) return "Введите имя";
+  if (!/^[\p{L}\s'-]+$/u.test(profile.name)) return "В имени нельзя цифры и эмодзи";
   if (!profile.phone && !profile.username && !profile.telegramId) {
     return "Нужен хотя бы один контакт: телефон, username или Telegram";
   }
@@ -352,9 +384,16 @@ function validateCustomerProfile(payload) {
 }
 
 function validateOrderPayload(payload) {
-  if (!normalizeString(payload.name)) return "Введите имя";
+  const name = sanitizePersonName(payload.name);
+  const username = sanitizeTelegramUsername(payload.username);
+  const delivery = sanitizeLongText(payload.delivery, 300);
+  const comment = sanitizeLongText(payload.comment, 500);
+  if (!name) return "Введите имя";
+  if (!/^[\p{L}\s'-]+$/u.test(name)) return "В имени нельзя цифры и эмодзи";
   if (!normalizeString(payload.phone)) return "Введите телефон";
-  if (!normalizeString(payload.delivery)) return "Введите адрес";
+  if (!delivery) return "Введите адрес";
+  if (username.length > 50) return "Username слишком длинный";
+  if (comment.length > 500) return "Комментарий слишком длинный";
   if (!Array.isArray(payload.items) || payload.items.length === 0) return "Добавьте товары";
   return "";
 }
@@ -1206,7 +1245,11 @@ const storage = SUPABASE_ENABLED ? createSupabaseStorageProvider() : createLocal
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Permissions-Policy": "geolocation=(self)"
   });
   res.end(JSON.stringify(payload));
 }
@@ -1214,7 +1257,11 @@ function sendJson(res, statusCode, payload) {
 function sendText(res, statusCode, payload) {
   res.writeHead(statusCode, {
     "Content-Type": "text/plain; charset=utf-8",
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Permissions-Policy": "geolocation=(self)"
   });
   res.end(payload);
 }
@@ -1694,7 +1741,10 @@ function serveStatic(res, url) {
 
   const ext = path.extname(filePath).toLowerCase();
   res.writeHead(200, {
-    "Content-Type": MIME_TYPES[ext] || "application/octet-stream"
+    "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "SAMEORIGIN"
   });
   fs.createReadStream(filePath).pipe(res);
 }

@@ -303,13 +303,11 @@
 
     .promo-slide {
       min-width: 100%;
-      padding: 18px;
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) 128px;
-      gap: 14px;
-      align-items: stretch;
+      min-height: 206px;
+      padding: 0;
       position: relative;
       overflow: hidden;
+      display: block;
     }
 
     .promo-slide::before {
@@ -324,10 +322,15 @@
     }
 
     .promo-copy {
+      position: absolute;
+      inset: auto 0 0 0;
       display: flex;
       flex-direction: column;
       gap: 10px;
       min-width: 0;
+      padding: 18px;
+      z-index: 2;
+      background: linear-gradient(180deg, rgba(8, 7, 12, 0) 0%, rgba(8, 7, 12, 0.72) 34%, rgba(8, 7, 12, 0.92) 100%);
     }
 
     .promo-kicker {
@@ -347,16 +350,21 @@
     }
 
     .promo-title {
-      font-size: 24px;
+      font-size: 28px;
       line-height: 1.05;
       letter-spacing: -0.03em;
+      max-width: 11ch;
     }
 
     .promo-text {
       color: rgba(255, 255, 255, 0.72);
-      line-height: 1.5;
-      font-size: 14px;
-      max-width: 30ch;
+      line-height: 1.35;
+      font-size: 13px;
+      max-width: 28ch;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .promo-meta {
@@ -381,20 +389,20 @@
     .promo-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-top: auto;
+      gap: 8px;
+      margin-top: 2px;
       flex-wrap: wrap;
     }
 
     .promo-primary,
     .promo-secondary {
-      min-height: 44px;
-      padding: 11px 14px;
-      border-radius: 16px;
+      min-height: 38px;
+      padding: 10px 12px;
+      border-radius: 14px;
       border: none;
       cursor: pointer;
       font-weight: 800;
-      font-size: 13px;
+      font-size: 12px;
       transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     }
 
@@ -416,11 +424,11 @@
     }
 
     .promo-visual {
-      position: relative;
-      min-height: 160px;
-      border-radius: 22px;
+      position: absolute;
+      inset: 0;
+      border-radius: 0;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: none;
       background:
         linear-gradient(155deg, rgba(157, 78, 221, 0.26), rgba(11, 11, 18, 0.08)),
         rgba(8, 8, 12, 0.78);
@@ -542,13 +550,14 @@
 
     .product-list {
       display: grid;
-      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
     .card {
       overflow: hidden;
-      border: 2px solid var(--border);
-      border-radius: 24px;
+      border: 1px solid rgba(157, 78, 221, 0.22);
+      border-radius: 20px;
       background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       position: relative;
@@ -576,17 +585,17 @@
     }
 
     .card:hover {
-      transform: translateY(-8px);
+      transform: translateY(-4px);
       border-color: var(--primary);
       box-shadow: var(--shadow-lg), inset 0 0 20px rgba(157, 78, 221, 0.05);
     }
 
     .product-image {
       width: 100%;
-      height: 220px;
+      height: 150px;
       object-fit: cover;
       display: block;
-      border-bottom: 2px solid var(--border);
+      border-bottom: 1px solid rgba(157, 78, 221, 0.18);
       background: linear-gradient(135deg, var(--primary-dark) 0%, rgba(114, 9, 183, 0.2) 100%);
       transition: transform 0.5s cubic-bezier(0.23, 1, 0.320, 1), filter 0.5s ease;
       position: relative;
@@ -758,20 +767,20 @@
     }
 
     .card-content {
-      padding: 16px;
+      padding: 12px;
     }
 
     .card-badges {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
+      gap: 6px;
+      margin-bottom: 10px;
     }
 
     .card-badge {
-      padding: 6px 10px;
+      padding: 5px 8px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1;
       font-weight: 700;
       letter-spacing: 0.02em;
@@ -797,25 +806,34 @@
     }
 
     .card h3 {
-      font-size: 18px;
-      line-height: 1.3;
-      margin-bottom: 8px;
+      font-size: 15px;
+      line-height: 1.25;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 38px;
     }
 
     .desc {
       color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .stock {
       display: inline-block;
       background: rgba(157, 78, 221, 0.12);
-      border-radius: 12px;
-      padding: 6px 10px;
-      font-size: 12px;
-      margin-bottom: 10px;
+      border-radius: 10px;
+      padding: 5px 8px;
+      font-size: 11px;
+      margin-bottom: 8px;
       color: #ffffff;
       font-weight: 600;
     }
@@ -823,15 +841,17 @@
     .variants {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 12px;
+      gap: 5px;
+      margin-bottom: 8px;
+      max-height: 56px;
+      overflow: hidden;
     }
 
     .variant {
       background: rgba(157, 78, 221, 0.08);
       border-radius: 10px;
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 5px 8px;
+      font-size: 11px;
       color: #ffffff;
       transition: background 0.3s ease;
     }
@@ -842,14 +862,14 @@
 
     .variant-select {
       width: 100%;
-      margin-bottom: 12px;
-      padding: 12px 14px;
-      border-radius: 14px;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
       border: 2px solid rgba(198, 255, 51, 0.24);
       background: rgba(8, 14, 4, 0.3);
       color: var(--text);
       outline: none;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .variant-select:focus {
@@ -861,31 +881,34 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 8px;
       flex-wrap: wrap;
     }
 
     .card-actions-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
     }
 
     .card-actions-row .btn-primary {
       flex: 1;
+      min-height: 42px;
+      padding: 10px 12px;
+      font-size: 12px;
     }
 
     .favorite-btn {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
       border: 2px solid rgba(255, 255, 255, 0.12);
       background: rgba(10, 10, 16, 0.22);
       color: #fff;
       cursor: pointer;
-      font-size: 22px;
+      font-size: 18px;
       line-height: 1;
       display: inline-flex;
       align-items: center;
@@ -998,7 +1021,7 @@
     }
 
     .price {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: bold;
       color: #ffffff;
     }
@@ -1506,13 +1529,8 @@
         padding: 10px 12px;
       }
 
-      .promo-slide {
-        grid-template-columns: 1fr;
-        padding: 16px;
-      }
-
       .promo-title {
-        font-size: 22px;
+        font-size: 24px;
       }
 
       .promo-text {
@@ -1520,8 +1538,7 @@
       }
 
       .promo-visual {
-        min-height: 144px;
-        order: -1;
+        min-height: 0;
       }
 
       .promo-nav {
@@ -1551,11 +1568,11 @@
       }
 
       .card {
-        border-radius: 20px;
+        border-radius: 18px;
       }
 
       .product-image {
-        height: 184px;
+        height: 132px;
       }
 
       .carousel-btn {
@@ -1602,6 +1619,7 @@
       line-height: 1.5;
       text-align: center;
       padding: 18px 12px;
+      grid-column: 1 / -1;
     }
   </style>
 </head>
@@ -2635,7 +2653,6 @@
       promoState.index = Math.min(promoState.index, Math.max(promoState.slides.length - 1, 0));
 
       track.innerHTML = promoState.slides.map((slide) => {
-        const chips = Array.isArray(slide.chips) ? slide.chips : [];
         const imageHtml = slide.image
           ? `<img src="${escapeHtml(slide.image)}" alt="${escapeHtml(slide.title)}">`
           : `<div class="promo-fallback">TG</div>`;
@@ -2645,10 +2662,6 @@
             <div class="promo-copy">
               <div class="promo-kicker">${escapeHtml(slide.kicker)}</div>
               <h2 class="promo-title">${escapeHtml(slide.title)}</h2>
-              <p class="promo-text">${escapeHtml(slide.text)}</p>
-              <div class="promo-meta">
-                ${chips.map((chip) => `<span class="promo-chip">${escapeHtml(chip)}</span>`).join("")}
-              </div>
               <div class="promo-actions">
                 <button class="promo-primary" type="button" data-promo-action="${escapeHtml(slide.id)}">${escapeHtml(slide.cta || "Открыть")}</button>
                 ${slide.secondary ? `<button class="promo-secondary" type="button" data-promo-secondary="${escapeHtml(slide.id)}">${escapeHtml(slide.secondary)}</button>` : ""}

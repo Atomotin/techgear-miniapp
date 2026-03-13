@@ -2543,13 +2543,10 @@
       }, 2600);
     }
 
-    function getProductBadge(product) {
-      if (product.badge === "hot") return '<span class="card-badge hot">Хит</span>';
-      if (product.badge === "new") return '<span class="card-badge new">Новинка</span>';
-      if (product.isSoon || (product.stock || "").toLowerCase().includes("под заказ")) {
-        return '<span class="card-badge preorder">Под заказ</span>';
-      }
-      return "";
+    function getCardDescription(product) {
+      const description = normalizeString(product?.desc);
+      if (!description) return "";
+      return description.length > 84 ? `${description.slice(0, 81).trimEnd()}...` : description;
     }
 
     function isFavorite(productId) {
@@ -2939,15 +2936,14 @@
             </select>
           `
           : "";
-        const badgeHtml = getProductBadge(product);
         const favoriteActive = isFavorite(product.id);
+        const cardDescription = getCardDescription(product);
 
         card.innerHTML = `
           ${mediaHtml}
           <div class="card-content">
-            ${badgeHtml ? `<div class="card-badges">${badgeHtml}</div>` : ""}
             <h3>${escapeHtml(product.name)}</h3>
-            <div class="desc">${escapeHtml(product.desc)}</div>
+            ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}
             <div class="stock">${escapeHtml(product.stock)}</div>
             ${variantsHtml}
             ${variantSelectHtml}
@@ -2990,14 +2986,13 @@
         card.className = "card";
         const images = product.images || [];
         const imageSrc = images[0] ? escapeHtml(images[0]) : "";
-        const badgeHtml = getProductBadge(product);
+        const cardDescription = getCardDescription(product);
 
         card.innerHTML = `
           ${imageSrc ? `<div class="product-media zoomable" data-single-image="${imageSrc}"><img src="${imageSrc}" alt="${escapeHtml(product.name)}" class="product-image"></div>` : ""}
           <div class="card-content">
-            ${badgeHtml ? `<div class="card-badges">${badgeHtml}</div>` : ""}
             <h3>${escapeHtml(product.name)}</h3>
-            <div class="desc">${escapeHtml(product.desc)}</div>
+            ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}
             <div class="stock">${escapeHtml(product.stock)}</div>
             <div class="meta-row">
               ${renderProductPrice(product)}

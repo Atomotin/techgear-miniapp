@@ -504,13 +504,6 @@
           </div>
           <div class="field-grid two">
             <label>Статус наличия<input id="productStock" type="text" placeholder="Например: В наличии" /></label>
-            <label>Badge
-              <select id="productBadge">
-                <option value="">Без badge</option>
-                <option value="new">new</option>
-                <option value="hot">hot</option>
-              </select>
-            </label>
           </div>
           <label>Описание<textarea id="productDesc"></textarea></label>
           <label>Варианты
@@ -753,7 +746,7 @@
         oldPrice: Number(document.getElementById("productOldPrice").value) || 0,
         sortOrder: Number(document.getElementById("productSortOrder").value) || 1,
         stock: document.getElementById("productStock").value.trim(),
-        badge: document.getElementById("productBadge").value,
+        badge: "",
         desc: document.getElementById("productDesc").value.trim(),
         variants: document.getElementById("productVariants").value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
         images,
@@ -1004,7 +997,6 @@
       document.getElementById("productOldPrice").value = product?.oldPrice ?? "";
       document.getElementById("productSortOrder").value = product?.sortOrder ?? "";
       document.getElementById("productStock").value = product?.stock || "";
-      document.getElementById("productBadge").value = product?.badge || "";
       document.getElementById("productDesc").value = product?.desc || "";
       document.getElementById("productVariants").value = Array.isArray(product?.variants) ? product.variants.join("\n") : "";
       document.getElementById("productImages").value = Array.isArray(product?.images) ? product.images.join("\n") : "";
@@ -1074,7 +1066,6 @@
             <span class="badge">ID ${product.id}</span>
             <span class="badge">${product.isVisible !== false ? "Виден" : "Скрыт"}</span>
             <span class="badge">${product.isSoon ? "Под заказ" : "В наличии / обычный"}</span>
-            ${product.badge ? `<span class="badge">badge: ${escapeHtml(product.badge)}</span>` : ""}
             ${product.oldPrice > product.price ? `<span class="badge">Скидка ${getDiscountPercent(product)}%</span>` : ""}
           </div>
           <div class="muted">${escapeHtml(product.desc || "Без описания")}</div>

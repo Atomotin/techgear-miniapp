@@ -354,6 +354,7 @@
       box-shadow: 0 22px 54px rgba(0, 0, 0, 0.28);
       position: relative;
       isolation: isolate;
+      touch-action: pan-y;
     }
 
     .promo-shell::before {
@@ -545,6 +546,7 @@
       backdrop-filter: blur(14px);
       font-size: 18px;
       line-height: 1;
+      display: none;
     }
 
     .promo-nav.prev {
@@ -729,6 +731,10 @@
       transition: opacity 0.22s ease, transform 0.22s ease, background 0.22s ease;
       font-size: 20px;
       line-height: 1;
+    }
+
+    .product-media .carousel-btn {
+      display: none;
     }
 
     .carousel-btn.prev {
@@ -2158,6 +2164,9 @@
       slides: [],
       index: 0,
       timerId: null,
+      touchStartX: 0,
+      touchMoved: false,
+      suppressClick: false,
     };
 
     function getSessionId() {
@@ -2750,11 +2759,12 @@
     }
 
     function renderPromoBanner() {
+      const shell = document.getElementById("promoBanner");
       const track = document.getElementById("promoTrack");
       const dotsWrap = document.getElementById("promoDots");
       const prevBtn = document.getElementById("promoPrev");
       const nextBtn = document.getElementById("promoNext");
-      if (!track || !dotsWrap) return;
+      if (!shell || !track || !dotsWrap) return;
 
       promoState.slides = buildPromoSlides();
       promoState.index = Math.min(promoState.index, Math.max(promoState.slides.length - 1, 0));
@@ -2777,6 +2787,10 @@
 
       track.querySelectorAll("[data-promo-slide]").forEach((slideNode) => {
         slideNode.addEventListener("click", () => {
+          if (promoState.suppressClick) {
+            promoState.suppressClick = false;
+            return;
+          }
           const slide = promoState.slides.find((item) => item.id === slideNode.dataset.promoSlide);
           applyPromoAction(slide?.action);
         });
@@ -2798,6 +2812,31 @@
         setPromoIndex(promoState.index + 1);
         startPromoAutoplay();
       };
+
+      if (!shell.dataset.swipeBound) {
+        shell.dataset.swipeBound = "1";
+
+        shell.addEventListener("touchstart", (e) => {
+          stopPromoAutoplay();
+          promoState.touchStartX = e.touches[0].clientX;
+          promoState.touchMoved = false;
+        }, { passive: true });
+
+        shell.addEventListener("touchmove", (e) => {
+          if (Math.abs(e.touches[0].clientX - promoState.touchStartX) > 8) {
+            promoState.touchMoved = true;
+          }
+        }, { passive: true });
+
+        shell.addEventListener("touchend", (e) => {
+          const deltaX = e.changedTouches[0].clientX - promoState.touchStartX;
+          if (Math.abs(deltaX) > 40) {
+            promoState.suppressClick = true;
+            setPromoIndex(promoState.index + (deltaX < 0 ? 1 : -1));
+          }
+          startPromoAutoplay();
+        }, { passive: true });
+      }
 
       setPromoIndex(promoState.index);
       startPromoAutoplay();

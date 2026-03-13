@@ -134,6 +134,10 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .field-grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     label {
       display: grid;
       gap: 6px;
@@ -436,6 +440,7 @@
 
     @media (max-width: 640px) {
       .field-grid.two,
+      .field-grid.three,
       .stats,
       .banner-list-card {
         grid-template-columns: 1fr;
@@ -492,8 +497,9 @@
             <label>Название<input id="productName" type="text" /></label>
             <label>Категория<select id="productCategory"></select></label>
           </div>
-          <div class="field-grid two">
+          <div class="field-grid three">
             <label>Цена (сум)<input id="productPrice" type="number" min="0" step="1000" /></label>
+            <label>Старая цена<input id="productOldPrice" type="number" min="0" step="1000" placeholder="Опционально для скидки" /></label>
             <label>Порядок сортировки<input id="productSortOrder" type="number" min="1" step="1" /></label>
           </div>
           <div class="field-grid two">
@@ -539,7 +545,6 @@
               </select>
             </label>
           </div>
-          <label>РЎС‚Р°СЂР°СЏ С†РµРЅР° (РґР»СЏ СЃРєРёРґРєРё)<input id="productOldPrice" type="number" min="0" step="1000" placeholder="РћСЃС‚Р°РІСЊ РїСѓСЃС‚С‹Рј, РµСЃР»Рё СЃРєРёРґРєРё РЅРµС‚" /></label>
           <div id="productMessage" class="hint"></div>
         </section>
 

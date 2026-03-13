@@ -1561,14 +1561,15 @@
       }
     }
 
-    @media (max-width: 420px) {
+    @media (max-width: 560px) {
       .container {
         padding: 12px;
       }
 
       .header {
-        padding: 14px 14px 12px;
-        text-align: center;
+        padding: 4px 2px 12px;
+        margin-bottom: 12px;
+        text-align: left;
         background: transparent;
         border: none;
         box-shadow: none;
@@ -1586,18 +1587,16 @@
         grid-template-columns: 1fr 1fr;
       }
 
-      .header-top {
-        display: grid;
-        justify-items: center;
-      }
-
       .header h1 {
         font-size: 22px;
         margin-bottom: 0;
       }
 
       .brand-logo {
-        display: none;
+        display: flex;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
       }
 
       .header p,
@@ -1606,9 +1605,17 @@
         display: none;
       }
 
+      .header-top {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+      }
+
       .brand-wrap {
-        justify-content: center;
-        text-align: center;
+        width: 100%;
+        justify-content: flex-start;
+        text-align: left;
+        gap: 10px;
       }
 
       .toolbar {

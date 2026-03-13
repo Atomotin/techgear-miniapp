@@ -2430,19 +2430,6 @@
       waitForTelegramUser();
     }
 
-    function syncProfileToCheckout() {
-      state.checkout = {
-        ...state.checkout,
-        name: state.profile.name || state.checkout.name || "",
-        phone: state.profile.phone || state.checkout.phone || "",
-        username: state.profile.username || state.checkout.username || "",
-        delivery: state.profile.delivery || state.checkout.delivery || "",
-        comment: state.profile.comment || state.checkout.comment || "",
-      };
-      saveStorage(STORAGE_KEYS.checkout, state.checkout);
-      fillCheckoutFields();
-    }
-
     function fillProfileFields() {
       const mapping = {
         profileName: state.profile.name || "",
@@ -2464,54 +2451,11 @@
       }
     }
 
-    function getProfileCompletion() {
-      const fields = [
-        state.profile.name,
-        state.profile.phone,
-        state.profile.username,
-        state.profile.delivery,
-        state.profile.comment,
-      ];
-      const filled = fields.filter((value) => String(value || "").trim()).length;
-      return Math.round((filled / fields.length) * 100);
-    }
-
     function requireRegisteredProfile(message = "Сначала заполни профиль") {
       if (isRegisteredProfile()) return true;
       switchView("profile");
       showToast(message, "error");
       return false;
-    }
-
-    function renderProfile() {
-      fillProfileFields();
-
-      const completion = document.getElementById("profileCompletion");
-      const cartCount = document.getElementById("profileCartCount");
-      const favoriteCount = document.getElementById("profileFavoritesCount");
-
-      if (completion) completion.textContent = `${getProfileCompletion()}%`;
-      if (cartCount) cartCount.textContent = String(state.cart.reduce((sum, item) => sum + item.qty, 0));
-      if (favoriteCount) favoriteCount.textContent = String(state.favorites.length);
-    }
-
-    function persistProfileFields() {
-      state.profile = {
-        name: document.getElementById("profileName")?.value.trim() || "",
-        phone: document.getElementById("profilePhone")?.value.trim() || "",
-        username: document.getElementById("profileUsername")?.value.trim() || "",
-        delivery: document.getElementById("profileDelivery")?.value.trim() || "",
-        comment: document.getElementById("profileComment")?.value.trim() || "",
-      };
-
-      saveStorage(STORAGE_KEYS.profile, state.profile);
-      renderProfile();
-    }
-
-    function saveProfile() {
-      persistProfileFields();
-      syncProfileToCheckout();
-      showToast("Профиль сохранён");
     }
 
     function showToast(message, type = "success") {
@@ -3272,7 +3216,7 @@
       });
     }
 
-    bindProfileControls = function bindProfileControlsWithServerSync() {
+    function bindProfileControls() {
       ["profileName", "profilePhone", "profileUsername", "profileDelivery", "profileComment"].forEach((id) => {
         document.getElementById(id)?.addEventListener("input", persistProfileFields);
       });
@@ -3304,57 +3248,6 @@
         switchView("cart");
         showToast("Данные профиля подставлены в заказ");
       });
-    }
-
-    function updateCartButton() {
-      const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
-      const cartBtnLabel = document.querySelector("#cartBtn .nav-label");
-      if (cartBtnLabel) {
-        cartBtnLabel.textContent = `Корзина (${totalItems})`;
-      }
-    }
-
-    function updateFavoritesButton() {
-      const favoriteBtnLabel = document.querySelector("#favoritesBtn .nav-label");
-      if (favoriteBtnLabel) {
-        favoriteBtnLabel.textContent = `Избранное (${state.favorites.length})`;
-      }
-    }
-
-    function switchView(view) {
-      const shopView = document.getElementById("shopView");
-      const cartView = document.getElementById("cartView");
-      const favoritesView = document.getElementById("favoritesView");
-      const shopBtn = document.getElementById("shopBtn");
-      const cartBtn = document.getElementById("cartBtn");
-      const favoritesBtn = document.getElementById("favoritesBtn");
-
-      if (view === "shop") {
-        shopView.classList.remove("hidden");
-        cartView.classList.add("hidden");
-        favoritesView.classList.add("hidden");
-        shopBtn.classList.add("active");
-        cartBtn.classList.remove("active");
-        favoritesBtn.classList.remove("active");
-      } else if (view === "favorites") {
-        shopView.classList.add("hidden");
-        cartView.classList.add("hidden");
-        favoritesView.classList.remove("hidden");
-        shopBtn.classList.remove("active");
-        cartBtn.classList.remove("active");
-        favoritesBtn.classList.add("active");
-        renderFavorites();
-      } else {
-        shopView.classList.add("hidden");
-        cartView.classList.remove("hidden");
-        favoritesView.classList.add("hidden");
-        shopBtn.classList.remove("active");
-        cartBtn.classList.add("active");
-        favoritesBtn.classList.remove("active");
-      }
-
-      state.activeView = view;
-      saveStorage(STORAGE_KEYS.activeView, view);
     }
 
     function sanitizePhone(phone) {
@@ -3816,25 +3709,6 @@
       }
     }
 
-    function bindProfileControls() {
-      ["profileName", "profilePhone", "profileUsername", "profileDelivery", "profileComment"].forEach((id) => {
-        document.getElementById(id)?.addEventListener("input", persistProfileFields);
-      });
-
-      document.getElementById("saveProfileBtn")?.addEventListener("click", () => {
-        persistProfileFields();
-        applyProfileToCheckout();
-        showToast("Профиль сохранён");
-      });
-
-      document.getElementById("fillCheckoutBtn")?.addEventListener("click", () => {
-        persistProfileFields();
-        applyProfileToCheckout();
-        switchView("cart");
-        showToast("Данные профиля подставлены в заказ");
-      });
-    }
-
     function updateCartButton() {
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
       const cartBtnLabel = document.querySelector("#cartBtn .nav-label");
@@ -3885,54 +3759,7 @@
       saveStorage(STORAGE_KEYS.activeView, view);
     }
 
-    const originalToggleFavorite = toggleFavorite;
-    toggleFavorite = function gatedToggleFavorite(productId) {
-      if (!requireRegisteredProfile("Сначала заполни профиль, чтобы пользоваться избранным")) return;
-      return originalToggleFavorite(productId);
-    }
-
-    const originalAddToCart = addToCart;
-    addToCart = function gatedAddToCart(productId, selectedVariant = "") {
-      if (!requireRegisteredProfile("Сначала заполни профиль, чтобы добавлять товары в корзину")) return;
-      return originalAddToCart(productId, selectedVariant);
-    }
-
-    const originalIncreaseQty = increaseQty;
-    increaseQty = function gatedIncreaseQty(cartKey) {
-      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
-      return originalIncreaseQty(cartKey);
-    }
-
-    const originalDecreaseQty = decreaseQty;
-    decreaseQty = function gatedDecreaseQty(cartKey) {
-      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
-      return originalDecreaseQty(cartKey);
-    }
-
-    const originalRemoveItem = removeItem;
-    removeItem = function gatedRemoveItem(cartKey) {
-      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
-      return originalRemoveItem(cartKey);
-    }
-
-    const originalClearCart = clearCart;
-    clearCart = function gatedClearCart() {
-      if (!requireRegisteredProfile("Сначала заполни профиль")) return;
-      return originalClearCart();
-    }
-
     const originalSubmitOrder = submitOrder;
-    submitOrder = function gatedSubmitOrder() {
-      if (!requireRegisteredProfile("Сначала заполни профиль перед оформлением заказа")) return;
-      return originalSubmitOrder();
-    }
-
-    toggleFavorite = originalToggleFavorite;
-    addToCart = originalAddToCart;
-    increaseQty = originalIncreaseQty;
-    decreaseQty = originalDecreaseQty;
-    removeItem = originalRemoveItem;
-    clearCart = originalClearCart;
     submitOrder = function gatedSubmitOrderOnly() {
       if (!requireRegisteredProfile("Чтобы оформить заказ, сначала заполните профиль")) return;
       return originalSubmitOrder();

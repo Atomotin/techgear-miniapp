@@ -285,12 +285,16 @@
     .contact-hub {
       display: grid;
       gap: 10px;
-      margin: 0 0 14px;
+      margin: 0;
       padding: 12px;
       border-radius: 22px;
       border: 1px solid rgba(157, 78, 221, 0.14);
       background: linear-gradient(180deg, rgba(11, 10, 18, 0.92), rgba(14, 10, 22, 0.88));
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .profile-contact-hub {
+      margin-top: 2px;
     }
 
     .contact-caption {
@@ -374,6 +378,11 @@
       position: relative;
       overflow: hidden;
       display: block;
+      cursor: default;
+    }
+
+    .promo-slide.is-clickable {
+      cursor: pointer;
     }
 
     .promo-slide::before {
@@ -1727,20 +1736,6 @@
         <div class="promo-dots" id="promoDots"></div>
       </section>
 
-      <section class="contact-hub" aria-label="Контакты">
-        <div class="contact-caption">Канал и менеджер в одном компактном блоке.</div>
-        <div class="contact-grid">
-          <a class="contact-link-card channel" href="https://t.me/techgear_uz" target="_blank" rel="noreferrer">
-            <span class="contact-label">Канал</span>
-            <strong>Наш канал</strong>
-          </a>
-          <a class="contact-link-card manager" href="https://t.me/atomotin" target="_blank" rel="noreferrer">
-            <span class="contact-label">Связь</span>
-            <strong>Менеджер</strong>
-          </a>
-        </div>
-      </section>
-
       <div class="toolbar">
         <div class="search-box">
           <input type="text" id="searchInput" placeholder="Поиск" />
@@ -1931,6 +1926,18 @@
             <button class="btn btn-outline" type="button" id="fillCheckoutBtn">Заполнить заказ</button>
           </div>
         </div>
+        <section class="contact-hub profile-contact-hub" aria-label="Связь">
+          <div class="contact-grid">
+            <a class="contact-link-card channel" href="https://t.me/techgear_uz" target="_blank" rel="noreferrer">
+              <span class="contact-label">Канал</span>
+              <strong>Наш канал</strong>
+            </a>
+            <a class="contact-link-card manager" href="https://t.me/atomotin" target="_blank" rel="noreferrer">
+              <span class="contact-label">Связь</span>
+              <strong>Менеджер</strong>
+            </a>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -2755,15 +2762,7 @@
           : `<div class="promo-fallback">TG</div>`;
 
         return `
-          <article class="promo-slide">
-            <div class="promo-copy">
-              <div class="promo-kicker">${escapeHtml(slide.kicker)}</div>
-              <h2 class="promo-title">${escapeHtml(slide.title)}</h2>
-              <div class="promo-actions">
-                <button class="promo-primary" type="button" data-promo-action="${escapeHtml(slide.id)}">${escapeHtml(slide.cta || "Открыть")}</button>
-                ${slide.secondary ? `<button class="promo-secondary" type="button" data-promo-secondary="${escapeHtml(slide.id)}">${escapeHtml(slide.secondary)}</button>` : ""}
-              </div>
-            </div>
+          <article class="promo-slide${slide.action ? " is-clickable" : ""}" data-promo-slide="${escapeHtml(slide.id)}" aria-label="${escapeHtml(slide.title)}">
             <div class="promo-visual">${imageHtml}</div>
           </article>
         `;
@@ -2773,17 +2772,10 @@
         `<button class="promo-dot${index === promoState.index ? " active" : ""}" type="button" data-promo-dot="${index}" aria-label="${escapeHtml(slide.kicker)}"></button>`
       )).join("");
 
-      track.querySelectorAll("[data-promo-action]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const slide = promoState.slides.find((item) => item.id === button.dataset.promoAction);
+      track.querySelectorAll("[data-promo-slide]").forEach((slideNode) => {
+        slideNode.addEventListener("click", () => {
+          const slide = promoState.slides.find((item) => item.id === slideNode.dataset.promoSlide);
           applyPromoAction(slide?.action);
-        });
-      });
-
-      track.querySelectorAll("[data-promo-secondary]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const slide = promoState.slides.find((item) => item.id === button.dataset.promoSecondary);
-          applyPromoAction(slide?.secondaryAction || { type: "reset" });
         });
       });
 

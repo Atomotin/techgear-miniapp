@@ -12,6 +12,7 @@ create table if not exists public.products (
   is_visible boolean not null default true,
   is_soon boolean not null default false,
   price integer not null default 0,
+  old_price integer not null default 0,
   image text not null default '',
   images jsonb not null default '[]'::jsonb,
   description text not null default '',
@@ -107,6 +108,3 @@ execute function public.set_updated_at();
 
 
 
-
-
-  

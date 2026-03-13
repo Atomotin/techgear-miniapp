@@ -136,6 +136,9 @@ function sanitizeProduct(product, fallbackId) {
     ? parsedId
     : (Number.isFinite(Number(fallbackId)) && Number(fallbackId) > 0 ? Number(fallbackId) : null);
   const parsedSortOrder = Number(product?.sortOrder);
+  const parsedPrice = Number(product?.price) || 0;
+  const parsedOldPrice = Number(product?.oldPrice) || 0;
+  const normalizedOldPrice = parsedOldPrice > parsedPrice ? parsedOldPrice : 0;
 
   return {
     id: resolvedId,
@@ -144,7 +147,8 @@ function sanitizeProduct(product, fallbackId) {
     sortOrder: Number.isFinite(parsedSortOrder) ? parsedSortOrder : (resolvedId || 1),
     isVisible: product?.isVisible !== false,
     isSoon: Boolean(product?.isSoon),
-    price: Number(product?.price) || 0,
+    price: parsedPrice,
+    oldPrice: normalizedOldPrice,
     image: normalizedImages[0] || "",
     images: normalizedImages,
     desc: normalizeString(product?.desc),
@@ -536,6 +540,7 @@ function productRowToModel(row) {
     isVisible: row?.is_visible,
     isSoon: row?.is_soon,
     price: row?.price,
+    oldPrice: row?.old_price,
     image: row?.image,
     images: Array.isArray(row?.images) ? row.images : [],
     desc: row?.description,
@@ -560,6 +565,10 @@ function productModelToRow(product, { includeId = true } = {}) {
     variants: product.variants,
     badge: product.badge || null
   };
+
+  if (product.oldPrice > 0) {
+    row.old_price = product.oldPrice;
+  }
 
   if (includeId && product.id) {
     row.id = product.id;
@@ -908,14 +917,33 @@ function createLocalStorageProvider() {
 }
 
 function createSupabaseStorageProvider() {
+  function wrapDiscountSchemaError(error) {
+    if (String(error?.message || "").toLowerCase().includes("old_price")) {
+      throw createHttpError(400, "Для скидок сначала обновите Supabase через supabase/schema.sql");
+    }
+    throw error;
+  }
+
+  async function getProductsWithDiscountSupport(queryWithDiscount, fallbackQuery) {
+    try {
+      return await supabaseRequest("GET", "products", { query: queryWithDiscount });
+    } catch (error) {
+      if (String(error?.message || "").toLowerCase().includes("old_price")) {
+        return supabaseRequest("GET", "products", { query: fallbackQuery });
+      }
+      throw error;
+    }
+  }
+
   async function getCatalog() {
     const [categoriesRows, productRows] = await Promise.all([
       supabaseRequest("GET", "categories", {
         query: "select=key,label&order=key.asc"
       }),
-      supabaseRequest("GET", "products", {
-        query: "select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&order=sort_order.asc,id.asc"
-      })
+      getProductsWithDiscountSupport(
+        "select=id,name,category_key,sort_order,is_visible,is_soon,price,old_price,image,images,description,stock,variants,badge&order=sort_order.asc,id.asc",
+        "select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&order=sort_order.asc,id.asc"
+      )
     ]);
 
     return {
@@ -1121,17 +1149,22 @@ function createSupabaseStorageProvider() {
         throw createHttpError(400, "У товара должны быть name и category");
       }
 
-      await supabaseRequest("POST", "products", {
-        body: [productModelToRow(product, { includeId: false })],
-        prefer: "return=representation"
-      });
+      try {
+        await supabaseRequest("POST", "products", {
+          body: [productModelToRow(product, { includeId: false })],
+          prefer: "return=representation"
+        });
+      } catch (error) {
+        wrapDiscountSchemaError(error);
+      }
 
       return getCatalog();
     },
     async updateProduct(productId, body) {
-      const existingRows = await supabaseRequest("GET", "products", {
-        query: `select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&id=eq.${encodeURIComponent(productId)}&limit=1`
-      });
+      const existingRows = await getProductsWithDiscountSupport(
+        `select=id,name,category_key,sort_order,is_visible,is_soon,price,old_price,image,images,description,stock,variants,badge&id=eq.${encodeURIComponent(productId)}&limit=1`,
+        `select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&id=eq.${encodeURIComponent(productId)}&limit=1`
+      );
 
       if (!Array.isArray(existingRows) || existingRows.length === 0) {
         throw createHttpError(404, "Товар не найден");
@@ -1140,11 +1173,15 @@ function createSupabaseStorageProvider() {
       const existingProduct = productRowToModel(existingRows[0]);
       const product = sanitizeProduct({ ...existingProduct, ...body, id: productId }, productId);
 
-      await supabaseRequest("PATCH", "products", {
-        query: `id=eq.${encodeURIComponent(productId)}`,
-        body: productModelToRow(product, { includeId: false }),
-        prefer: "return=representation"
-      });
+      try {
+        await supabaseRequest("PATCH", "products", {
+          query: `id=eq.${encodeURIComponent(productId)}`,
+          body: productModelToRow(product, { includeId: false }),
+          prefer: "return=representation"
+        });
+      } catch (error) {
+        wrapDiscountSchemaError(error);
+      }
 
       return getCatalog();
     },

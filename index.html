@@ -1111,6 +1111,48 @@
       color: #ffffff;
     }
 
+    .price-stack {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .price-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .price-current {
+      font-size: 18px;
+      line-height: 1;
+      color: var(--lime-soft);
+      text-shadow: 0 6px 20px rgba(198, 255, 51, 0.16);
+    }
+
+    .price-old {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.55);
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
+    }
+
+    .discount-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(255, 107, 107, 0.16);
+      border: 1px solid rgba(255, 107, 107, 0.32);
+      color: #ffd3d3;
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
     .btn {
       border: none;
       border-radius: 14px;
@@ -2230,11 +2272,33 @@
       return new Intl.NumberFormat("ru-RU").format(value) + " сум";
     }
 
+    function getDiscountPercent(product) {
+      const oldPrice = Number(product?.oldPrice) || 0;
+      const price = Number(product?.price) || 0;
+      if (!oldPrice || !price || oldPrice <= price) return 0;
+      return Math.round(((oldPrice - price) / oldPrice) * 100);
+    }
+
+    function renderProductPrice(product) {
+      const discount = getDiscountPercent(product);
+      const hasDiscount = discount > 0;
+      return `
+        <div class="price-stack">
+          <div class="price-line">
+            <div class="price price-current">${formatPrice(product.price)}</div>
+            ${hasDiscount ? `<span class="discount-badge">-${discount}%</span>` : ""}
+          </div>
+          ${hasDiscount ? `<div class="price-old">${formatPrice(product.oldPrice)}</div>` : ""}
+        </div>
+      `;
+    }
+
     function normalizeProducts(products) {
       return products
         .filter((product) => product && product.isVisible !== false)
         .map((product, index) => ({
           ...product,
+          oldPrice: Number(product.oldPrice) > Number(product.price || 0) ? Number(product.oldPrice) : 0,
           sortOrder: Number.isFinite(product.sortOrder) ? product.sortOrder : index + 1,
           variants: Array.isArray(product.variants) ? product.variants : [],
           images: Array.isArray(product.images)
@@ -2888,7 +2952,7 @@
             ${variantsHtml}
             ${variantSelectHtml}
             <div class="meta-row">
-              <div class="price">${formatPrice(product.price)}</div>
+              ${renderProductPrice(product)}
               <div class="card-actions-row">
                 <button class="favorite-btn${favoriteActive ? " active" : ""}" type="button" aria-label="${favoriteActive ? "Убрать из избранного" : "Добавить в избранное"}">${favoriteActive ? "❤" : "♡"}</button>
                 <button class="btn btn-primary" type="button">${product.isSoon ? "Предзаказ" : "В корзину"}</button>
@@ -2936,7 +3000,7 @@
             <div class="desc">${escapeHtml(product.desc)}</div>
             <div class="stock">${escapeHtml(product.stock)}</div>
             <div class="meta-row">
-              <div class="price">${formatPrice(product.price)}</div>
+              ${renderProductPrice(product)}
               <div class="card-actions-row">
                 <button class="favorite-btn active" type="button" aria-label="Убрать из избранного">❤</button>
                 <button class="btn btn-primary" type="button">Открыть</button>

@@ -539,6 +539,7 @@
               </select>
             </label>
           </div>
+          <label>РЎС‚Р°СЂР°СЏ С†РµРЅР° (РґР»СЏ СЃРєРёРґРєРё)<input id="productOldPrice" type="number" min="0" step="1000" placeholder="РћСЃС‚Р°РІСЊ РїСѓСЃС‚С‹Рј, РµСЃР»Рё СЃРєРёРґРєРё РЅРµС‚" /></label>
           <div id="productMessage" class="hint"></div>
         </section>
 
@@ -715,6 +716,13 @@
       return new Intl.NumberFormat("ru-RU").format(value) + " сум";
     }
 
+    function getDiscountPercent(product) {
+      const oldPrice = Number(product?.oldPrice) || 0;
+      const price = Number(product?.price) || 0;
+      if (!oldPrice || !price || oldPrice <= price) return 0;
+      return Math.round(((oldPrice - price) / oldPrice) * 100);
+    }
+
     function setText(id, value) {
       const node = document.getElementById(id);
       if (node) node.textContent = value;
@@ -737,6 +745,7 @@
         name: document.getElementById("productName").value.trim(),
         category: document.getElementById("productCategory").value,
         price: Number(document.getElementById("productPrice").value) || 0,
+        oldPrice: Number(document.getElementById("productOldPrice").value) || 0,
         sortOrder: Number(document.getElementById("productSortOrder").value) || 1,
         stock: document.getElementById("productStock").value.trim(),
         badge: document.getElementById("productBadge").value,
@@ -987,6 +996,7 @@
       document.getElementById("productName").value = product?.name || "";
       document.getElementById("productCategory").value = product?.category || state.catalog.categories.find((item) => item.key !== "all")?.key || "all";
       document.getElementById("productPrice").value = product?.price ?? "";
+      document.getElementById("productOldPrice").value = product?.oldPrice ?? "";
       document.getElementById("productSortOrder").value = product?.sortOrder ?? "";
       document.getElementById("productStock").value = product?.stock || "";
       document.getElementById("productBadge").value = product?.badge || "";
@@ -1054,12 +1064,13 @@
       list.innerHTML = products.map((product) => `
         <article class="product-card">
           <h3>${escapeHtml(product.name)}</h3>
-          <div class="meta">${escapeHtml(product.stock || "Без статуса")} · ${escapeHtml(product.category)} · ${formatPrice(product.price)}</div>
+          <div class="meta">${escapeHtml(product.stock || "Без статуса")} · ${escapeHtml(product.category)} · ${formatPrice(product.price)}${product.oldPrice > product.price ? ` · <s>${formatPrice(product.oldPrice)}</s> · -${getDiscountPercent(product)}%` : ""}</div>
           <div class="badge-row">
             <span class="badge">ID ${product.id}</span>
             <span class="badge">${product.isVisible !== false ? "Виден" : "Скрыт"}</span>
             <span class="badge">${product.isSoon ? "Под заказ" : "В наличии / обычный"}</span>
             ${product.badge ? `<span class="badge">badge: ${escapeHtml(product.badge)}</span>` : ""}
+            ${product.oldPrice > product.price ? `<span class="badge">Скидка ${getDiscountPercent(product)}%</span>` : ""}
           </div>
           <div class="muted">${escapeHtml(product.desc || "Без описания")}</div>
           <div class="product-actions">

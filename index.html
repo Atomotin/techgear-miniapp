@@ -207,6 +207,10 @@
       margin-bottom: 16px;
     }
 
+    .top-search {
+      margin-bottom: 14px;
+    }
+
     .toolbar-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1563,7 +1567,8 @@
       }
 
       .header {
-        padding: 16px 14px;
+        padding: 14px 14px 12px;
+        text-align: center;
       }
 
       .header-top,
@@ -1579,25 +1584,35 @@
 
       .header-top {
         display: grid;
+        justify-items: center;
       }
 
       .header h1 {
-        font-size: 24px;
+        font-size: 22px;
+        margin-bottom: 0;
       }
 
       .brand-logo {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
+        display: none;
       }
 
-      .badge-pill {
-        padding: 8px 10px;
-        font-size: 12px;
-      }
-
+      .header p,
+      .badge-pill,
       .hero-meta {
-        gap: 6px;
+        display: none;
+      }
+
+      .brand-wrap {
+        justify-content: center;
+        text-align: center;
+      }
+
+      .toolbar {
+        gap: 10px;
+      }
+
+      .top-search {
+        margin-bottom: 12px;
       }
 
       .contact-grid {
@@ -1738,6 +1753,10 @@
     </div>
 
     <div id="shopView">
+      <div class="search-box top-search">
+        <input type="text" id="searchInput" placeholder="Поиск" />
+      </div>
+
       <section class="promo-shell" id="promoBanner" aria-label="Promo banners">
         <div class="promo-track" id="promoTrack"></div>
         <button class="promo-nav prev" id="promoPrev" type="button" aria-label="Previous banner">‹</button>
@@ -1746,9 +1765,6 @@
       </section>
 
       <div class="toolbar">
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Поиск" />
-        </div>
         <div class="toolbar-row">
           <select id="availabilityFilter">
             <option value="all">Все товары</option>

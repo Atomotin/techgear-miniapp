@@ -23,6 +23,8 @@ const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
 const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const SUPABASE_REST_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/rest/v1` : "";
+const SUPABASE_STORAGE_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/storage/v1` : "";
+const SUPABASE_UPLOAD_BUCKET = normalizeString(process.env.SUPABASE_STORAGE_BUCKET || "techgear-assets") || "techgear-assets";
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
 const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
 const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
@@ -497,6 +499,18 @@ function parseSupabaseError(payload, response) {
   return createHttpError(response.status || 500, payload?.message || payload?.error || "Supabase request failed");
 }
 
+function parseSupabaseStorageError(payload, response) {
+  if (payload && typeof payload === "object") {
+    const statusCode = response?.status || 500;
+    return createHttpError(
+      statusCode,
+      payload.message || payload.error || payload.msg || "Supabase Storage request failed"
+    );
+  }
+
+  return createHttpError(response?.status || 500, "Supabase Storage request failed");
+}
+
 async function supabaseRequest(method, resource, { query = "", body, prefer, headers = {} } = {}) {
   if (!SUPABASE_ENABLED) {
     throw createHttpError(500, "Supabase is not configured");
@@ -522,6 +536,94 @@ async function supabaseRequest(method, resource, { query = "", body, prefer, hea
   }
 
   return data;
+}
+
+async function supabaseStorageRequest(method, resourcePath, { body, headers = {}, contentType, expectJson = true } = {}) {
+  if (!SUPABASE_ENABLED) {
+    throw createHttpError(500, "Supabase is not configured");
+  }
+
+  const response = await fetch(`${SUPABASE_STORAGE_URL}/${resourcePath}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      ...(contentType ? { "Content-Type": contentType } : {}),
+      ...headers
+    },
+    body
+  });
+
+  const text = response.status === 204 ? "" : await response.text();
+  const data = text && expectJson ? JSON.parse(text) : text || null;
+
+  if (!response.ok) {
+    throw parseSupabaseStorageError(data, response);
+  }
+
+  return data;
+}
+
+let uploadBucketReadyPromise = null;
+
+async function ensureSupabaseUploadBucket() {
+  if (!SUPABASE_ENABLED) {
+    return false;
+  }
+
+  if (uploadBucketReadyPromise) {
+    return uploadBucketReadyPromise;
+  }
+
+  uploadBucketReadyPromise = (async () => {
+    try {
+      await supabaseStorageRequest("GET", `bucket/${encodeURIComponent(SUPABASE_UPLOAD_BUCKET)}`);
+      return true;
+    } catch (error) {
+      if (error?.statusCode !== 404) {
+        throw error;
+      }
+
+      await supabaseStorageRequest("POST", "bucket", {
+        body: JSON.stringify({
+          id: SUPABASE_UPLOAD_BUCKET,
+          name: SUPABASE_UPLOAD_BUCKET,
+          public: true,
+          allowed_mime_types: Array.from(UPLOAD_EXTENSIONS.keys())
+        }),
+        contentType: "application/json"
+      });
+
+      return true;
+    }
+  })().catch((error) => {
+    uploadBucketReadyPromise = null;
+    throw error;
+  });
+
+  return uploadBucketReadyPromise;
+}
+
+async function uploadBinaryToSupabaseStorage(fileName, buffer, contentType) {
+  await ensureSupabaseUploadBucket();
+
+  const objectPath = `admin/${fileName}`;
+  await supabaseStorageRequest("POST", `object/${encodeURIComponent(SUPABASE_UPLOAD_BUCKET)}/${objectPath}`, {
+    body: buffer,
+    headers: {
+      "x-upsert": "true",
+      "cache-control": "3600"
+    },
+    contentType,
+    expectJson: false
+  });
+
+  return {
+    ok: true,
+    path: `${SUPABASE_STORAGE_URL}/object/public/${SUPABASE_UPLOAD_BUCKET}/${objectPath}`,
+    fileName,
+    storage: "supabase"
+  };
 }
 
 function categoryRowToModel(row) {
@@ -1006,6 +1108,11 @@ function createSupabaseStorageProvider() {
   return {
     mode: "supabase",
     async init() {
+      try {
+        await ensureSupabaseUploadBucket();
+      } catch (error) {
+        console.warn("Supabase upload bucket is not ready:", error.message);
+      }
       await ensureSeeded();
     },
     async getCatalog() {
@@ -1377,16 +1484,22 @@ async function saveAdminUpload(req, url) {
     throw createHttpError(400, "Пустой файл");
   }
 
-  fs.mkdirSync(IMAGE_UPLOAD_DIR, { recursive: true });
   const safeBaseName = sanitizeUploadName(originalName);
   const fileName = `${Date.now()}-${safeBaseName}${extension}`;
+
+  if (SUPABASE_ENABLED) {
+    return uploadBinaryToSupabaseStorage(fileName, buffer, contentType);
+  }
+
+  fs.mkdirSync(IMAGE_UPLOAD_DIR, { recursive: true });
   const absolutePath = path.join(IMAGE_UPLOAD_DIR, fileName);
   fs.writeFileSync(absolutePath, buffer);
 
   return {
     ok: true,
     path: `images.img/${fileName}`,
-    fileName
+    fileName,
+    storage: "local"
   };
 }
 

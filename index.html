@@ -2169,6 +2169,26 @@
       analyticsWebhookUrl: "https://script.google.com/macros/s/AKfycbwHfhqIfh7p1AEGuEDuBg2LeqgQcFS14Mtw9KfpSYAq3JyWINXA41rIp5yGmULwFFxS/exec",
       analyticsEnabled: true,
     };
+    const IMAGE_FALLBACK_SRC = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#161122"/>
+            <stop offset="100%" stop-color="#2f1247"/>
+          </linearGradient>
+        </defs>
+        <rect width="640" height="640" rx="48" fill="url(#bg)"/>
+        <g fill="none" stroke="#c6ff33" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+          <rect x="142" y="176" width="356" height="242" rx="26"/>
+          <path d="M208 418v40c0 12 10 22 22 22h180c12 0 22-10 22-22v-40"/>
+          <path d="M210 232h0"/>
+          <path d="M274 232h156"/>
+          <path d="M214 364l72-74 66 58 74-92 62 56"/>
+        </g>
+        <text x="320" y="538" text-anchor="middle" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="44" font-weight="700">TechGear</text>
+      </svg>
+    `);
+    window.__TG_IMAGE_FALLBACK__ = IMAGE_FALLBACK_SRC;
 
     if (tg) {
       tg.ready();
@@ -2287,6 +2307,7 @@
     }
 
     function normalizeProducts(products) {
+      if (!Array.isArray(products)) return [];
       return products
         .filter((product) => product && product.isVisible !== false)
         .map((product, index) => ({
@@ -2398,13 +2419,13 @@
         }
 
         const data = await response.json();
-        if (Array.isArray(data.products)) {
+        if (Array.isArray(data.products) && data.products.length) {
           PRODUCTS = data.products;
         }
-        if (Array.isArray(data.categories)) {
+        if (Array.isArray(data.categories) && data.categories.length) {
           CATEGORIES = data.categories;
         }
-        if (Array.isArray(data.banners)) {
+        if (Array.isArray(data.banners) && data.banners.length) {
           PROMO_BANNERS = data.banners;
         }
       } catch (error) {
@@ -2791,7 +2812,7 @@
 
       track.innerHTML = promoState.slides.map((slide) => {
         const imageHtml = slide.image
-          ? `<img src="${escapeHtml(slide.image)}" alt="${escapeHtml(slide.title)}" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';">`
+          ? `<img src="${escapeHtml(slide.image)}" alt="${escapeHtml(slide.title)}" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src=window.__TG_IMAGE_FALLBACK__;">`
           : `<div class="promo-fallback">TG</div>`;
 
         return `
@@ -2909,7 +2930,7 @@
             ? `
               <div class="product-media zoomable" data-carousel>
                 <div class="product-track">
-                  ${images.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';">`).join("")}
+                  ${images.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src=window.__TG_IMAGE_FALLBACK__;">`).join("")}
                 </div>
                 <button class="carousel-btn prev" type="button" aria-label="Предыдущее фото">‹</button>
                 <button class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
@@ -2918,7 +2939,7 @@
                 </div>
               </div>
             `
-            : (images[0] ? `<div class="product-media zoomable" data-single-image="${escapeHtml(images[0])}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';"></div>` : "");
+            : (images[0] ? `<div class="product-media zoomable" data-single-image="${escapeHtml(images[0])}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src=window.__TG_IMAGE_FALLBACK__;"></div>` : "");
 
           const variants = Array.isArray(product.variants) ? product.variants : [];
           const variantsHtml = variants.length
@@ -2991,7 +3012,7 @@
         const cardDescription = getCardDescription(product);
 
         card.innerHTML = `
-          ${imageSrc ? `<div class="product-media zoomable" data-single-image="${imageSrc}"><img src="${imageSrc}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';"></div>` : ""}
+          ${imageSrc ? `<div class="product-media zoomable" data-single-image="${imageSrc}"><img src="${imageSrc}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src=window.__TG_IMAGE_FALLBACK__;"></div>` : ""}
           <div class="card-content">
             <h3>${escapeHtml(product.name)}</h3>
             ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}

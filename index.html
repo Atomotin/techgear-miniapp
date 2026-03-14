@@ -2052,6 +2052,11 @@
       if (!AUDIO_ENABLED) return;
       audioElement = document.getElementById('bgm');
       if (!audioElement) return;
+      if (tg && tg.MainButton) {
+        try {
+          tg.MainButton.hide();
+        } catch (error) {}
+      }
       
       // Несколько источников на случай, если один не загрузится
       const urls = [
@@ -2109,17 +2114,6 @@
       document.addEventListener('click', autoplay, { once: true });
       document.addEventListener('touchstart', autoplay, { once: true });
 
-      // Telegram MainButton — ещё один жест
-      if (tg && tg.MainButton) {
-        tg.MainButton.setText('▶ Музыка');
-        tg.MainButton.show();
-        tg.onEvent('mainButtonClicked', () => {
-          autoplay();
-          tg.MainButton.hide();
-          promptHide();
-        });
-      }
-
       // overlay prompt click hides and triggers
       const prompt = document.getElementById('musicPrompt');
       function promptHide() {
@@ -2129,7 +2123,6 @@
         prompt.addEventListener('click', () => {
           autoplay();
           promptHide();
-          if (tg && tg.MainButton) tg.MainButton.hide();
         });
       }
     }
@@ -2798,7 +2791,7 @@
 
       track.innerHTML = promoState.slides.map((slide) => {
         const imageHtml = slide.image
-          ? `<img src="${escapeHtml(slide.image)}" alt="${escapeHtml(slide.title)}">`
+          ? `<img src="${escapeHtml(slide.image)}" alt="${escapeHtml(slide.title)}" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';">`
           : `<div class="promo-fallback">TG</div>`;
 
         return `
@@ -2907,66 +2900,75 @@
       }
 
       filtered.forEach((product) => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.dataset.productId = String(product.id);
-        const images = product.images || [];
-        const mediaHtml = images.length > 1
-          ? `
-            <div class="product-media zoomable" data-carousel>
-              <div class="product-track">
-                ${images.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(product.name)}" class="product-image">`).join("")}
+        try {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.dataset.productId = String(product.id);
+          const images = Array.isArray(product.images) ? product.images : [];
+          const mediaHtml = images.length > 1
+            ? `
+              <div class="product-media zoomable" data-carousel>
+                <div class="product-track">
+                  ${images.map((src) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';">`).join("")}
+                </div>
+                <button class="carousel-btn prev" type="button" aria-label="Предыдущее фото">‹</button>
+                <button class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
+                <div class="carousel-dots">
+                  ${images.map((_, index) => `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-index="${index}" aria-label="Фото ${index + 1}"></button>`).join("")}
+                </div>
               </div>
-              <button class="carousel-btn prev" type="button" aria-label="Предыдущее фото">‹</button>
-              <button class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
-              <div class="carousel-dots">
-                ${images.map((_, index) => `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-index="${index}" aria-label="Фото ${index + 1}"></button>`).join("")}
+            `
+            : (images[0] ? `<div class="product-media zoomable" data-single-image="${escapeHtml(images[0])}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';"></div>` : "");
+
+          const variants = Array.isArray(product.variants) ? product.variants : [];
+          const variantsHtml = variants.length
+            ? `<div class="variants">${variants.map((v) => `<span class="variant">${escapeHtml(v)}</span>`).join("")}</div>`
+            : "";
+          const variantSelectHtml = variants.length > 1
+            ? `
+              <select class="variant-select" data-product-id="${product.id}">
+                ${variants.map((variant) => `<option value="${escapeHtml(variant)}">${escapeHtml(variant)}</option>`).join("")}
+              </select>
+            `
+            : "";
+          const favoriteActive = isFavorite(product.id);
+          const cardDescription = getCardDescription(product);
+
+          card.innerHTML = `
+            ${mediaHtml}
+            <div class="card-content">
+              <h3>${escapeHtml(product.name)}</h3>
+              ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}
+              <div class="stock">${escapeHtml(product.stock)}</div>
+              ${variantsHtml}
+              ${variantSelectHtml}
+              <div class="meta-row">
+                ${renderProductPrice(product)}
+                <div class="card-actions-row">
+                  <button class="favorite-btn${favoriteActive ? " active" : ""}" type="button" aria-label="${favoriteActive ? "Убрать из избранного" : "Добавить в избранное"}">${favoriteActive ? "❤" : "♡"}</button>
+                  <button class="btn btn-primary" type="button">${product.isSoon ? "Предзаказ" : "В корзину"}</button>
+                </div>
               </div>
             </div>
-          `
-          : (images[0] ? `<div class="product-media zoomable" data-single-image="${escapeHtml(images[0])}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(product.name)}" class="product-image"></div>` : "");
+          `;
 
-        const variantsHtml = (product.variants || []).length
-          ? `<div class="variants">${product.variants.map((v) => `<span class="variant">${escapeHtml(v)}</span>`).join("")}</div>`
-          : "";
-        const variantSelectHtml = (product.variants || []).length > 1
-          ? `
-            <select class="variant-select" data-product-id="${product.id}">
-              ${product.variants.map((variant) => `<option value="${escapeHtml(variant)}">${escapeHtml(variant)}</option>`).join("")}
-            </select>
-          `
-          : "";
-        const favoriteActive = isFavorite(product.id);
-        const cardDescription = getCardDescription(product);
+          card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
+          card.querySelector(".btn-primary").onclick = () => {
+            const select = card.querySelector(".variant-select");
+            const selectedVariant = select?.value || variants[0] || "";
+            addToCart(product.id, selectedVariant);
+          };
 
-        card.innerHTML = `
-          ${mediaHtml}
-          <div class="card-content">
-            <h3>${escapeHtml(product.name)}</h3>
-            ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}
-            <div class="stock">${escapeHtml(product.stock)}</div>
-            ${variantsHtml}
-            ${variantSelectHtml}
-            <div class="meta-row">
-              ${renderProductPrice(product)}
-              <div class="card-actions-row">
-                <button class="favorite-btn${favoriteActive ? " active" : ""}" type="button" aria-label="${favoriteActive ? "Убрать из избранного" : "Добавить в избранное"}">${favoriteActive ? "❤" : "♡"}</button>
-                <button class="btn btn-primary" type="button">${product.isSoon ? "Предзаказ" : "В корзину"}</button>
-              </div>
-            </div>
-          </div>
-        `;
-
-        card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
-        card.querySelector(".btn-primary").onclick = () => {
-          const select = card.querySelector(".variant-select");
-          const selectedVariant = select?.value || product.variants?.[0] || "";
-          addToCart(product.id, selectedVariant);
-        };
-
-        initCardCarousel(card);
-        list.appendChild(card);
+          initCardCarousel(card);
+          list.appendChild(card);
+        } catch (error) {
+          console.error("Failed to render product card", product, error);
+        }
       });
+
+      if (!list.children.length) {
+        list.innerHTML = '<div class="empty-text">Не удалось отрисовать товары. Обновите Mini App.</div>';
+      }
     }
 
     function renderFavorites() {
@@ -2989,7 +2991,7 @@
         const cardDescription = getCardDescription(product);
 
         card.innerHTML = `
-          ${imageSrc ? `<div class="product-media zoomable" data-single-image="${imageSrc}"><img src="${imageSrc}" alt="${escapeHtml(product.name)}" class="product-image"></div>` : ""}
+          ${imageSrc ? `<div class="product-media zoomable" data-single-image="${imageSrc}"><img src="${imageSrc}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src='/images.img/lolo.png';"></div>` : ""}
           <div class="card-content">
             <h3>${escapeHtml(product.name)}</h3>
             ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}

@@ -31,7 +31,7 @@ function createHttpHelpers({ createHttpError }) {
       req.on("data", (chunk) => {
         total += chunk.length;
         if (total > maxSize) {
-          reject(createHttpError(413, "Р¤Р°Р№Р» СЃР»РёС€РєРѕРј Р±РѕР»СЊС€РѕР№"));
+          reject(createHttpError(413, "\u0424\u0430\u0439\u043b \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0431\u043e\u043b\u044c\u0448\u043e\u0439"));
           req.destroy();
           return;
         }

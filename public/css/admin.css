@@ -114,7 +114,7 @@
     .row,
     .field-grid {
       display: grid;
-      gap: 12px;
+      gap: var(--tg-form-gap-md);
     }
 
     .field-grid.two {
@@ -156,6 +156,13 @@
       box-shadow: 0 0 0 4px rgba(123, 214, 255, 0.12);
     }
 
+    input[readonly],
+    textarea[readonly] {
+      background: rgba(255, 255, 255, 0.025);
+      border-style: dashed;
+      color: var(--muted);
+    }
+
     button:hover {
       transform: translateY(-1px);
     }
@@ -188,7 +195,7 @@
 
     .toolbar {
       display: flex;
-      gap: 10px;
+      gap: var(--tg-form-gap-sm);
       flex-wrap: wrap;
       margin-bottom: 16px;
     }
@@ -301,13 +308,13 @@
 
     .upload-row {
       display: grid;
-      gap: 10px;
+      gap: var(--tg-form-gap-sm);
       margin-top: 10px;
     }
 
     .upload-actions {
       display: flex;
-      gap: 10px;
+      gap: var(--tg-form-gap-sm);
       flex-wrap: wrap;
       align-items: center;
     }

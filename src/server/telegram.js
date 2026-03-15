@@ -33,31 +33,31 @@ function createTelegramService({
     return [
       `<b>${telegramBotName}</b>`,
       "",
-      "Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ.",
+      "\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c.",
       "",
-      "TechGear вЂ” СЌС‚Рѕ РјР°РіР°Р·РёРЅ Р°РєСЃРµСЃСЃСѓР°СЂРѕРІ, С‚РѕРІР°СЂРѕРІ РґР»СЏ СЃРµС‚Р°РїР° Рё СЃС‚РёР»СЊРЅС‹С… РґРµС‚Р°Р»РµР№ РґР»СЏ СЂР°Р±РѕС‡РµРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР°.",
+      "TechGear \u2014 \u044d\u0442\u043e \u043c\u0430\u0433\u0430\u0437\u0438\u043d \u0430\u043a\u0441\u0435\u0441\u0441\u0443\u0430\u0440\u043e\u0432, \u0442\u043e\u0432\u0430\u0440\u043e\u0432 \u0434\u043b\u044f \u0441\u0435\u0442\u0430\u043f\u0430 \u0438 \u0441\u0442\u0438\u043b\u044c\u043d\u044b\u0445 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 \u0434\u043b\u044f \u0440\u0430\u0431\u043e\u0447\u0435\u0433\u043e \u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u0430.",
       "",
-      "РћС‚РєСЂРѕР№ Mini App РЅРёР¶Рµ, С‡С‚РѕР±С‹ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РєР°РґР°Р»РѕРі, РЅРѕРІРёРЅРєРё Рё РѕС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р· РІ РЅРµСЃРєРѕР»СЊРєРѕ РЅР°Р¶Р°С‚РёР№."
+      "\u041e\u0442\u043a\u0440\u043e\u0439 Mini App \u043d\u0438\u0436\u0435, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043a\u0430\u0442\u0430\u043b\u043e\u0433, \u043d\u043e\u0432\u0438\u043d\u043a\u0438 \u0438 \u043e\u0444\u043e\u0440\u043c\u0438\u0442\u044c \u0437\u0430\u043a\u0430\u0437 \u0432 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043d\u0430\u0436\u0430\u0442\u0438\u0439."
     ].join("\n");
   }
 
   function buildTelegramStartKeyboard() {
     const rows = [
-      [{ text: "рџ›Ќ РћС‚РєСЂС‹С‚СЊ РјР°РіР°Р·РёРЅ", web_app: { url: `${publicBaseUrl}/` } }]
+      [{ text: "\uD83D\uDECD \u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0430\u0433\u0430\u0437\u0438\u043d", web_app: { url: `${publicBaseUrl}/` } }]
     ];
 
     const linksRow = [];
     if (telegramChannelUrl) {
-      linksRow.push({ text: "рџ“ў РќР°С€ РєР°РЅР°Р»", url: telegramChannelUrl });
+      linksRow.push({ text: "\uD83D\uDCE2 \u041d\u0430\u0448 \u043a\u0430\u043d\u0430\u043b", url: telegramChannelUrl });
     }
     if (telegramManagerUrl) {
-      linksRow.push({ text: "рџ’¬ РќР°РїРёСЃР°С‚СЊ РјРµРЅРµРґР¶РµСЂСѓ", url: telegramManagerUrl });
+      linksRow.push({ text: "\uD83D\uDCAC \u041d\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0443", url: telegramManagerUrl });
     }
     if (linksRow.length) {
       rows.push(linksRow);
     }
 
-    rows.push([{ text: "рџ”Ґ РќРѕРІРёРЅРєРё Рё Р°РєСЃРµСЃСЃСѓР°СЂС‹", web_app: { url: `${publicBaseUrl}/` } }]);
+    rows.push([{ text: "\uD83D\uDD25 \u041d\u043e\u0432\u0438\u043d\u043a\u0438 \u0438 \u0430\u043a\u0441\u0435\u0441\u0441\u0443\u0430\u0440\u044b", web_app: { url: `${publicBaseUrl}/` } }]);
 
     return { inline_keyboard: rows };
   }
@@ -110,7 +110,7 @@ function createTelegramService({
       await telegramApi("setChatMenuButton", {
         menu_button: {
           type: "web_app",
-          text: "рџ›Ќ РњР°РіР°Р·РёРЅ",
+          text: "\uD83D\uDECD \u041c\u0430\u0433\u0430\u0437\u0438\u043d",
           web_app: {
             url: `${publicBaseUrl}/`
           }
@@ -118,11 +118,11 @@ function createTelegramService({
       });
       await telegramApi("setMyCommands", {
         commands: [
-          { command: "start", description: "РћС‚РєСЂС‹С‚СЊ РїСЂРёРІРµС‚СЃС‚РІРёРµ Рё РјР°РіР°Р·РёРЅ" }
+          { command: "start", description: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0438\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0435 \u0438 \u043c\u0430\u0433\u0430\u0437\u0438\u043d" }
         ]
       });
       await telegramApi("setMyDescription", {
-        description: "TechGear Store: РјР°РіР°Р·РёРЅ Р°РєСЃРµСЃСЃСѓР°СЂРѕРІ, С‚РѕРІР°СЂРѕРІ РґР»СЏ СЃРµС‚Р°РїР° Рё Mini App Р·Р°РєР°Р·РѕРІ."
+        description: "TechGear Store: \u043c\u0430\u0433\u0430\u0437\u0438\u043d \u0430\u043a\u0441\u0435\u0441\u0441\u0443\u0430\u0440\u043e\u0432, \u0442\u043e\u0432\u0430\u0440\u043e\u0432 \u0434\u043b\u044f \u0441\u0435\u0442\u0430\u043f\u0430 \u0438 Mini App \u0437\u0430\u043a\u0430\u0437\u043e\u0432."
       });
     } catch (error) {
       console.error("Failed to configure Telegram bot:", error);

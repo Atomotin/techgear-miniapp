@@ -13,7 +13,7 @@ function createAdminRouteHandler({
       const body = await readBody(req);
 
       if (normalizeString(body.password) !== adminPassword) {
-        sendJson(res, 401, { error: "Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р в„– Р С—Р В°РЎР‚Р С•Р В»РЎРЉ" });
+        sendJson(res, 401, { error: "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c" });
         return true;
       }
 
@@ -61,7 +61,7 @@ function createAdminRouteHandler({
       const allowedStatuses = ["new", "processing", "done", "cancelled"];
 
       if (!allowedStatuses.includes(nextStatus)) {
-        sendJson(res, 400, { error: "Р СњР ВµР С”Р С•РЎР‚РЎР‚Р ВµР С”РЎвЂљР Р…РЎвЂ№Р в„– РЎРѓРЎвЂљР В°РЎвЂљРЎС“РЎРѓ" });
+        sendJson(res, 400, { error: "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 \u0441\u0442\u0430\u0442\u0443\u0441" });
         return true;
       }
 
@@ -78,7 +78,7 @@ function createAdminRouteHandler({
       };
 
       if (!category.key || !category.label) {
-        sendJson(res, 400, { error: "Р вЂ”Р В°Р С—Р С•Р В»Р Р…Р С‘РЎвЂљР Вµ key Р С‘ label" });
+        sendJson(res, 400, { error: "\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 key \u0438 label" });
         return true;
       }
 

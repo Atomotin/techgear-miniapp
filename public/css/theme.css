@@ -11,6 +11,8 @@
   --tg-surface-padding-sm: 16px;
   --tg-surface-padding-md: 22px;
   --tg-surface-padding-lg: 26px;
+  --tg-form-gap-sm: 10px;
+  --tg-form-gap-md: 12px;
   --tg-radius-xs: 10px;
   --tg-radius-sm: 12px;
   --tg-radius-md: 14px;
@@ -22,6 +24,7 @@
   --tg-field-padding-x: 16px;
   --tg-btn-padding-y: 12px;
   --tg-btn-padding-x: 16px;
+  --tg-control-min-height: 48px;
   --tg-transition-fast: 0.18s ease;
   --tg-transition-base: 0.24s ease;
   --tg-transition-emphasis: 0.3s cubic-bezier(0.23, 1, 0.32, 1);
@@ -166,8 +169,36 @@ a {
     transform var(--tg-transition-base);
 }
 
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select):not(textarea) {
+  min-height: var(--tg-control-min-height);
+}
+
 :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select):focus-visible {
   outline: none;
+}
+
+select {
+  appearance: none;
+  padding-right: 42px;
+  background-repeat: no-repeat;
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+}
+
+input[type="search"] {
+  padding-left: 42px;
+  background-repeat: no-repeat;
+  background-position: 14px 50%;
+  background-size: 14px 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8.5' cy='8.5' r='5.5'/%3E%3Cpath d='M13 13l4 4'/%3E%3C/svg%3E");
+}
+
+input[readonly],
+textarea[readonly] {
+  cursor: default;
 }
 
 .stack-top-gap {

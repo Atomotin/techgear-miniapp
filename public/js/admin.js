@@ -572,7 +572,7 @@ const state = {
         if (!key) continue;
         customers.set(key, {
           key,
-          name: String(profile.name || "").trim() || "Р‘РµР· РёРјРµРЅРё",
+          name: String(profile.name || "").trim() || "\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438",
           phone: String(profile.phone || "").trim(),
           username: String(profile.username || "").replace(/^@/, "").trim(),
           delivery: String(profile.delivery || "").trim(),
@@ -601,7 +601,7 @@ const state = {
         if (!customers.has(key)) {
           customers.set(key, {
             key,
-            name: String(customer.name || "").trim() || "Р‘РµР· РёРјРµРЅРё",
+            name: String(customer.name || "").trim() || "\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438",
             phone: String(customer.phone || "").trim(),
             username: String(customer.username || "").replace(/^@/, "").trim(),
             delivery: String(customer.delivery || "").trim(),
@@ -616,7 +616,7 @@ const state = {
         }
 
         const entry = customers.get(key);
-        entry.name = entry.name === "Р‘РµР· РёРјРµРЅРё" && customer.name ? String(customer.name).trim() : entry.name;
+        entry.name = entry.name === "\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438" && customer.name ? String(customer.name).trim() : entry.name;
         entry.phone = entry.phone || String(customer.phone || "").trim();
         entry.username = entry.username || String(customer.username || "").replace(/^@/, "").trim();
         entry.delivery = entry.delivery || String(customer.delivery || "").trim();

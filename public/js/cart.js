@@ -82,8 +82,6 @@
       const submitBtn = document.getElementById("submitOrderBtn");
       if (submitBtn) {
         submitBtn.disabled = !state.cart.length;
-        submitBtn.style.opacity = state.cart.length ? "1" : "0.6";
-        submitBtn.style.cursor = state.cart.length ? "pointer" : "not-allowed";
       }
 
       if (!state.cart.length) {
@@ -103,7 +101,7 @@
               ${item.selectedVariant ? `<div class="hint">${escapeHtml(item.selectedVariant)}</div>` : ""}
               <div class="cart-price">${formatPrice(item.price)}</div>
             </div>
-            <button class="btn btn-danger" type="button" style="padding:8px 10px;" onclick="removeItem('${escapeHtml(itemKey)}')">✕</button>
+            <button class="btn btn-danger cart-remove-btn" type="button" onclick="removeItem('${escapeHtml(itemKey)}')">✕</button>
           </div>
           <div class="cart-actions">
             <div class="qty-controls">

@@ -20,32 +20,37 @@
       --shadow-lg: 0 20px 60px rgba(157, 78, 221, 0.25);
       --success: #c6ff33;
       --danger: #ff6b6b;
-      --radius-md: 16px;
-      --radius-lg: 24px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
+      --radius-md: var(--tg-radius-lg);
+      --radius-lg: var(--tg-radius-2xl);
     }
 
     html, body {
       min-height: 100%;
       background: linear-gradient(135deg, var(--bg-dark) 0%, #0d0410 100%);
       color: var(--text);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     body {
+      font-family: var(--tg-font-sans);
       padding-bottom: 94px;
     } 
 
     .container {
       max-width: 430px;
       margin: 0 auto;
-      padding: 16px;
+      padding: var(--tg-space-4);
+    }
+
+    .music-prompt {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      cursor: pointer;
     }
 
     .header,
@@ -106,15 +111,13 @@
     }
 
     .header h1 {
-      font-size: 28px;
+      font-size: var(--tg-title-brand);
       margin-bottom: 6px;
-      line-height: 1.1;
     }
 
     .header p {
       color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1.45;
+      font-size: var(--tg-text-md);
     }
 
     .badge-pill {
@@ -215,14 +218,14 @@
     .checkout select,
     .checkout textarea {
       width: 100%;
-      padding: 14px 16px;
-      border-radius: 16px;
+      padding: var(--tg-field-padding-y) var(--tg-field-padding-x);
+      border-radius: var(--radius-md);
       border: 2px solid var(--border);
       background: rgba(157, 78, 221, 0.05);
       color: var(--text);
       outline: none;
       font-size: 15px;
-      transition: all 0.3s ease;
+      transition: all var(--tg-transition-base);
     }
 
     .search-box input:focus,
@@ -282,8 +285,8 @@
       display: grid;
       gap: 10px;
       margin: 0;
-      padding: 12px;
-      border-radius: 22px;
+      padding: var(--tg-surface-padding-xs);
+      border-radius: var(--tg-radius-xl);
       border: 1px solid rgba(157, 78, 221, 0.14);
       background: linear-gradient(180deg, rgba(11, 10, 18, 0.92), rgba(14, 10, 22, 0.88));
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
@@ -310,7 +313,7 @@
       gap: 2px;
       min-height: 60px;
       padding: 12px 14px;
-      border-radius: 18px;
+      border-radius: var(--tg-radius-lg);
       text-decoration: none;
       transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease;
     }
@@ -328,12 +331,11 @@
     }
 
     .contact-link-card strong {
-      font-size: 16px;
-      line-height: 1.1;
+      font-size: var(--tg-text-lg);
     }
 
     .contact-label {
-      font-size: 11px;
+      font-size: var(--tg-text-caption);
       color: var(--text-muted-2);
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -630,9 +632,10 @@
     .card {
       overflow: hidden;
       border: 1px solid rgba(157, 78, 221, 0.22);
-      border-radius: 20px;
+      border-radius: var(--tg-radius-xl);
       background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: var(--tg-shadow-card);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
       position: relative;
     }
 
@@ -685,6 +688,7 @@
       border-bottom: 2px solid var(--border);
       background: linear-gradient(135deg, var(--primary-dark) 0%, rgba(114, 9, 183, 0.2) 100%);
       touch-action: pan-y;
+      min-height: 150px;
     }
 
     .product-media::after {
@@ -844,7 +848,7 @@
     }
 
     .card-content {
-      padding: 12px;
+      padding: var(--tg-surface-padding-xs);
     }
 
     .card-badges {
@@ -857,7 +861,7 @@
     .card-badge {
       padding: 5px 8px;
       border-radius: 999px;
-      font-size: 10px;
+      font-size: var(--tg-text-caption);
       line-height: 1;
       font-weight: 700;
       letter-spacing: 0.02em;
@@ -883,8 +887,8 @@
     }
 
     .card h3 {
-      font-size: 15px;
-      line-height: 1.25;
+      font-size: var(--tg-title-tile);
+      line-height: var(--tg-leading-compact);
       margin-bottom: 6px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -895,8 +899,8 @@
 
     .desc {
       color: var(--text-muted);
-      font-size: 12px;
-      line-height: 1.4;
+      font-size: var(--tg-text-note);
+      line-height: var(--tg-leading-copy);
       margin-bottom: 8px;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -909,7 +913,7 @@
       background: rgba(157, 78, 221, 0.12);
       border-radius: 10px;
       padding: 5px 8px;
-      font-size: 11px;
+      font-size: var(--tg-text-caption);
       margin-bottom: 8px;
       color: #ffffff;
       font-weight: 600;
@@ -928,7 +932,7 @@
       background: rgba(157, 78, 221, 0.08);
       border-radius: 10px;
       padding: 5px 8px;
-      font-size: 11px;
+      font-size: var(--tg-text-caption);
       color: #ffffff;
       transition: background 0.3s ease;
     }
@@ -946,7 +950,7 @@
       background: rgba(8, 14, 4, 0.3);
       color: var(--text);
       outline: none;
-      font-size: 12px;
+      font-size: var(--tg-text-note);
     }
 
     .variant-select:focus {
@@ -1015,13 +1019,12 @@
     }
 
     .favorites-head h2 {
-      font-size: 24px;
+      font-size: var(--tg-title-feature);
     }
 
     .favorites-note {
       color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1.45;
+      font-size: var(--tg-text-md);
     }
 
     .profile-grid {
@@ -1030,8 +1033,8 @@
     }
 
     .profile-card {
-      padding: 16px;
-      border-radius: 20px;
+      padding: var(--tg-surface-padding-sm);
+      border-radius: var(--tg-radius-xl);
       border: 1px solid var(--border);
       background: linear-gradient(135deg, rgba(16, 14, 28, 0.92), rgba(18, 10, 22, 0.86));
       box-shadow: var(--shadow);
@@ -1061,13 +1064,12 @@
 
     .profile-top h2 {
       margin-bottom: 4px;
-      font-size: 24px;
+      font-size: var(--tg-title-feature);
     }
 
     .profile-top p {
       color: var(--text-muted);
-      font-size: 13px;
-      line-height: 1.4;
+      font-size: var(--tg-text-sm);
     }
 
     .profile-stats {
@@ -1078,8 +1080,8 @@
     }
 
     .profile-stat {
-      padding: 12px;
-      border-radius: 16px;
+      padding: var(--tg-surface-padding-xs);
+      border-radius: var(--tg-radius-lg);
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.06);
       text-align: center;
@@ -1087,14 +1089,14 @@
 
     .profile-stat strong {
       display: block;
-      font-size: 18px;
+      font-size: var(--tg-title-card);
       margin-bottom: 4px;
     }
 
     .profile-stat span {
-      font-size: 11px;
+      font-size: var(--tg-text-caption);
       color: var(--text-muted);
-      line-height: 1.3;
+      line-height: var(--tg-leading-compact);
     }
 
     .price {
@@ -1147,12 +1149,12 @@
 
     .btn {
       border: none;
-      border-radius: 14px;
-      padding: 12px 16px;
+      border-radius: var(--tg-radius-md);
+      padding: var(--tg-btn-padding-y) var(--tg-btn-padding-x);
       cursor: pointer;
       font-size: 14px;
       font-weight: bold;
-      transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
+      transition: all var(--tg-transition-emphasis);
       position: relative;
       overflow: hidden;
     }
@@ -1216,12 +1218,12 @@
     }
 
     .section {
-      padding: 16px;
+      padding: var(--tg-surface-padding-sm);
       margin-bottom: 14px;
     }
 
     .section h2 {
-      font-size: 22px;
+      font-size: var(--tg-title-section);
       margin-bottom: 14px;
     }
 
@@ -1246,9 +1248,9 @@
 
     .section-subtitle {
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: var(--tg-text-sm);
       margin-bottom: 14px;
-      line-height: 1.4;
+      line-height: var(--tg-leading-copy);
     }
 
     .field-group {
@@ -1264,15 +1266,15 @@
     }
 
     .field-label {
-      font-size: 13px;
+      font-size: var(--tg-text-sm);
       color: var(--text-muted);
       margin-bottom: 6px;
     }
 
     .hint {
-      font-size: 12px;
+      font-size: var(--tg-text-note);
       color: var(--text-muted);
-      line-height: 1.4;
+      line-height: var(--tg-leading-copy);
       margin-top: 6px;
     }
 
@@ -1283,10 +1285,10 @@
 
     .summary {
       background: linear-gradient(135deg, rgba(157, 78, 221, 0.1), rgba(114, 9, 183, 0.08));
-      border-radius: 16px;
+      border-radius: var(--tg-radius-lg);
       padding: 14px;
       margin-top: 14px;
-      font-size: 14px;
+      font-size: var(--tg-text-md);
       border: 2px solid var(--border);
     }
 
@@ -1312,19 +1314,27 @@
       padding-top: 12px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
       color: var(--text-muted);
-      font-size: 12px;
-      line-height: 1.45;
+      font-size: var(--tg-text-note);
+      line-height: var(--tg-leading-copy);
     }
 
     .checkout-note {
       margin-top: 14px;
       padding: 14px;
-      border-radius: 16px;
+      border-radius: var(--tg-radius-lg);
       border: 1px solid rgba(198, 255, 51, 0.22);
       background: linear-gradient(135deg, rgba(198, 255, 51, 0.08), rgba(198, 255, 51, 0.03));
       color: #f3ffd0;
-      font-size: 13px;
-      line-height: 1.45;
+      font-size: var(--tg-text-sm);
+      line-height: var(--tg-leading-copy);
+    }
+
+    .checkout-note-spaced {
+      margin-bottom: var(--tg-space-4);
+    }
+
+    .order-submit-btn {
+      margin-top: var(--tg-space-4);
     }
 
     .cart-item {
@@ -1397,6 +1407,11 @@
 
     .qty-controls button:active {
       transform: scale(0.95);
+    }
+
+    .cart-remove-btn {
+      min-height: auto;
+      padding: 8px 10px;
     }
 
     .footer {

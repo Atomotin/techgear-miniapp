@@ -10,19 +10,13 @@
       --muted: rgba(245, 251, 255, 0.72);
       --danger: #ff7b8d;
       --success: #9cff73;
-      --radius: 20px;
-      --shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+      --radius: var(--tg-radius-xl);
+      --shadow: var(--tg-shadow-panel);
     }
 
     body {
       min-height: 100vh;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      font-family: var(--tg-font-sans);
       background:
         radial-gradient(circle at top left, rgba(123, 214, 255, 0.18), transparent 34%),
         radial-gradient(circle at bottom right, rgba(216, 255, 62, 0.14), transparent 28%),
@@ -50,7 +44,7 @@
     }
 
     .hero {
-      padding: 26px;
+      padding: var(--tg-surface-padding-lg);
       display: flex;
       justify-content: space-between;
       gap: 20px;
@@ -58,14 +52,14 @@
     }
 
     .hero h1 {
-      font-size: 34px;
+      font-size: var(--tg-title-hero);
       margin-bottom: 8px;
     }
 
     .hero p {
       color: var(--muted);
       max-width: 760px;
-      line-height: 1.5;
+      line-height: var(--tg-leading-copy);
     }
 
     .hero-actions {
@@ -83,18 +77,18 @@
     }
 
     .panel {
-      padding: 22px;
+      padding: var(--tg-surface-padding-md);
     }
 
     .panel h2 {
-      font-size: 22px;
+      font-size: var(--tg-title-section);
       margin-bottom: 8px;
     }
 
     .panel-subtitle {
       color: var(--muted);
       margin-bottom: 18px;
-      line-height: 1.45;
+      line-height: var(--tg-leading-copy);
     }
 
     .stats {
@@ -134,26 +128,19 @@
     label {
       display: grid;
       gap: 6px;
-      font-size: 13px;
+      font-size: var(--tg-text-sm);
       color: var(--muted);
-    }
-
-    input,
-    textarea,
-    select,
-    button {
-      font: inherit;
     }
 
     input,
     textarea,
     select {
       width: 100%;
-      border-radius: 14px;
+      border-radius: var(--tg-radius-md);
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.04);
       color: var(--text);
-      padding: 13px 14px;
+      padding: var(--tg-field-padding-y) var(--tg-field-padding-x);
       outline: none;
     }
 
@@ -167,15 +154,6 @@
     select:focus {
       border-color: var(--line-strong);
       box-shadow: 0 0 0 4px rgba(123, 214, 255, 0.12);
-    }
-
-    button {
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      padding: 12px 16px;
-      font-weight: 700;
-      transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
     }
 
     button:hover {
@@ -197,11 +175,6 @@
       background: rgba(255, 123, 141, 0.12);
       color: #ffd7de;
       border: 1px solid rgba(255, 123, 141, 0.24);
-    }
-
-    .btn-small {
-      padding: 10px 12px;
-      font-size: 13px;
     }
 
     .login-card {
@@ -230,15 +203,17 @@
 
     .product-card,
     .order-card {
-      padding: 16px;
+      padding: var(--tg-surface-padding-sm);
       border: 1px solid var(--line);
       background: var(--panel-strong);
+      border-radius: var(--tg-radius-xl);
+      box-shadow: var(--tg-shadow-card);
     }
 
     .product-card h3,
     .order-card h3 {
       margin-bottom: 6px;
-      font-size: 18px;
+      font-size: var(--tg-title-card);
     }
 
     .meta,
@@ -259,7 +234,7 @@
       border-radius: 999px;
       background: rgba(123, 214, 255, 0.12);
       border: 1px solid var(--line);
-      font-size: 12px;
+      font-size: var(--tg-text-note);
     }
 
     .order-top,
@@ -282,8 +257,8 @@
     }
 
     .list-item {
-      padding: 12px 14px;
-      border-radius: 14px;
+      padding: var(--tg-surface-padding-xs) 14px;
+      border-radius: var(--tg-radius-md);
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
     }
@@ -312,16 +287,16 @@
 
     .tip {
       padding: 14px;
-      border-radius: 14px;
+      border-radius: var(--tg-radius-md);
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
-      line-height: 1.45;
+      line-height: var(--tg-leading-copy);
     }
 
     .hint {
-      font-size: 12px;
+      font-size: var(--tg-text-note);
       color: var(--muted);
-      line-height: 1.45;
+      line-height: var(--tg-leading-copy);
     }
 
     .upload-row {
@@ -344,17 +319,17 @@
 
     .upload-chip {
       padding: 10px 12px;
-      border-radius: 12px;
+      border-radius: var(--tg-radius-sm);
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
-      font-size: 12px;
+      font-size: var(--tg-text-note);
       color: var(--muted);
       word-break: break-all;
     }
 
     .banner-preview,
     .banner-list-media {
-      border-radius: 18px;
+      border-radius: var(--tg-radius-lg);
       overflow: hidden;
       border: 1px solid var(--line);
       background: linear-gradient(160deg, rgba(13, 17, 24, 0.98), rgba(20, 11, 31, 0.92));
@@ -387,12 +362,12 @@
 
     .banner-preview-copy span {
       color: var(--muted);
-      font-size: 12px;
+      font-size: var(--tg-text-note);
     }
 
     .banner-preview-copy strong {
-      font-size: 22px;
-      line-height: 1.05;
+      font-size: var(--tg-title-section);
+      line-height: var(--tg-leading-tight);
     }
 
     .banner-list-card {
@@ -414,7 +389,7 @@
 
     .banner-card-copy .meta {
       color: var(--muted);
-      font-size: 12px;
+      font-size: var(--tg-text-note);
     }
 
     @media (max-width: 980px) {

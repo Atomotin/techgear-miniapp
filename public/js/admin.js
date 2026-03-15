@@ -233,8 +233,8 @@ const state = {
               <div class="muted">${escapeHtml(banner.cta || "Без кнопки")} / ${escapeHtml(banner.secondary || "Без второй кнопки")}</div>
               <div class="muted">${escapeHtml(banner.image || "Без картинки")}</div>
               <div class="product-actions">
-                <button class="btn-secondary btn-small" type="button" data-edit-banner="${banner.id}">Редактировать</button>
-                <button class="btn-danger btn-small" type="button" data-delete-banner="${banner.id}">Удалить</button>
+                <button class="btn btn-secondary btn-small" type="button" data-edit-banner="${banner.id}">Редактировать</button>
+                <button class="btn btn-danger btn-small" type="button" data-delete-banner="${banner.id}">Удалить</button>
               </div>
             </div>
           </article>
@@ -356,7 +356,7 @@ const state = {
       list.innerHTML = state.catalog.categories.map((category) => {
         const removeButton = category.key === "all"
           ? ""
-          : `<button class="btn-danger btn-small" type="button" data-delete-category="${escapeHtml(category.key)}">Удалить</button>`;
+          : `<button class="btn btn-danger btn-small" type="button" data-delete-category="${escapeHtml(category.key)}">Удалить</button>`;
 
         return `
           <div class="list-item">
@@ -398,8 +398,8 @@ const state = {
           </div>
           <div class="muted">${escapeHtml(product.desc || "Без описания")}</div>
           <div class="product-actions">
-            <button class="btn-secondary btn-small" type="button" data-edit-product="${product.id}">Редактировать</button>
-            <button class="btn-danger btn-small" type="button" data-delete-product="${product.id}">Удалить</button>
+            <button class="btn btn-secondary btn-small" type="button" data-edit-product="${product.id}">Редактировать</button>
+            <button class="btn btn-danger btn-small" type="button" data-delete-product="${product.id}">Удалить</button>
           </div>
         </article>
       `).join("");
@@ -448,11 +448,11 @@ const state = {
             <span class="badge">${formatPrice(order.total)}</span>
           </div>
           <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
-          <div class="muted" style="margin-top:10px;">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
+          <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
           <div class="product-actions">
-            <button class="btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
-            <button class="btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
-            <button class="btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
+            <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
+            <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
+            <button class="btn btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
           </div>
         </article>
       `).join("");
@@ -522,13 +522,13 @@ const state = {
               <span class="badge">${formatPrice(order.total)}</span>
             </div>
             <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
-            <div class="muted" style="margin-top:10px;">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
+            <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
             <div class="product-actions">
-              ${telegramLink ? `<a class="btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
-              ${phoneLink ? `<a class="btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
-              <button class="btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
-              <button class="btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
-              <button class="btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
+              ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
+              ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
+              <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
+              <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
+              <button class="btn btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
             </div>
           </article>
         `;
@@ -695,11 +695,11 @@ const state = {
               <span class="badge">${escapeHtml(lastSeenLabel)}</span>
             </div>
             <div class="muted">${escapeHtml(customer.delivery || "Адрес не указан")}</div>
-            ${customer.comment ? `<div class="muted" style="margin-top:10px;">Комментарий: ${escapeHtml(customer.comment)}</div>` : ""}
+            ${customer.comment ? `<div class="muted stack-top-gap">Комментарий: ${escapeHtml(customer.comment)}</div>` : ""}
             <div class="badge-row">${statuses}</div>
             <div class="product-actions">
-              ${telegramLink ? `<a class="btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
-              ${phoneLink ? `<a class="btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
+              ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
+              ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
             </div>
           </article>
         `;

@@ -1,0 +1,175 @@
+:root {
+  --tg-font-sans: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --tg-space-1: 4px;
+  --tg-space-2: 8px;
+  --tg-space-3: 12px;
+  --tg-space-4: 16px;
+  --tg-space-5: 20px;
+  --tg-space-6: 24px;
+  --tg-space-7: 28px;
+  --tg-surface-padding-xs: 12px;
+  --tg-surface-padding-sm: 16px;
+  --tg-surface-padding-md: 22px;
+  --tg-surface-padding-lg: 26px;
+  --tg-radius-xs: 10px;
+  --tg-radius-sm: 12px;
+  --tg-radius-md: 14px;
+  --tg-radius-lg: 16px;
+  --tg-radius-xl: 20px;
+  --tg-radius-2xl: 24px;
+  --tg-radius-pill: 999px;
+  --tg-field-padding-y: 14px;
+  --tg-field-padding-x: 16px;
+  --tg-btn-padding-y: 12px;
+  --tg-btn-padding-x: 16px;
+  --tg-transition-fast: 0.18s ease;
+  --tg-transition-base: 0.24s ease;
+  --tg-transition-emphasis: 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  --tg-title-hero: 34px;
+  --tg-title-brand: 28px;
+  --tg-title-feature: 24px;
+  --tg-title-section: 22px;
+  --tg-title-card: 18px;
+  --tg-title-tile: 15px;
+  --tg-text-lg: 16px;
+  --tg-text-md: 14px;
+  --tg-text-sm: 13px;
+  --tg-text-note: 12px;
+  --tg-text-caption: 11px;
+  --tg-leading-tight: 1.1;
+  --tg-leading-copy: 1.45;
+  --tg-leading-compact: 1.3;
+  --tg-heading-tracking: -0.02em;
+  --tg-shadow-soft: 0 12px 28px rgba(0, 0, 0, 0.18);
+  --tg-shadow-panel: 0 20px 50px rgba(0, 0, 0, 0.26);
+  --tg-shadow-card: 0 18px 34px rgba(0, 0, 0, 0.22);
+  --tg-border-soft: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--tg-font-sans);
+  line-height: 1.4;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: var(--tg-leading-tight);
+  letter-spacing: var(--tg-heading-tracking);
+}
+
+p {
+  line-height: var(--tg-leading-copy);
+}
+
+:is(.header, .section, .card, .panel, .product-card, .order-card, .profile-card, .contact-link-card) {
+  position: relative;
+  transition:
+    transform var(--tg-transition-base),
+    box-shadow var(--tg-transition-base),
+    border-color var(--tg-transition-base),
+    background var(--tg-transition-base);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tg-space-2);
+  min-height: 44px;
+  padding: var(--tg-btn-padding-y) var(--tg-btn-padding-x);
+  border: none;
+  border-radius: var(--tg-radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    transform var(--tg-transition-fast),
+    opacity var(--tg-transition-fast),
+    background var(--tg-transition-fast),
+    box-shadow var(--tg-transition-fast),
+    border-color var(--tg-transition-fast);
+}
+
+.btn-small {
+  min-height: 36px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+:is(.btn, .btn-primary, .btn-secondary, .btn-outline, .btn-danger):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08), 0 0 0 6px rgba(123, 214, 255, 0.16);
+}
+
+:is(button, .btn, .btn-primary, .btn-secondary, .btn-outline, .btn-danger)[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select) {
+  width: 100%;
+  border-radius: var(--tg-radius-md);
+  padding: var(--tg-field-padding-y) var(--tg-field-padding-x);
+  transition:
+    border-color var(--tg-transition-base),
+    box-shadow var(--tg-transition-base),
+    background var(--tg-transition-base),
+    transform var(--tg-transition-base);
+}
+
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select):focus-visible {
+  outline: none;
+}
+
+.stack-top-gap {
+  margin-top: 10px;
+}

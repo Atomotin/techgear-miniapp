@@ -1,3 +1,7 @@
+// Legacy compatibility file.
+// Source of truth is data/catalog.json for local storage and Supabase when enabled.
+// The app now receives a generated /card-tovary.js response from the server.
+
 window.TECHGEAR_CATEGORIES = [
   { key: "all", label: "Все" },
   { key: "mouse", label: "Мыши" },
@@ -260,7 +264,7 @@ window.TECHGEAR_PRODUCTS = [
     desc: "Для мониторов 27-32 дюйма, USB питание, таймер, диммер.",
     stock: "В наличии",
     variants: []
-  },
+  },    
 
   // ===== ДЕКОР =====
   {
@@ -274,6 +278,7 @@ window.TECHGEAR_PRODUCTS = [
     variants: ["2 варианта свечения"]
   }
 ];
+
 
 /*
 Как добавить товар:

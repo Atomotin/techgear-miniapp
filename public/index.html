@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechGear.uz Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/css/main.css" />
+
+</head>
+<body>
+  <!-- нажми, чтобы включить музыку -->
+  <div id="musicPrompt" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);color:white;display:none;align-items:center;justify-content:center;z-index:1000;cursor:pointer;">
+    Нажми, чтобы включить музыку
+  </div>
+  <div class="container">
+    <div class="header">
+      <div class="header-top">
+        <div class="brand-wrap">
+          <div class="brand-logo">
+            <img src="images.img/lolo.png" alt="TechGear logo" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='flex';">
+            <div id="logoFallback" class="brand-fallback">TG</div>
+          </div>
+          <div>
+            <h1>TechGear.uz</h1>
+            <p>Аксессуары для сетапа и повседневного комфорта</p>
+          </div>
+        </div>
+        <div class="badge-pill">Каталог</div>
+      </div>
+      <div class="hero-meta minimal">
+        <div class="hero-chip">Mini App</div>
+        <div class="hero-chip">Ташкент и отправка</div>
+      </div>
+    </div>
+
+    <div id="shopView">
+      <div class="search-box top-search">
+        <input type="text" id="searchInput" placeholder="Поиск" />
+      </div>
+
+      <section class="promo-shell" id="promoBanner" aria-label="Promo banners">
+        <div class="promo-track" id="promoTrack"></div>
+        <button class="promo-nav prev" id="promoPrev" type="button" aria-label="Previous banner">‹</button>
+        <button class="promo-nav next" id="promoNext" type="button" aria-label="Next banner">›</button>
+        <div class="promo-dots" id="promoDots"></div>
+      </section>
+
+      <div class="toolbar">
+        <div class="toolbar-row">
+          <select id="availabilityFilter">
+            <option value="all">Все товары</option>
+            <option value="available">В наличии</option>
+            <option value="soon">Под заказ</option>
+          </select>
+          <select id="sortSelect">
+            <option value="manual">По порядку</option>
+            <option value="newest">Сначала новинки</option>
+            <option value="price-asc">Сначала дешевле</option>
+            <option value="price-desc">Сначала дороже</option>
+            <option value="name">По названию</option>
+          </select>
+        </div>
+        <div class="categories" id="categories"></div>
+      </div>
+      <div class="product-list" id="productList"></div>
+    </div>
+
+    <div id="cartView" class="hidden">
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h2>Корзина</h2>
+            <div class="section-subtitle">Проверь состав заказа перед оформлением и при необходимости измени количество товаров.</div>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-outline" type="button" onclick="switchView('shop')">В каталог</button>
+            <button class="btn btn-danger" type="button" onclick="clearCart()">Очистить</button>
+          </div>
+        </div>
+        <div id="cartItems"></div>
+      </div>
+
+      <div class="section checkout">
+        <h2>Оформление заказа</h2>
+        <div class="section-subtitle">Проверь данные и оформи заказ.</div>
+
+        <div class="field-group">
+          <div>
+            <div class="field-label">Имя *</div>
+            <input type="text" id="customerName" placeholder="Ваше имя" maxlength="100" />
+          </div>
+
+          <div>
+            <div class="field-label">Телефон *</div>
+            <input type="tel" id="customerPhone" placeholder="Например: +998 94 641 10 10" />
+          </div>
+
+          <div>
+            <div class="field-label">Telegram username</div>
+            <input type="text" id="customerUsername" placeholder="Ваш @username" maxlength="50" />
+          </div>
+
+          <div class="field-split">
+            <div>
+              <div class="field-label">Как связаться</div>
+              <select id="customerContactMethod">
+                <option value="telegram">Telegram</option>
+                <option value="phone">Телефон</option>
+              </select>
+            </div>
+            <div>
+              <div class="field-label">Когда удобно</div>
+              <select id="customerDeliveryTime">
+                <option value="asap">Как можно скорее</option>
+                <option value="today">Сегодня</option>
+                <option value="tomorrow">Завтра</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <div class="field-label">Точный адрес / ориентир *</div>
+            <textarea id="customerDelivery" rows="3" placeholder="Например: Чиланзар, 19 квартал, возле метро" maxlength="300"></textarea>
+          </div>
+
+          <div>
+            <div class="field-label">Комментарий к заказу</div>
+            <textarea id="customerComment" rows="2" placeholder="Например: домофон, этаж, цвет уточнить" maxlength="500"></textarea>
+          </div>
+
+          <div class="location-row">
+            <div>
+              <div class="field-label">Точная локация *</div>
+              <input type="text" id="customerLocation" placeholder="Сначала нажмите кнопку ниже" readonly />
+            </div>
+            <button class="btn btn-outline" type="button" onclick="requestUserLocation()">📍 Получить мою локацию</button>
+            <div class="hint">Локация откроется в Yandex Maps у тебя в заказе.</div>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="summary-row">
+            <span>Позиций</span>
+            <span id="summaryItems">0</span>
+          </div>
+          <div class="summary-row">
+            <span>Уникальных товаров</span>
+            <span id="summaryUniqueItems">0</span>
+          </div>
+          <div class="summary-total">
+            <span>Итого</span>
+            <span id="summaryTotal">0 сум</span>
+          </div>
+          <div class="summary-note">Менеджер подтвердит заказ после отправки.</div>
+        </div>
+
+        <button id="submitOrderBtn" class="btn btn-primary" style="width:100%; margin-top:14px;" onclick="submitOrder()">
+          Оформить заказ
+        </button>
+
+        <div class="checkout-note">Нужна консультация? Открой раздел <strong>Связь</strong>.</div>
+
+      </div>
+    </div>
+
+    <div id="favoritesView" class="hidden">
+      <div class="section">
+        <div class="favorites-head">
+          <div>
+            <h2>Избранное</h2>
+            <div class="favorites-note">Сохраняй товары и возвращайся к ним позже.</div>
+          </div>
+          <button class="btn btn-outline" type="button" onclick="switchView('shop')">Вернуться в каталог</button>
+        </div>
+        <div class="product-list" id="favoriteList"></div>
+      </div>
+    </div>
+
+    <div id="profileView" class="hidden">
+      <div class="profile-grid">
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" id="profileAvatar">TG</div>
+            <div>
+              <h2>Профиль</h2>
+              <p>Сохрани данные один раз для быстрого оформления заказа.</p>
+            </div>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <strong id="profileCompletion">0%</strong>
+              <span>Заполнено</span>
+            </div>
+            <div class="profile-stat">
+              <strong id="profileCartCount">0</strong>
+              <span>В корзине</span>
+            </div>
+            <div class="profile-stat">
+              <strong id="profileFavoritesCount">0</strong>
+              <span>В избранном</span>
+            </div>
+          </div>
+        </div>
+        <div class="section checkout">
+          <h2>Данные клиента</h2>
+          <div class="section-subtitle">Профиль нужен только для оформления заказа.</div>
+          <div id="profileOnboardingNotice" class="checkout-note" style="margin-bottom:14px;">Можно заполнить позже и вернуться к этому перед заказом.</div>
+          <div class="field-group">
+            <div>
+              <div class="field-label">Имя *</div>
+              <input type="text" id="profileName" placeholder="Ваше имя" maxlength="100" />
+            </div>
+            <div>
+              <div class="field-label">Телефон *</div>
+              <input type="tel" id="profilePhone" placeholder="+998 90 123 45 67" />
+            </div>
+            <div>
+              <div class="field-label">Telegram username</div>
+              <input type="text" id="profileUsername" placeholder="@username" maxlength="50" />
+            </div>
+            <div>
+              <div class="field-label">Основной адрес</div>
+              <textarea id="profileDelivery" rows="3" placeholder="Город, район, ориентир" maxlength="300"></textarea>
+            </div>
+            <div>
+              <div class="field-label">Комментарий для заказов</div>
+              <textarea id="profileComment" rows="2" placeholder="Например: этаж, домофон, позвонить заранее" maxlength="500"></textarea>
+            </div>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-primary" type="button" id="saveProfileBtn">Сохранить профиль</button>
+            <button class="btn btn-outline" type="button" id="fillCheckoutBtn">Заполнить заказ</button>
+          </div>
+        </div>
+        <section class="contact-hub profile-contact-hub" aria-label="Связь">
+          <div class="contact-grid">
+            <a class="contact-link-card channel" href="https://t.me/techgear_uz" target="_blank" rel="noreferrer">
+              <span class="contact-label">Канал</span>
+              <strong>Наш канал</strong>
+            </a>
+            <a class="contact-link-card manager" href="https://t.me/atomotin" target="_blank" rel="noreferrer">
+              <span class="contact-label">Связь</span>
+              <strong>Менеджер</strong>
+            </a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgm" crossorigin="anonymous"></audio>
+  <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+  <button id="muteBtn" class="music-fab" type="button" onclick="toggleMute()">
+    <span class="nav-icon">▶️</span>
+    <span class="nav-label">Музыка</span>
+  </button>
+  <div id="imageLightbox" class="lightbox hidden" aria-hidden="true">
+    <div class="lightbox-content">
+      <button id="lightboxClose" class="lightbox-close" type="button" aria-label="Закрыть">×</button>
+      <button id="lightboxPrev" class="carousel-btn prev" type="button" aria-label="Предыдущее фото">‹</button>
+      <img id="lightboxImage" class="lightbox-image" src="" alt="Фото товара">
+      <button id="lightboxNext" class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
+      <div id="lightboxDots" class="carousel-dots"></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button id="shopBtn" class="active" onclick="switchView('shop')"><span class="nav-icon">🏪</span><span class="nav-label">Магазин</span></button>
+      <button id="favoritesBtn" onclick="switchView('favorites')"><span class="nav-icon">❤</span><span class="nav-label">Избранное (0)</span></button>
+      <button id="cartBtn" onclick="switchView('cart')"><span class="nav-icon">🛍</span><span class="nav-label">Корзина (0)</span></button>
+      <button id="profileBtn" type="button" onclick="switchView('profile')"><span class="nav-icon">👤</span><span class="nav-label">Профиль</span></button>
+    </div>
+  </div>
+
+  <script src="/card-tovary.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/catalog.js"></script>
+  <script src="/js/cart.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>

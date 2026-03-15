@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TechGear Admin</title>
+    <link rel="stylesheet" href="/css/admin.css" />
+
+</head>
+<body>
+  <div class="shell">
+    <section id="loginView" class="panel login-card">
+      <h2>Вход в TechGear Admin</h2>
+      <p class="panel-subtitle">Панель для управления товарами, категориями и заказами Mini App.</p>
+      <div class="row">
+        <label>
+          Пароль администратора
+          <input id="passwordInput" type="password" placeholder="Введите ADMIN_PASSWORD" />
+        </label>
+        <button id="loginBtn" class="btn-primary" type="button">Войти</button>
+        <div id="loginMessage" class="hint"></div>
+      </div>
+    </section>
+
+    <section id="appView" class="hidden">
+      <section class="hero">
+        <div>
+          <h1>TechGear Admin</h1>
+          <p>Здесь можно добавлять товары, редактировать существующие карточки, управлять категориями и смотреть входящие заказы из Mini App.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn-secondary" href="/" style="text-decoration:none; display:inline-flex; align-items:center;">Открыть витрину</a>
+          <button id="refreshBtn" class="btn-secondary" type="button">Обновить</button>
+          <button id="logoutBtn" class="btn-danger" type="button">Выйти</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Сводка</h2>
+        <div class="stats">
+          <div class="stat"><span class="muted">Товаров</span><strong id="statProducts">0</strong></div>
+          <div class="stat"><span class="muted">Категорий</span><strong id="statCategories">0</strong></div>
+          <div class="stat"><span class="muted">Новых заказов</span><strong id="statOrders">0</strong></div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Товар</h2>
+          <p class="panel-subtitle">Форма для создания нового товара или редактирования выбранной карточки.</p>
+          <div class="toolbar">
+            <button id="newProductBtn" class="btn-secondary btn-small" type="button">Новый товар</button>
+            <button id="saveProductBtn" class="btn-primary btn-small" type="button">Сохранить</button>
+          </div>
+          <div class="field-grid two">
+            <label>Название<input id="productName" type="text" /></label>
+            <label>Категория<select id="productCategory"></select></label>
+          </div>
+          <div class="field-grid three">
+            <label>Цена (сум)<input id="productPrice" type="number" min="0" step="1000" /></label>
+            <label>Старая цена<input id="productOldPrice" type="number" min="0" step="1000" placeholder="Опционально для скидки" /></label>
+            <label>Порядок сортировки<input id="productSortOrder" type="number" min="1" step="1" /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Статус наличия<input id="productStock" type="text" placeholder="Например: В наличии" /></label>
+          </div>
+          <label>Описание<textarea id="productDesc"></textarea></label>
+          <label>Варианты
+            <textarea id="productVariants" placeholder="По одному варианту на строку"></textarea>
+          </label>
+          <label>Изображения
+            <textarea id="productImages" placeholder="Пути к картинкам по одной строке, например images.img/photo.jpg"></textarea>
+          </label>
+          <div class="upload-row">
+            <label>Загрузка фото
+              <input id="productImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple />
+            </label>
+            <div class="upload-actions">
+              <button id="uploadImagesBtn" class="btn-secondary btn-small" type="button">Загрузить выбранные фото</button>
+              <span id="uploadMessage" class="hint"></span>
+            </div>
+            <div id="uploadedImagesList" class="upload-list"></div>
+          </div>
+          <div class="field-grid two">
+            <label>
+              <span>Видимость</span>
+              <select id="productVisible">
+                <option value="true">Показывать</option>
+                <option value="false">Скрыть</option>
+              </select>
+            </label>
+            <label>
+              <span>Под заказ / скоро</span>
+              <select id="productSoon">
+                <option value="false">Нет</option>
+                <option value="true">Да</option>
+              </select>
+            </label>
+          </div>
+          <div id="productMessage" class="hint"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Каталог</h2>
+          <p class="panel-subtitle">Выбери карточку справа, чтобы быстро редактировать товар. Удаление выполняется сразу.</p>
+          <div class="collection" id="productList"></div>
+        </section>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Категории</h2>
+          <p class="panel-subtitle">Категории управляют фильтрами в магазине и селектором в форме товара.</p>
+          <div class="field-grid two">
+            <label>Key<input id="categoryKey" type="text" placeholder="mouse" /></label>
+            <label>Название<input id="categoryLabel" type="text" placeholder="Мыши" /></label>
+          </div>
+          <div class="toolbar">
+            <button id="addCategoryBtn" class="btn-primary btn-small" type="button">Добавить категорию</button>
+          </div>
+          <div id="categoryMessage" class="hint"></div>
+          <div class="list" id="categoryList"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Заказы</h2>
+          <p class="panel-subtitle">Заказы, отправленные из Mini App через backend. Здесь можно менять статус обработки.</p>
+          <div class="grid two">
+            <label>Поиск заказа<input id="orderSearchInput" type="search" placeholder="Имя, телефон, username, адрес" /></label>
+            <label>Статус
+              <select id="orderStatusFilter">
+                <option value="all">Все</option>
+                <option value="new">new</option>
+                <option value="processing">processing</option>
+                <option value="done">done</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+            </label>
+          </div>
+          <div class="collection" id="ordersList"></div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <h2>Клиенты</h2>
+        <p class="panel-subtitle">Список клиентов собирается из уже оформленных заказов. Здесь можно найти контакт, посмотреть количество заказов и быстро открыть Telegram или звонок.</p>
+        <div class="field-grid two">
+          <label>Поиск клиента<input id="customerSearchInput" type="search" placeholder="Имя, телефон, username, адрес" /></label>
+          <label>Сводка<input id="customerSummary" type="text" value="Клиенты загрузятся после обновления" readonly /></label>
+        </div>
+        <div class="collection" id="customersList"></div>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Баннеры</h2>
+          <p class="panel-subtitle">Управление верхней каруселью Mini App: картинка, заголовок, кнопки и действия без правки кода.</p>
+          <div class="toolbar">
+            <button id="newBannerBtn" class="btn-secondary btn-small" type="button">Новый баннер</button>
+            <button id="saveBannerBtn" class="btn-primary btn-small" type="button">Сохранить баннер</button>
+          </div>
+          <div class="field-grid two">
+            <label>Заголовок<input id="bannerTitle" type="text" placeholder="Новинки в каталоге" /></label>
+            <label>Kicker<input id="bannerKicker" type="text" placeholder="Новинки" /></label>
+          </div>
+          <label>Картинка баннера<input id="bannerImage" type="text" placeholder="images.img/banner.jpg" /></label>
+          <div id="bannerPreview" class="banner-preview">
+            <div class="banner-preview-copy">
+              <span id="bannerPreviewKicker">Баннер</span>
+              <strong id="bannerPreviewTitle">Превью баннера</strong>
+            </div>
+          </div>
+          <div class="upload-row">
+            <label>Загрузка картинки
+              <input id="bannerImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+            </label>
+            <div class="upload-actions">
+              <button id="uploadBannerImageBtn" class="btn-secondary btn-small" type="button">Загрузить картинку</button>
+              <span id="bannerUploadMessage" class="hint"></span>
+            </div>
+          </div>
+          <div class="field-grid two">
+            <label>Кнопка 1<input id="bannerCta" type="text" placeholder="Открыть" /></label>
+            <label>Кнопка 2<input id="bannerSecondary" type="text" placeholder="Все товары" /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Действие 1
+              <select id="bannerActionType">
+                <option value="reset">reset</option>
+                <option value="category">category</option>
+                <option value="product">product</option>
+                <option value="link">link</option>
+              </select>
+            </label>
+            <label>Значение 1<input id="bannerActionValue" type="text" placeholder="decor / 12 / https://..." /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Действие 2
+              <select id="bannerSecondaryActionType">
+                <option value="">Без действия</option>
+                <option value="reset">reset</option>
+                <option value="category">category</option>
+                <option value="product">product</option>
+                <option value="link">link</option>
+              </select>
+            </label>
+            <label>Значение 2<input id="bannerSecondaryActionValue" type="text" placeholder="https://t.me/..." /></label>
+          </div>
+          <div class="field-grid two">
+            <label>Порядок<input id="bannerSortOrder" type="number" min="1" step="1" /></label>
+            <label>Активен
+              <select id="bannerActive">
+                <option value="true">Да</option>
+                <option value="false">Нет</option>
+              </select>
+            </label>
+          </div>
+          <div id="bannerMessage" class="hint"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Список баннеров</h2>
+          <p class="panel-subtitle">Активные баннеры показываются в карусели сверху. Порядок задаётся полем sort order.</p>
+          <div class="collection" id="bannerList"></div>
+        </section>
+      </div>
+
+    </section>
+  </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -2280,6 +2280,10 @@
         .replace(/'/g, "&#039;");
     }
 
+    function normalizeString(value) {
+      return String(value ?? "").replace(/\s+/g, " ").trim();
+    }
+
     function formatPrice(value) {
       if (!value) return "Цена по запросу";
       return new Intl.NumberFormat("ru-RU").format(value) + " сум";

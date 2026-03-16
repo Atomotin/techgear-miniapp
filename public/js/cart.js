@@ -230,7 +230,7 @@
 
     function requestUserLocation() {
       if (!navigator.geolocation) {
-        showToast("Геолокация не поддерживается на этом устройстве", "error");
+        showToast("Геолокация не поддерживается на этом устройстве. Можно продолжить без неё.", "error");
         return;
       }
 
@@ -244,7 +244,7 @@
           showToast("Локация успешно получена");
         },
         () => {
-          showToast("Не удалось получить локацию. Разрешите доступ к геопозиции.", "error");
+          showToast("Не удалось получить локацию. Можно продолжить и без неё.", "error");
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
@@ -272,7 +272,7 @@
         `Когда удобно: ${payload.deliveryTime}`,
         `Адрес / ориентир: ${payload.delivery}`,
         `Комментарий: ${payload.comment || "Нет"}`,
-        `Локация: ${payload.location}`,
+        `Локация: ${payload.location || "Не указана"}`,
         ...tgMeta,
         payload.location ? `Yandex Maps: ${buildYandexMapsLink(payload.location)}` : "",
         "",
@@ -374,11 +374,6 @@
 
       if (!delivery) {
         showToast("Введите точный адрес или ориентир", "error");
-        return;
-      }
-
-      if (CONFIG.requireLocation && !location) {
-        showToast("Сначала отправьте точную локацию", "error");
         return;
       }
 

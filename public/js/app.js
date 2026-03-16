@@ -124,7 +124,7 @@ const tg = window.Telegram?.WebApp || null;
     };
 
     const CONFIG = {
-      requireLocation: true,
+      requireLocation: false,
       analyticsWebhookUrl: "https://script.google.com/macros/s/AKfycbwHfhqIfh7p1AEGuEDuBg2LeqgQcFS14Mtw9KfpSYAq3JyWINXA41rIp5yGmULwFFxS/exec",
       analyticsEnabled: true,
     };

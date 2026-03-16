@@ -41,7 +41,15 @@
       "image": "images.img/glayd whith pinsep white.png",
       "images": [
         "images.img/glayd whith pinsep white.png",
-        "images.img/glayd mouse white.png"
+        "images.img/glayd mouse white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png",
+        "images.img/glayd whith pinsep white.png"
       ],
       "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
       "stock": "В наличии",
@@ -61,7 +69,15 @@
       "image": "images.img/glayd whith pinsep black.png",
       "images": [
         "images.img/glayd whith pinsep black.png",
-        "images.img/glayd mouse black.png"
+        "images.img/glayd mouse black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png",
+        "images.img/glayd whith pinsep black.png"
       ],
       "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
       "stock": "В наличии",
@@ -81,7 +97,15 @@
       "image": "images.img/glayd whith pinsep red.png",
       "images": [
         "images.img/glayd whith pinsep red.png",
-        "images.img/glayd mouse red.png"
+        "images.img/glayd mouse red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png",
+        "images.img/glayd whith pinsep red.png"
       ],
       "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
       "stock": "В наличии",
@@ -101,7 +125,15 @@
       "image": "images.img/glayd whith pinsep purple.png",
       "images": [
         "images.img/glayd whith pinsep purple.png",
-        "images.img/glayd mouse purple.png"
+        "images.img/glayd mouse purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png",
+        "images.img/glayd whith pinsep purple.png"
       ],
       "desc": "Круглые глайды 6.5 мм, толщина ~0.8 мм. Для игровых и офисных мышей.",
       "stock": "В наличии",
@@ -118,9 +150,8 @@
       "isVisible": true,
       "isSoon": false,
       "price": 120000,
-      "image": "images.img/photo_2026-03-09_19-50-59.jpg",
+      "image": "images.img/keykup white.png",
       "images": [
-        "images.img/photo_2026-03-09_19-50-59.jpg",
         "images.img/keykup white.png",
         "images.img/keykup white fullrakurs.png",
         "images.img/keykup black fullrakurs.png",
@@ -145,9 +176,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 55000,
-      "image": "images.img/photo_2026-03-09_19-51-10.jpg",
+      "image": "images.img/keykup white.png",
       "images": [
-        "images.img/photo_2026-03-09_19-51-10.jpg"
+        "images.img/keykup white.png"
       ],
       "desc": "Съёмник кейкапов и свитчей, щётка и микрофибра.",
       "stock": "Под заказ 9-15 дней",
@@ -162,9 +193,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 0,
-      "image": "images.img/photo_2026-03-09_19-54-48.jpg",
+      "image": "images.img/keykup black fullrakurs.png",
       "images": [
-        "images.img/photo_2026-03-09_19-54-48.jpg"
+        "images.img/keykup black fullrakurs.png"
       ],
       "desc": "Blue Switch, TKL 87 клавиш, металлическая панель, Anti-Ghosting. Цена уточняется.",
       "stock": "В наличии",
@@ -179,9 +210,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 0,
-      "image": "images.img/photo_2026-03-09_19-56-48.jpg",
+      "image": "images.img/atk mouse all colors.png",
       "images": [
-        "images.img/photo_2026-03-09_19-56-48.jpg"
+        "images.img/atk mouse all colors.png"
       ],
       "desc": "До 6200 DPI, 1000 Гц, LED-подсветка, проводная USB. Цена уточняется.",
       "stock": "В наличии",
@@ -196,9 +227,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 350000,
-      "image": "images.img/photo_2026-03-09_19-56-53.jpg",
+      "image": "images.img/atk mouse white.jpg",
       "images": [
-        "images.img/photo_2026-03-09_19-56-53.jpg"
+        "images.img/atk mouse white.jpg"
       ],
       "desc": "До 18 000 DPI, 1000 Hz, Bluetooth / 2.4G / USB-C, вес ~53 г.",
       "stock": "В наличии",
@@ -215,13 +246,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 400000,
-      "image": "images.img/photo_2026-03-09_23-03-00.jpg",
+      "image": "images.img/atk mouse white.jpg",
       "images": [
-        "images.img/photo_2026-03-09_23-03-00.jpg",
-        "images.img/atk mouse white.jpg",
-        "images.img/keykup white fullrakurs.png",
-        "images.img/keykup black fullrakurs.png",
-        "images.img/keykup green fullrakurs.png"
+        "images.img/atk mouse white.jpg"
       ],
       "desc": "PixArt PAW3395, до 26 000 DPI, 57 г, NearLink / Bluetooth / USB.",
       "stock": "В наличии",
@@ -240,9 +267,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 60000,
-      "image": "images.img/photo_2026-03-09_23-03-33.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-03-33.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Минималистичная настольная подставка, прочная 3D-печать.",
       "stock": "В наличии",
@@ -259,9 +286,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 50000,
-      "image": "images.img/photo_2026-03-09_23-03-53.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-03-53.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Коллекционная фигурка для сетапа, полки или рабочего стола.",
       "stock": "В наличии",
@@ -276,9 +303,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 80000,
-      "image": "images.img/photo_2026-03-09_23-04-09.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-04-09.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Яркий настольный держатель, высота ~30.5 см.",
       "stock": "В наличии",
@@ -295,9 +322,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 100000,
-      "image": "images.img/photo_2026-03-09_23-04-21.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-04-21.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Пиксельный дизайн, прочный пластик, отлично для геймерского сетапа.",
       "stock": "В наличии",
@@ -312,8 +339,10 @@
       "isVisible": true,
       "isSoon": true,
       "price": 0,
-      "image": "",
-      "images": [],
+      "image": "images.img/stich case.png",
+      "images": [
+        "images.img/stich case.png"
+      ],
       "desc": "Мягкий силиконовый чехол. Точная модель и цвета будут обновлены после прихода.",
       "stock": "Скоро в наличии",
       "variants": [
@@ -331,8 +360,10 @@
       "isVisible": true,
       "isSoon": true,
       "price": 0,
-      "image": "",
-      "images": [],
+      "image": "images.img/stich case.png",
+      "images": [
+        "images.img/stich case.png"
+      ],
       "desc": "Прозрачный чехол с поддержкой MagSafe. Добавлен как заготовка до поступления.",
       "stock": "Скоро в наличии",
       "variants": [
@@ -350,8 +381,10 @@
       "isVisible": true,
       "isSoon": true,
       "price": 0,
-      "image": "",
-      "images": [],
+      "image": "images.img/stich case.png",
+      "images": [
+        "images.img/stich case.png"
+      ],
       "desc": "Усиленный защитный чехол. Фото и цена будут обновлены после получения товара.",
       "stock": "Скоро в наличии",
       "variants": [
@@ -368,9 +401,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 130000,
-      "image": "images.img/photo_2026-03-09_23-05-00.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-05-00.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Для ноутбуков 14-17 дюймов, без бликов на экране.",
       "stock": "В наличии",
@@ -385,9 +418,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 160000,
-      "image": "images.img/photo_2026-03-09_23-05-20.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-05-20.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Для мониторов 17-24 дюйма, 3 режима температуры.",
       "stock": "В наличии",
@@ -402,9 +435,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 200000,
-      "image": "images.img/photo_2026-03-09_23-04-36.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-04-36.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "Для мониторов 27-32 дюйма, USB питание, таймер, диммер.",
       "stock": "В наличии",
@@ -419,9 +452,9 @@
       "isVisible": true,
       "isSoon": false,
       "price": 80000,
-      "image": "images.img/photo_2026-03-09_23-05-44.jpg",
+      "image": "images.img/lolo.png",
       "images": [
-        "images.img/photo_2026-03-09_23-05-44.jpg"
+        "images.img/lolo.png"
       ],
       "desc": "16 цветов, пульт, сенсорное управление, USB или AA батарейки.",
       "stock": "В наличии",
@@ -431,5 +464,5 @@
       "badge": ""
     }
   ],
-  "updatedAt": "2026-03-11T05:30:56.154Z"
+  "updatedAt": "2026-03-11T10:34:45.190Z"
 }

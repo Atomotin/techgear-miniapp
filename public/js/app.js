@@ -273,18 +273,25 @@ const tg = window.Telegram?.WebApp || null;
       if (!Array.isArray(products)) return [];
       return products
         .filter((product) => product && product.isVisible !== false)
-        .map((product, index) => ({
-          ...product,
-          oldPrice: Number(product.oldPrice) > Number(product.price || 0) ? Number(product.oldPrice) : 0,
-          sortOrder: Number.isFinite(product.sortOrder) ? product.sortOrder : index + 1,
-          variants: Array.isArray(product.variants) ? product.variants : [],
-          images: Array.isArray(product.images)
-            ? product.images.filter(Boolean)
-            : (product.image ? [product.image] : []),
-          isSoon: typeof product.isSoon === "boolean"
-            ? product.isSoon
-            : /скоро|под заказ/i.test(product.stock || ""),
-        }));
+        .map((product, index) => {
+          const images = [...new Set(
+            [product.image, ...(Array.isArray(product.images) ? product.images : [])]
+              .map((image) => normalizeString(image))
+              .filter(Boolean)
+          )];
+
+          return {
+            ...product,
+            image: images[0] || normalizeString(product.image),
+            oldPrice: Number(product.oldPrice) > Number(product.price || 0) ? Number(product.oldPrice) : 0,
+            sortOrder: Number.isFinite(product.sortOrder) ? product.sortOrder : index + 1,
+            variants: Array.isArray(product.variants) ? product.variants : [],
+            images,
+            isSoon: typeof product.isSoon === "boolean"
+              ? product.isSoon
+              : /скоро|под заказ/i.test(product.stock || ""),
+          };
+        });
     }
 
     function getTelegramUser() {

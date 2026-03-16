@@ -7,3 +7,4 @@ yarn-debug.log*
 yarn-error.log*
 dist/
 coverage/
+data/customers.json

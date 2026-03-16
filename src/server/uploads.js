@@ -38,20 +38,29 @@ function createUploadService({
     const safeBaseName = sanitizeUploadName(originalName);
     const fileName = `${Date.now()}-${safeBaseName}${extension}`;
 
-    if (supabaseEnabled) {
-      return uploadBinaryToSupabaseStorage(fileName, buffer, contentType);
+    function saveLocally(storageLabel = "local") {
+      fs.mkdirSync(imageUploadDir, { recursive: true });
+      const absolutePath = path.join(imageUploadDir, fileName);
+      fs.writeFileSync(absolutePath, buffer);
+
+      return {
+        ok: true,
+        path: `images.img/${fileName}`,
+        fileName,
+        storage: storageLabel
+      };
     }
 
-    fs.mkdirSync(imageUploadDir, { recursive: true });
-    const absolutePath = path.join(imageUploadDir, fileName);
-    fs.writeFileSync(absolutePath, buffer);
+    if (supabaseEnabled) {
+      try {
+        return await uploadBinaryToSupabaseStorage(fileName, buffer, contentType);
+      } catch (error) {
+        console.warn("Supabase upload failed, fallback to local storage:", error.message);
+        return saveLocally("local-fallback");
+      }
+    }
 
-    return {
-      ok: true,
-      path: `images.img/${fileName}`,
-      fileName,
-      storage: "local"
-    };
+    return saveLocally();
   };
 }
 

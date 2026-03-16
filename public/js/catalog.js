@@ -20,8 +20,8 @@ function buildPromoSlides() {
             text: "",
             chips: [],
             image: banner.image || "images.img/lolo.png",
-            cta: banner.ctaLabel || "Открыть",
-            secondary: banner.secondaryLabel || "",
+            cta: banner.cta || banner.ctaLabel || "Открыть",
+            secondary: banner.secondary || banner.secondaryLabel || "",
             action: mapAction(banner.actionType, banner.actionValue),
             secondaryAction: mapAction(banner.secondaryActionType, banner.secondaryActionValue),
           };

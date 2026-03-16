@@ -59,6 +59,11 @@ function parseSupabaseStorageError(payload, response) {
   return createHttpError(response?.status || 500, "Supabase Storage request failed");
 }
 
+function isMissingBucketError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return error?.statusCode === 404 || message.includes("bucket not found");
+}
+
 async function supabaseRequest(method, resource, { query = "", body, prefer, headers = {} } = {}) {
   if (!supabaseEnabled) {
     throw createHttpError(500, "Supabase is not configured");
@@ -128,7 +133,7 @@ async function ensureSupabaseUploadBucket() {
       await supabaseStorageRequest("GET", `bucket/${encodeURIComponent(supabaseUploadBucket)}`);
       return true;
     } catch (error) {
-      if (error?.statusCode !== 404) {
+      if (!isMissingBucketError(error)) {
         throw error;
       }
 

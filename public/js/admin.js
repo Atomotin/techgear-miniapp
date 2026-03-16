@@ -44,6 +44,13 @@ const state = {
       return new Intl.NumberFormat("ru-RU").format(value) + " сум";
     }
 
+    function formatDateTime(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleString("ru-RU");
+    }
+
     function getDiscountPercent(product) {
       const oldPrice = Number(product?.oldPrice) || 0;
       const price = Number(product?.price) || 0;
@@ -518,7 +525,12 @@ const state = {
       const list = document.getElementById("ordersList");
       const customerFilterNotice = document.getElementById("orderCustomerFilterNotice");
       const clearCustomerFilterBtn = document.getElementById("clearOrderCustomerFilterBtn");
+      const orderActionMessage = document.getElementById("orderActionMessage");
       const searchValue = state.orderSearch.trim().toLowerCase();
+
+      if (orderActionMessage && !orderActionMessage.textContent) {
+        orderActionMessage.style.color = "rgba(245,251,255,0.72)";
+      }
 
       if (customerFilterNotice) {
         customerFilterNotice.textContent = state.orderCustomerKeyFilter
@@ -542,7 +554,8 @@ const state = {
           order.customer?.phone,
           order.customer?.username,
           order.customer?.delivery,
-          order.customer?.telegramId
+          order.customer?.telegramId,
+          order.requestMeta?.adminNote
         ].filter(Boolean).join(" ").toLowerCase();
 
         return haystack.includes(searchValue);
@@ -564,6 +577,8 @@ const state = {
         const username = String(order.customer?.username || "").replace(/^@/, "");
         const telegramLink = username ? `https://t.me/${encodeURIComponent(username)}` : "";
         const phoneLink = order.customer?.phone ? `tel:${String(order.customer.phone).replace(/[^\d+]/g, "")}` : "";
+        const managerNote = String(order.requestMeta?.adminNote || "");
+        const noteUpdatedAt = formatDateTime(order.requestMeta?.adminNoteUpdatedAt);
 
         return `
           <article class="order-card">
@@ -581,8 +596,14 @@ const state = {
             </div>
             <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
             <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
+            <label class="stack-top-gap">
+              Заметка менеджера
+              <textarea rows="3" maxlength="1000" data-order-note-input="${order.id}" placeholder="Например: позвонить после 18:00, уточнить цвет, предупредить о сроке">${escapeHtml(managerNote)}</textarea>
+            </label>
+            ${noteUpdatedAt ? `<div class="muted">Обновлено: ${escapeHtml(noteUpdatedAt)}</div>` : ""}
             <div class="product-actions">
               ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
+              <button class="btn btn-primary btn-small" type="button" data-save-note="${order.id}">Сохранить заметку</button>
               ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
               <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
               <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
@@ -607,6 +628,32 @@ const state = {
             }
           } catch (error) {
             alert(error.message);
+          }
+        });
+      });
+
+      list.querySelectorAll("[data-save-note]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const orderId = button.dataset.saveNote;
+          const noteInput = list.querySelector(`[data-order-note-input="${orderId}"]`);
+          const managerNote = noteInput ? noteInput.value : "";
+          const initialText = button.textContent;
+
+          button.disabled = true;
+          button.textContent = "Сохраняю...";
+
+          try {
+            await api(`/api/admin/orders/${orderId}`, {
+              method: "PATCH",
+              body: JSON.stringify({ managerNote })
+            });
+            await loadAdminData();
+            showMessage("orderActionMessage", managerNote.trim() ? "Заметка менеджера сохранена" : "Заметка менеджера очищена");
+          } catch (error) {
+            showMessage("orderActionMessage", error.message, true);
+          } finally {
+            button.disabled = false;
+            button.textContent = initialText;
           }
         });
       });

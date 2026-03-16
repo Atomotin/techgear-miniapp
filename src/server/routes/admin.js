@@ -3,6 +3,7 @@ function createAdminRouteHandler({
   sendJson,
   readBody,
   normalizeString,
+  sanitizeLongText,
   adminPassword,
   createToken,
   ensureAdmin,
@@ -59,9 +60,17 @@ function createAdminRouteHandler({
       const orderId = Number(url.pathname.split("/").pop());
       const body = await readBody(req);
       const nextStatus = normalizeString(body.status);
+      const hasManagerNote = Object.prototype.hasOwnProperty.call(body, "managerNote");
+      const managerNote = hasManagerNote ? sanitizeLongText(body.managerNote, 1000) : undefined;
       const allowedStatuses = ["new", "processing", "done", "cancelled"];
+      const hasStatus = Boolean(nextStatus);
 
-      if (!allowedStatuses.includes(nextStatus)) {
+      if (!hasStatus && !hasManagerNote) {
+        sendJson(res, 400, { error: "Укажите статус или заметку менеджера" });
+        return true;
+      }
+
+      if (hasStatus && !allowedStatuses.includes(nextStatus)) {
         sendJson(res, 400, { error: "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 \u0441\u0442\u0430\u0442\u0443\u0441" });
         return true;
       }
@@ -69,10 +78,14 @@ function createAdminRouteHandler({
       const existingOrders = await storage.getOrders();
       const existingOrder = existingOrders.find((item) => Number(item.id) === orderId) || null;
       const previousStatus = normalizeString(existingOrder?.status);
-      const order = await storage.updateOrderStatus(orderId, nextStatus);
+      const order = await storage.updateOrderStatus(
+        orderId,
+        hasStatus ? nextStatus : undefined,
+        hasManagerNote ? { managerNote } : {}
+      );
 
       let notification = { sent: false, skipped: true, reason: "status_unchanged" };
-      if (previousStatus !== nextStatus) {
+      if (hasStatus && previousStatus !== nextStatus) {
         if (typeof notifyOrderStatusUpdate === "function") {
           try {
             notification = await notifyOrderStatusUpdate(order, { previousStatus });

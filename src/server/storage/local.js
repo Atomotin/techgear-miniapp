@@ -149,7 +149,7 @@ function createLocalStorageProvider() {
       });
       return order;
     },
-    async updateOrderStatus(orderId, status) {
+    async updateOrderStatus(orderId, status, options = {}) {
       const orders = getOrders();
       const order = orders.find((item) => item.id === orderId);
 
@@ -157,7 +157,23 @@ function createLocalStorageProvider() {
         throw createHttpError(404, "Заказ не найден");
       }
 
-      order.status = status;
+      if (status) {
+        order.status = status;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(options, "managerNote")) {
+        const managerNote = String(options.managerNote || "");
+        const requestMeta = { ...(order.requestMeta || {}) };
+
+        requestMeta.adminNote = managerNote;
+        if (managerNote) {
+          requestMeta.adminNoteUpdatedAt = new Date().toISOString();
+        } else {
+          delete requestMeta.adminNoteUpdatedAt;
+        }
+
+        order.requestMeta = requestMeta;
+      }
       saveOrders(orders);
       return order;
     },

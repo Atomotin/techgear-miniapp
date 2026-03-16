@@ -520,6 +520,7 @@ const handleApi = createApiHandler({
   sendJson,
   readBody,
   normalizeString,
+  sanitizeLongText,
   sanitizeCustomerProfile,
   validateCustomerProfile,
   validateOrderPayload,

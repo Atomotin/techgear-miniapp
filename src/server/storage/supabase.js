@@ -367,16 +367,40 @@ function createSupabaseStorageProvider() {
 
       return orderRowToModel(Array.isArray(rows) ? rows[0] : rows);
     },
-    async updateOrderStatus(orderId, status) {
-      const rows = await supabaseRequest("PATCH", "orders", {
-        query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta`,
-        body: { status },
-        prefer: "return=representation"
+    async updateOrderStatus(orderId, status, options = {}) {
+      const existingRows = await supabaseRequest("GET", "orders", {
+        query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta&limit=1`
       });
 
-      if (!Array.isArray(rows) || rows.length === 0) {
+      if (!Array.isArray(existingRows) || existingRows.length === 0) {
         throw createHttpError(404, "Заказ не найден");
       }
+
+      const patch = {};
+
+      if (status) {
+        patch.status = status;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(options, "managerNote")) {
+        const managerNote = String(options.managerNote || "");
+        const requestMeta = { ...(existingRows[0]?.request_meta || {}) };
+
+        requestMeta.adminNote = managerNote;
+        if (managerNote) {
+          requestMeta.adminNoteUpdatedAt = new Date().toISOString();
+        } else {
+          delete requestMeta.adminNoteUpdatedAt;
+        }
+
+        patch.request_meta = requestMeta;
+      }
+
+      const rows = await supabaseRequest("PATCH", "orders", {
+        query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta`,
+        body: patch,
+        prefer: "return=representation"
+      });
 
       return orderRowToModel(rows[0]);
     },

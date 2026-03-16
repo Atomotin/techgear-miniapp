@@ -61,6 +61,17 @@ const state = {
       node.style.color = isError ? "#ff9caa" : "rgba(245,251,255,0.72)";
     }
 
+    function getOrderNotificationMessage(notification) {
+      if (!notification || notification.sent) return "";
+      if (notification.reason === "missing_chat_id") {
+        return "Статус обновлён, но у клиента нет Telegram ID для уведомления.";
+      }
+      if (notification.error) {
+        return `Статус обновлён, но уведомление Telegram не отправилось: ${notification.error}`;
+      }
+      return "";
+    }
+
     function getProductPayload() {
       const images = document.getElementById("productImages").value
         .split(/\r?\n/)
@@ -461,11 +472,15 @@ const state = {
         button.addEventListener("click", async () => {
           const [orderId, status] = button.dataset.status.split(":");
           try {
-            await api(`/api/admin/orders/${orderId}`, {
+            const response = await api(`/api/admin/orders/${orderId}`, {
               method: "PATCH",
               body: JSON.stringify({ status })
             });
             await loadAdminData();
+            const notificationMessage = getOrderNotificationMessage(response.notification);
+            if (notificationMessage) {
+              alert(notificationMessage);
+            }
           } catch (error) {
             alert(error.message);
           }
@@ -538,11 +553,15 @@ const state = {
         button.addEventListener("click", async () => {
           const [orderId, status] = button.dataset.status.split(":");
           try {
-            await api(`/api/admin/orders/${orderId}`, {
+            const response = await api(`/api/admin/orders/${orderId}`, {
               method: "PATCH",
               body: JSON.stringify({ status })
             });
             await loadAdminData();
+            const notificationMessage = getOrderNotificationMessage(response.notification);
+            if (notificationMessage) {
+              alert(notificationMessage);
+            }
           } catch (error) {
             alert(error.message);
           }

@@ -6,7 +6,8 @@ function createAdminRouteHandler({
   adminPassword,
   createToken,
   ensureAdmin,
-  saveAdminUpload
+  saveAdminUpload,
+  notifyOrderStatusUpdate
 }) {
   return async function handleAdminRoute(req, res, url) {
     if (req.method === "POST" && url.pathname === "/api/admin/login") {
@@ -65,8 +66,30 @@ function createAdminRouteHandler({
         return true;
       }
 
+      const existingOrders = await storage.getOrders();
+      const existingOrder = existingOrders.find((item) => Number(item.id) === orderId) || null;
+      const previousStatus = normalizeString(existingOrder?.status);
       const order = await storage.updateOrderStatus(orderId, nextStatus);
-      sendJson(res, 200, { ok: true, order });
+
+      let notification = { sent: false, skipped: true, reason: "status_unchanged" };
+      if (previousStatus !== nextStatus) {
+        if (typeof notifyOrderStatusUpdate === "function") {
+          try {
+            notification = await notifyOrderStatusUpdate(order, { previousStatus });
+          } catch (error) {
+            console.error(`Failed to send Telegram status update for order #${orderId}:`, error);
+            notification = {
+              sent: false,
+              skipped: false,
+              error: error.message || "notification_failed"
+            };
+          }
+        } else {
+          notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+        }
+      }
+
+      sendJson(res, 200, { ok: true, order, notification });
       return true;
     }
 

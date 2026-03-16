@@ -8,6 +8,20 @@ function createTelegramService({
   telegramManagerUrl,
   telegramLogoUrl
 }) {
+  const ORDER_STATUS_LABELS = {
+    new: "Новый",
+    processing: "В работе",
+    done: "Готов",
+    cancelled: "Отменён"
+  };
+
+  const ORDER_STATUS_DETAILS = {
+    new: "Заказ зарегистрирован. Мы проверим детали и свяжемся с вами.",
+    processing: "Мы уже обрабатываем заказ и готовим детали по доставке.",
+    done: "Заказ готов. Скоро свяжемся с вами для передачи или доставки.",
+    cancelled: "Заказ отменён. Если это произошло по ошибке, напишите менеджеру."
+  };
+
   async function telegramApi(method, payload) {
     if (!telegramBotEnabled) {
       throw new Error("Telegram bot is not configured");
@@ -27,6 +41,45 @@ function createTelegramService({
     }
 
     return data;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatPrice(value) {
+    const amount = Number(value) || 0;
+    if (!amount) return "";
+    return `${new Intl.NumberFormat("ru-RU").format(amount)} сум`;
+  }
+
+  function buildTelegramSupportKeyboard() {
+    const rows = [];
+
+    if (publicBaseUrl) {
+      rows.push([
+        { text: "\uD83D\uDECD Открыть магазин", web_app: { url: `${publicBaseUrl}/` } }
+      ]);
+    }
+
+    const linksRow = [];
+    if (telegramManagerUrl) {
+      linksRow.push({ text: "\uD83D\uDCAC Менеджер", url: telegramManagerUrl });
+    }
+    if (telegramChannelUrl) {
+      linksRow.push({ text: "\uD83D\uDCE2 Канал", url: telegramChannelUrl });
+    }
+
+    if (linksRow.length) {
+      rows.push(linksRow);
+    }
+
+    return rows.length ? { inline_keyboard: rows } : null;
   }
 
   function buildTelegramStartMessage() {
@@ -90,6 +143,63 @@ function createTelegramService({
     });
   }
 
+  async function notifyOrderStatusUpdate(order, { previousStatus = "" } = {}) {
+    if (!telegramBotEnabled) {
+      return { sent: false, skipped: true, reason: "bot_not_configured" };
+    }
+
+    const chatId = normalizeString(order?.telegram?.id || order?.customer?.telegramId);
+    if (!chatId) {
+      return { sent: false, skipped: true, reason: "missing_chat_id" };
+    }
+
+    const nextStatus = normalizeString(order?.status).toLowerCase();
+    const statusLabel = ORDER_STATUS_LABELS[nextStatus] || nextStatus || "Обновлён";
+    const previousStatusLabel = ORDER_STATUS_LABELS[normalizeString(previousStatus).toLowerCase()] || "";
+    const customerName = normalizeString(order?.customer?.name) || "клиент";
+    const itemsCount = Array.isArray(order?.items)
+      ? order.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
+      : 0;
+    const totalLabel = formatPrice(order?.total);
+    const messageLines = [
+      `<b>${escapeHtml(telegramBotName)}</b>`,
+      "",
+      `Здравствуйте, <b>${escapeHtml(customerName)}</b>.`,
+      `Статус заказа <b>#${escapeHtml(order?.id)}</b> обновлён.`,
+      "",
+      `Новый статус: <b>${escapeHtml(statusLabel)}</b>`
+    ];
+
+    if (previousStatusLabel && previousStatusLabel !== statusLabel) {
+      messageLines.push(`Было: ${escapeHtml(previousStatusLabel)}`);
+    }
+
+    if (itemsCount > 0) {
+      messageLines.push(`Товаров: ${itemsCount}`);
+    }
+
+    if (totalLabel) {
+      messageLines.push(`Сумма: ${escapeHtml(totalLabel)}`);
+    }
+
+    messageLines.push("", escapeHtml(ORDER_STATUS_DETAILS[nextStatus] || "Мы обновили информацию по вашему заказу."));
+
+    const replyMarkup = buildTelegramSupportKeyboard();
+    await telegramApi("sendMessage", {
+      chat_id: chatId,
+      parse_mode: "HTML",
+      text: messageLines.join("\n"),
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+    });
+
+    return {
+      sent: true,
+      skipped: false,
+      status: nextStatus,
+      chatId
+    };
+  }
+
   async function configureTelegramBot({ telegramWebhookSecret }) {
     if (!telegramBotEnabled) {
       return;
@@ -134,6 +244,7 @@ function createTelegramService({
     buildTelegramStartMessage,
     buildTelegramStartKeyboard,
     handleTelegramUpdate,
+    notifyOrderStatusUpdate,
     configureTelegramBot
   };
 }

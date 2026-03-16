@@ -19,7 +19,8 @@ function createApiHandler({
   supabaseEnabled,
   telegramBotEnabled,
   telegramWebhookSecret,
-  handleTelegramUpdate
+  handleTelegramUpdate,
+  notifyOrderStatusUpdate
 }) {
   const routeHandlers = [
     createTelegramRouteHandler({
@@ -57,7 +58,8 @@ function createApiHandler({
       adminPassword,
       createToken,
       ensureAdmin,
-      saveAdminUpload
+      saveAdminUpload,
+      notifyOrderStatusUpdate
     })
   ];
 

@@ -530,7 +530,8 @@ const handleApi = createApiHandler({
   supabaseEnabled: SUPABASE_ENABLED,
   telegramBotEnabled: TELEGRAM_BOT_ENABLED,
   telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET,
-  handleTelegramUpdate: telegramService.handleTelegramUpdate
+  handleTelegramUpdate: telegramService.handleTelegramUpdate,
+  notifyOrderStatusUpdate: telegramService.notifyOrderStatusUpdate
 });
 
 const { serveStatic } = createStaticHandler({

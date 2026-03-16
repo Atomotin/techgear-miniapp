@@ -423,35 +423,60 @@ button:hover {
 }
 
 .toast {
+  position: relative;
+  overflow: hidden;
   padding: 13px 15px;
+  padding-left: 20px;
   border-radius: 16px;
-  border: 1px solid rgba(62, 122, 115, 0.2);
+  border: 1px solid rgba(62, 122, 115, 0.3);
   background:
-    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(239, 248, 245, 0.96)),
-    linear-gradient(135deg, rgba(62, 122, 115, 0.06), rgba(224, 188, 103, 0.08));
+    linear-gradient(180deg, rgba(255, 253, 249, 0.995), rgba(241, 249, 245, 0.975)),
+    linear-gradient(135deg, rgba(62, 122, 115, 0.12), rgba(224, 188, 103, 0.08));
   color: var(--text);
   box-shadow:
-    0 18px 32px rgba(57, 65, 62, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    0 20px 38px rgba(57, 65, 62, 0.18),
+    0 0 0 1px rgba(62, 122, 115, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
   font-size: 14px;
+  font-weight: 600;
   line-height: 1.45;
   animation: toast-in 0.22s ease forwards;
 }
 
+.toast::before {
+  content: "";
+  position: absolute;
+  inset: 6px auto 6px 6px;
+  width: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-gold));
+  box-shadow: 0 0 12px rgba(62, 122, 115, 0.22);
+}
+
 .toast.warning {
-  border-color: rgba(224, 188, 103, 0.28);
+  border-color: rgba(224, 188, 103, 0.38);
   background:
-    linear-gradient(180deg, rgba(255, 251, 242, 0.99), rgba(249, 238, 208, 0.96)),
-    linear-gradient(135deg, rgba(224, 188, 103, 0.12), rgba(229, 139, 98, 0.06));
-  color: #7a5d1d;
+    linear-gradient(180deg, rgba(255, 251, 242, 0.995), rgba(249, 236, 199, 0.975)),
+    linear-gradient(135deg, rgba(224, 188, 103, 0.18), rgba(229, 139, 98, 0.08));
+  color: #725215;
+}
+
+.toast.warning::before {
+  background: linear-gradient(180deg, var(--accent-gold), var(--accent-warm));
+  box-shadow: 0 0 12px rgba(224, 188, 103, 0.28);
 }
 
 .toast.error {
-  border-color: rgba(184, 106, 90, 0.26);
+  border-color: rgba(184, 106, 90, 0.4);
   background:
-    linear-gradient(180deg, rgba(255, 249, 247, 0.99), rgba(251, 236, 232, 0.96)),
-    linear-gradient(135deg, rgba(184, 106, 90, 0.08), rgba(229, 139, 98, 0.06));
-  color: #874538;
+    linear-gradient(180deg, rgba(255, 249, 247, 0.995), rgba(251, 232, 227, 0.975)),
+    linear-gradient(135deg, rgba(184, 106, 90, 0.16), rgba(229, 139, 98, 0.08));
+  color: #7e3f33;
+}
+
+.toast.error::before {
+  background: linear-gradient(180deg, var(--danger), var(--accent-warm));
+  box-shadow: 0 0 12px rgba(184, 106, 90, 0.26);
 }
 
 @keyframes toast-in {

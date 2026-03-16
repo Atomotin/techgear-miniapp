@@ -9,7 +9,39 @@
   <link rel="stylesheet" href="/css/main.css" />
 
 </head>
-<body>
+<body class="is-booting">
+  <div id="appSplash" class="app-splash" aria-hidden="false">
+    <div class="app-splash-noise" aria-hidden="true"></div>
+    <div class="app-splash-orbit orbit-left" aria-hidden="true"></div>
+    <div class="app-splash-orbit orbit-right" aria-hidden="true"></div>
+    <div class="app-splash-content">
+      <div class="app-splash-chip">TechGear startup</div>
+      <div class="app-splash-stage">
+        <div class="app-splash-pulse" aria-hidden="true"></div>
+        <div class="app-splash-logo">
+          <img src="images.img/lolo.png" alt="TechGear logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';">
+          <div class="app-splash-logo-fallback">TG</div>
+        </div>
+        <div class="app-splash-bars" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+      <div class="app-splash-copy">
+        <strong>TechGear.uz</strong>
+        <p>Собираем свет, звук и детали для твоего сетапа.</p>
+      </div>
+      <div class="app-splash-status" aria-hidden="true">
+        <span class="app-splash-line"></span>
+        <span>Подключаем каталог</span>
+      </div>
+    </div>
+  </div>
   <!-- нажми, чтобы включить музыку -->
   <div id="musicPrompt" class="music-prompt">
     Нажми, чтобы включить музыку

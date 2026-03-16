@@ -205,6 +205,63 @@ const tg = window.Telegram?.WebApp || null;
       suppressClick: false,
     };
 
+    const splashState = {
+      shownAt: typeof performance !== "undefined" ? performance.now() : Date.now(),
+      minVisibleMs: 1100,
+      hideTimerId: null,
+      hidden: false,
+    };
+
+    function getSplashNow() {
+      return typeof performance !== "undefined" ? performance.now() : Date.now();
+    }
+
+    function hideAppSplash(options = {}) {
+      const { immediate = false } = options;
+      if (splashState.hidden) return Promise.resolve();
+
+      const splash = document.getElementById("appSplash");
+      if (!splash) {
+        document.body?.classList.remove("is-booting");
+        splashState.hidden = true;
+        return Promise.resolve();
+      }
+
+      if (splashState.hideTimerId) {
+        clearTimeout(splashState.hideTimerId);
+        splashState.hideTimerId = null;
+      }
+
+      const elapsed = getSplashNow() - splashState.shownAt;
+      const waitMs = immediate ? 0 : Math.max(0, splashState.minVisibleMs - elapsed);
+
+      return new Promise((resolve) => {
+        const finishHide = () => {
+          if (splashState.hidden) {
+            resolve();
+            return;
+          }
+
+          splash.classList.add("is-hiding");
+          document.body?.classList.remove("is-booting");
+
+          window.setTimeout(() => {
+            splash.classList.add("is-hidden");
+            splash.setAttribute("aria-hidden", "true");
+            splashState.hidden = true;
+            resolve();
+          }, 480);
+        };
+
+        if (waitMs === 0) {
+          finishHide();
+          return;
+        }
+
+        splashState.hideTimerId = window.setTimeout(finishHide, waitMs);
+      });
+    }
+
     function getSessionId() {
       const key = "techgear_session_id_v1";
       let sessionId = sessionStorage.getItem(key);

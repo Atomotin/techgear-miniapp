@@ -344,6 +344,12 @@ function ensureProfileNavigation() {
       trackMiniAppOpen();
     }
 
-    bootstrapApp();
+    bootstrapApp()
+      .then(() => hideAppSplash())
+      .catch((error) => {
+        console.error("Bootstrap failed:", error);
+        hideAppSplash({ immediate: true });
+        showToast("Не удалось загрузить все данные", "error");
+      });
   
 

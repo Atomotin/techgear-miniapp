@@ -35,6 +35,339 @@
       padding-bottom: 94px;
     } 
 
+    body.is-booting {
+      overflow: hidden;
+    }
+
+    .app-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 1400;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, rgba(198, 255, 51, 0.08), transparent 24%),
+        radial-gradient(circle at bottom, rgba(157, 78, 221, 0.18), transparent 30%),
+        linear-gradient(180deg, #040406 0%, #09060f 44%, #11081d 100%);
+      transition: opacity 0.45s ease, visibility 0.45s ease, transform 0.45s ease;
+    }
+
+    .app-splash.is-hiding {
+      opacity: 0;
+      transform: scale(1.02);
+      pointer-events: none;
+    }
+
+    .app-splash.is-hidden {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .app-splash::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      pointer-events: none;
+    }
+
+    .app-splash-noise {
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.025) 0,
+          rgba(255, 255, 255, 0.025) 1px,
+          transparent 1px,
+          transparent 8px
+        );
+      opacity: 0.35;
+      mix-blend-mode: soft-light;
+      animation: splash-scan 8s linear infinite;
+      pointer-events: none;
+    }
+
+    .app-splash-orbit {
+      position: absolute;
+      width: 46vw;
+      max-width: 420px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      filter: blur(26px);
+      opacity: 0.32;
+      pointer-events: none;
+      animation: splash-drift 8s ease-in-out infinite;
+    }
+
+    .app-splash-orbit.orbit-left {
+      left: -12vw;
+      top: 18%;
+      background: radial-gradient(circle, rgba(198, 255, 51, 0.2), rgba(198, 255, 51, 0));
+    }
+
+    .app-splash-orbit.orbit-right {
+      right: -14vw;
+      bottom: 12%;
+      background: radial-gradient(circle, rgba(214, 0, 255, 0.24), rgba(214, 0, 255, 0));
+      animation-delay: -4s;
+    }
+
+    .app-splash-content {
+      position: relative;
+      z-index: 1;
+      width: min(420px, 100%);
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .app-splash-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(198, 255, 51, 0.2);
+      background:
+        linear-gradient(135deg, rgba(198, 255, 51, 0.08), rgba(198, 255, 51, 0.02)),
+        rgba(10, 11, 14, 0.72);
+      color: #efffc1;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+    }
+
+    .app-splash-stage {
+      position: relative;
+      width: 100%;
+      min-height: 370px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 22px;
+      padding: 34px 24px 28px;
+      border-radius: 34px;
+      border: 1px solid rgba(199, 125, 255, 0.18);
+      background:
+        radial-gradient(circle at top, rgba(198, 255, 51, 0.1), transparent 32%),
+        linear-gradient(155deg, rgba(23, 13, 37, 0.98), rgba(8, 8, 14, 0.98));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 30px 70px rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    .app-splash-stage::before,
+    .app-splash-stage::after {
+      content: "";
+      position: absolute;
+      inset: auto 8% 22%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+      pointer-events: none;
+    }
+
+    .app-splash-stage::after {
+      inset: 18% 16% auto;
+      background: linear-gradient(90deg, transparent, rgba(198, 255, 51, 0.24), transparent);
+    }
+
+    .app-splash-pulse {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(circle, rgba(214, 0, 255, 0.32), rgba(214, 0, 255, 0.05) 46%, rgba(214, 0, 255, 0) 64%);
+      animation: splash-pulse 2.4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .app-splash-logo {
+      position: relative;
+      width: 112px;
+      height: 112px;
+      padding: 12px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(198, 255, 51, 0.24);
+      background:
+        linear-gradient(145deg, rgba(198, 255, 51, 0.1), rgba(198, 255, 51, 0.03)),
+        linear-gradient(145deg, rgba(157, 78, 221, 0.28), rgba(15, 13, 22, 0.92));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 20px 44px rgba(0, 0, 0, 0.3);
+    }
+
+    .app-splash-logo::before {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 38px;
+      pointer-events: none;
+    }
+
+    .app-splash-logo img,
+    .app-splash-logo-fallback {
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+    }
+
+    .app-splash-logo img {
+      object-fit: cover;
+      display: block;
+    }
+
+    .app-splash-logo-fallback {
+      display: none;
+      place-items: center;
+      background: linear-gradient(145deg, rgba(198, 255, 51, 0.18), rgba(214, 0, 255, 0.22));
+      color: #fff;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .app-splash-bars {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 120px;
+      padding: 12px 8px 0;
+    }
+
+    .app-splash-bars span {
+      width: 18px;
+      border-radius: 999px 999px 18px 18px;
+      background: linear-gradient(180deg, #ff57f1 0%, #c100ff 55%, rgba(80, 0, 96, 0.85) 100%);
+      box-shadow: 0 10px 24px rgba(193, 0, 255, 0.22);
+      transform-origin: bottom center;
+      animation: splash-bars 1.5s ease-in-out infinite;
+    }
+
+    .app-splash-bars span:nth-child(1) { height: 48px; animation-delay: -0.1s; }
+    .app-splash-bars span:nth-child(2) { height: 72px; animation-delay: -0.3s; }
+    .app-splash-bars span:nth-child(3) { height: 94px; animation-delay: -0.5s; }
+    .app-splash-bars span:nth-child(4) { height: 114px; animation-delay: -0.7s; }
+    .app-splash-bars span:nth-child(5) { height: 90px; animation-delay: -0.45s; }
+    .app-splash-bars span:nth-child(6) { height: 66px; animation-delay: -0.25s; }
+    .app-splash-bars span:nth-child(7) { height: 42px; animation-delay: -0.05s; }
+
+    .app-splash-copy {
+      display: grid;
+      gap: 8px;
+      max-width: 34ch;
+    }
+
+    .app-splash-copy strong {
+      font-size: clamp(28px, 6vw, 42px);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      text-shadow: 0 12px 34px rgba(214, 0, 255, 0.2);
+    }
+
+    .app-splash-copy p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .app-splash-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 28px;
+      padding: 0 2px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .app-splash-line {
+      width: 56px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(198, 255, 51, 0.08), rgba(198, 255, 51, 0.9), rgba(255, 87, 241, 0.8));
+      box-shadow: 0 0 18px rgba(198, 255, 51, 0.25);
+      animation: splash-line 1.6s ease-in-out infinite;
+    }
+
+    @keyframes splash-bars {
+      0%, 100% {
+        transform: scaleY(0.72);
+        filter: saturate(0.95);
+      }
+
+      50% {
+        transform: scaleY(1.08);
+        filter: saturate(1.15);
+      }
+    }
+
+    @keyframes splash-pulse {
+      0%, 100% {
+        opacity: 0.45;
+        transform: translate(-50%, -50%) scale(0.88);
+      }
+
+      50% {
+        opacity: 0.88;
+        transform: translate(-50%, -50%) scale(1.12);
+      }
+    }
+
+    @keyframes splash-line {
+      0%, 100% {
+        transform: scaleX(0.72);
+        opacity: 0.72;
+      }
+
+      50% {
+        transform: scaleX(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes splash-drift {
+      0%, 100% {
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      50% {
+        transform: translate3d(0, -18px, 0) scale(1.05);
+      }
+    }
+
+    @keyframes splash-scan {
+      from {
+        transform: translateY(-4%);
+      }
+
+      to {
+        transform: translateY(4%);
+      }
+    }
+
     .container {
       max-width: 430px;
       margin: 0 auto;
@@ -1856,6 +2189,44 @@
     }
 
     @media (max-width: 768px) {
+      .app-splash {
+        padding: 18px;
+      }
+
+      .app-splash::before {
+        inset: 12px;
+        border-radius: 28px;
+      }
+
+      .app-splash-content {
+        gap: 16px;
+      }
+
+      .app-splash-stage {
+        min-height: 334px;
+        padding: 28px 18px 24px;
+        border-radius: 28px;
+      }
+
+      .app-splash-logo {
+        width: 96px;
+        height: 96px;
+        border-radius: 24px;
+      }
+
+      .app-splash-bars {
+        gap: 8px;
+        min-height: 108px;
+      }
+
+      .app-splash-bars span {
+        width: 15px;
+      }
+
+      .app-splash-copy p {
+        font-size: 13px;
+      }
+
       .container {
         padding: 12px;
       }
@@ -2029,6 +2400,16 @@
 
       .nav-label {
         font-size: 10px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .app-splash,
+      .app-splash *,
+      .promo-track,
+      .promo-visual img {
+        animation: none !important;
+        transition: none !important;
       }
     }
 

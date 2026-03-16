@@ -174,6 +174,20 @@ function createLocalStorageProvider() {
 
         order.requestMeta = requestMeta;
       }
+
+      if (Object.prototype.hasOwnProperty.call(options, "managerAssignee")) {
+        const managerAssignee = String(options.managerAssignee || "");
+        const requestMeta = { ...(order.requestMeta || {}) };
+
+        requestMeta.adminAssignee = managerAssignee;
+        if (managerAssignee) {
+          requestMeta.adminAssigneeUpdatedAt = new Date().toISOString();
+        } else {
+          delete requestMeta.adminAssigneeUpdatedAt;
+        }
+
+        order.requestMeta = requestMeta;
+      }
       saveOrders(orders);
       return order;
     },

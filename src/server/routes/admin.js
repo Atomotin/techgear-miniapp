@@ -62,11 +62,13 @@ function createAdminRouteHandler({
       const nextStatus = normalizeString(body.status);
       const hasManagerNote = Object.prototype.hasOwnProperty.call(body, "managerNote");
       const managerNote = hasManagerNote ? sanitizeLongText(body.managerNote, 1000) : undefined;
+      const hasManagerAssignee = Object.prototype.hasOwnProperty.call(body, "managerAssignee");
+      const managerAssignee = hasManagerAssignee ? sanitizeLongText(body.managerAssignee, 80) : undefined;
       const allowedStatuses = ["new", "processing", "done", "cancelled"];
       const hasStatus = Boolean(nextStatus);
 
-      if (!hasStatus && !hasManagerNote) {
-        sendJson(res, 400, { error: "Укажите статус или заметку менеджера" });
+      if (!hasStatus && !hasManagerNote && !hasManagerAssignee) {
+        sendJson(res, 400, { error: "Укажите статус, ответственного или заметку менеджера" });
         return true;
       }
 
@@ -81,7 +83,10 @@ function createAdminRouteHandler({
       const order = await storage.updateOrderStatus(
         orderId,
         hasStatus ? nextStatus : undefined,
-        hasManagerNote ? { managerNote } : {}
+        {
+          ...(hasManagerNote ? { managerNote } : {}),
+          ...(hasManagerAssignee ? { managerAssignee } : {})
+        }
       );
 
       let notification = { sent: false, skipped: true, reason: "status_unchanged" };

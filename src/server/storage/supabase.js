@@ -396,6 +396,20 @@ function createSupabaseStorageProvider() {
         patch.request_meta = requestMeta;
       }
 
+      if (Object.prototype.hasOwnProperty.call(options, "managerAssignee")) {
+        const managerAssignee = String(options.managerAssignee || "");
+        const requestMeta = { ...(patch.request_meta || existingRows[0]?.request_meta || {}) };
+
+        requestMeta.adminAssignee = managerAssignee;
+        if (managerAssignee) {
+          requestMeta.adminAssigneeUpdatedAt = new Date().toISOString();
+        } else {
+          delete requestMeta.adminAssigneeUpdatedAt;
+        }
+
+        patch.request_meta = requestMeta;
+      }
+
       const rows = await supabaseRequest("PATCH", "orders", {
         query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta`,
         body: patch,

@@ -9,6 +9,7 @@ const state = {
       uploadedImages: [],
       orderSearch: "",
       orderStatusFilter: "all",
+      orderAssigneeFilter: "all",
       orderCustomerKeyFilter: "",
       orderCustomerLabelFilter: "",
       customerSearch: ""
@@ -92,6 +93,31 @@ const state = {
       state.orderCustomerKeyFilter = "";
       state.orderCustomerLabelFilter = "";
       renderOrders();
+    }
+
+    function getOrderManagerAssignee(order = {}) {
+      return String(order.requestMeta?.adminAssignee || "").trim();
+    }
+
+    function syncOrderAssigneeFilterOptions() {
+      const select = document.getElementById("orderAssigneeFilter");
+      if (!select) return;
+
+      const assignees = [...new Set(state.orders.map((order) => getOrderManagerAssignee(order)).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right, "ru"));
+
+      if (state.orderAssigneeFilter !== "all" &&
+          state.orderAssigneeFilter !== "unassigned" &&
+          !assignees.includes(state.orderAssigneeFilter)) {
+        state.orderAssigneeFilter = "all";
+      }
+
+      select.innerHTML = [
+        '<option value="all">Все</option>',
+        '<option value="unassigned">Без ответственного</option>',
+        ...assignees.map((assignee) => `<option value="${escapeHtml(assignee)}">${escapeHtml(assignee)}</option>`)
+      ].join("");
+      select.value = state.orderAssigneeFilter;
     }
 
     function getOrderNotificationMessage(notification) {
@@ -532,6 +558,8 @@ const state = {
         orderActionMessage.style.color = "rgba(245,251,255,0.72)";
       }
 
+      syncOrderAssigneeFilterOptions();
+
       if (customerFilterNotice) {
         customerFilterNotice.textContent = state.orderCustomerKeyFilter
           ? `Фильтр по клиенту: ${state.orderCustomerLabelFilter}`
@@ -545,6 +573,10 @@ const state = {
       const filteredOrders = state.orders.filter((order) => {
         const matchesStatus = state.orderStatusFilter === "all" || order.status === state.orderStatusFilter;
         if (!matchesStatus) return false;
+        const orderAssignee = getOrderManagerAssignee(order);
+        const matchesAssignee = state.orderAssigneeFilter === "all"
+          || (state.orderAssigneeFilter === "unassigned" ? !orderAssignee : orderAssignee === state.orderAssigneeFilter);
+        if (!matchesAssignee) return false;
         const matchesCustomer = !state.orderCustomerKeyFilter || getOrderCustomerKey(order) === state.orderCustomerKeyFilter;
         if (!matchesCustomer) return false;
         if (!searchValue) return true;
@@ -555,6 +587,7 @@ const state = {
           order.customer?.username,
           order.customer?.delivery,
           order.customer?.telegramId,
+          order.requestMeta?.adminAssignee,
           order.requestMeta?.adminNote
         ].filter(Boolean).join(" ").toLowerCase();
 
@@ -577,6 +610,8 @@ const state = {
         const username = String(order.customer?.username || "").replace(/^@/, "");
         const telegramLink = username ? `https://t.me/${encodeURIComponent(username)}` : "";
         const phoneLink = order.customer?.phone ? `tel:${String(order.customer.phone).replace(/[^\d+]/g, "")}` : "";
+        const managerAssignee = getOrderManagerAssignee(order);
+        const assigneeUpdatedAt = formatDateTime(order.requestMeta?.adminAssigneeUpdatedAt);
         const managerNote = String(order.requestMeta?.adminNote || "");
         const noteUpdatedAt = formatDateTime(order.requestMeta?.adminNoteUpdatedAt);
 
@@ -593,9 +628,15 @@ const state = {
             <div class="badge-row">
               <span class="badge">${new Date(order.createdAt).toLocaleString("ru-RU")}</span>
               <span class="badge">${formatPrice(order.total)}</span>
+              <span class="badge">${escapeHtml(managerAssignee || "Без ответственного")}</span>
             </div>
             <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
             <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
+            <label class="stack-top-gap">
+              Ответственный
+              <input type="text" maxlength="80" data-order-assignee-input="${order.id}" placeholder="Например: Азиз" value="${escapeHtml(managerAssignee)}" />
+            </label>
+            ${assigneeUpdatedAt ? `<div class="muted">Назначен: ${escapeHtml(assigneeUpdatedAt)}</div>` : ""}
             <label class="stack-top-gap">
               Заметка менеджера
               <textarea rows="3" maxlength="1000" data-order-note-input="${order.id}" placeholder="Например: позвонить после 18:00, уточнить цвет, предупредить о сроке">${escapeHtml(managerNote)}</textarea>
@@ -603,7 +644,7 @@ const state = {
             ${noteUpdatedAt ? `<div class="muted">Обновлено: ${escapeHtml(noteUpdatedAt)}</div>` : ""}
             <div class="product-actions">
               ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
-              <button class="btn btn-primary btn-small" type="button" data-save-note="${order.id}">Сохранить заметку</button>
+              <button class="btn btn-primary btn-small" type="button" data-save-note="${order.id}">Сохранить CRM</button>
               ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
               <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
               <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
@@ -636,7 +677,9 @@ const state = {
         button.addEventListener("click", async () => {
           const orderId = button.dataset.saveNote;
           const noteInput = list.querySelector(`[data-order-note-input="${orderId}"]`);
+          const assigneeInput = list.querySelector(`[data-order-assignee-input="${orderId}"]`);
           const managerNote = noteInput ? noteInput.value : "";
+          const managerAssignee = assigneeInput ? assigneeInput.value : "";
           const initialText = button.textContent;
 
           button.disabled = true;
@@ -645,10 +688,15 @@ const state = {
           try {
             await api(`/api/admin/orders/${orderId}`, {
               method: "PATCH",
-              body: JSON.stringify({ managerNote })
+              body: JSON.stringify({ managerNote, managerAssignee })
             });
             await loadAdminData();
-            showMessage("orderActionMessage", managerNote.trim() ? "Заметка менеджера сохранена" : "Заметка менеджера очищена");
+            showMessage(
+              "orderActionMessage",
+              managerAssignee.trim() || managerNote.trim()
+                ? "Ответственный и заметка по заказу сохранены"
+                : "Ответственный и заметка по заказу очищены"
+            );
           } catch (error) {
             showMessage("orderActionMessage", error.message, true);
           } finally {
@@ -943,6 +991,10 @@ const state = {
     });
     document.getElementById("orderStatusFilter").addEventListener("change", (event) => {
       state.orderStatusFilter = event.target.value;
+      renderOrders();
+    });
+    document.getElementById("orderAssigneeFilter")?.addEventListener("change", (event) => {
+      state.orderAssigneeFilter = event.target.value;
       renderOrders();
     });
     document.getElementById("clearOrderCustomerFilterBtn")?.addEventListener("click", clearOrderCustomerFilter);

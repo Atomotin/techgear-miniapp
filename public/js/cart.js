@@ -1,5 +1,7 @@
 // Cart, checkout validation, and order submission
 
+    let isSubmittingOrder = false;
+
     function addToCart(productId, selectedVariant = "") {
       const product = normalizeProducts(PRODUCTS).find((p) => p.id === productId);
       const cartKey = selectedVariant ? `${productId}::${selectedVariant}` : String(productId);
@@ -69,6 +71,21 @@
       saveStorage(STORAGE_KEYS.cart, state.cart);
     }
 
+    function setSubmitOrderState(isSubmitting) {
+      isSubmittingOrder = Boolean(isSubmitting);
+      const submitBtn = document.getElementById("submitOrderBtn");
+      if (!submitBtn) return;
+
+      if (!submitBtn.dataset.defaultLabel) {
+        submitBtn.dataset.defaultLabel = submitBtn.textContent.trim();
+      }
+
+      submitBtn.disabled = !state.cart.length || isSubmittingOrder;
+      submitBtn.textContent = isSubmittingOrder
+        ? "Отправляем заказ..."
+        : submitBtn.dataset.defaultLabel;
+    }
+
     function renderCart() {
       const wrap = document.getElementById("cartItems");
       const totalItems = state.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -81,7 +98,7 @@
 
       const submitBtn = document.getElementById("submitOrderBtn");
       if (submitBtn) {
-        submitBtn.disabled = !state.cart.length;
+        submitBtn.disabled = !state.cart.length || isSubmittingOrder;
       }
 
       if (!state.cart.length) {
@@ -269,41 +286,43 @@
     }
 
     async function submitOrderToBackend(payload, orderText) {
-      try {
-        const user = getTelegramUser();
-        const response = await fetch("/api/orders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+      const user = getTelegramUser();
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...payload,
+          items: state.cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            qty: item.qty,
+            variant: item.selectedVariant || "",
+            price: item.price || 0,
+          })),
+          orderText,
+          telegram: {
+            id: user?.id || "",
+            username: user?.username || "",
+            first_name: user?.first_name || "",
+            last_name: user?.last_name || "",
           },
-          body: JSON.stringify({
-            ...payload,
-            items: state.cart.map((item) => ({
-              id: item.id,
-              name: item.name,
-              qty: item.qty,
-              variant: item.selectedVariant || "",
-              price: item.price || 0,
-            })),
-            orderText,
-            telegram: {
-              id: user?.id || "",
-              username: user?.username || "",
-              first_name: user?.first_name || "",
-              last_name: user?.last_name || "",
-            },
-          }),
-        });
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error("order_api_failed");
-        }
-      } catch (error) {
-        console.warn("Order backend unavailable:", error);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.ok === false) {
+        throw new Error(data?.error || "Не удалось сохранить заказ. Попробуйте ещё раз.");
       }
+
+      return data;
     }
 
-    function submitOrder() {
+    async function submitOrder() {
+      if (isSubmittingOrder) {
+        return;
+      }
       if (!state.cart.length) {
         showToast("Корзина пустая", "error");
         return;
@@ -370,32 +389,49 @@
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
 
       const orderText = buildOrderText(payload);
+      setSubmitOrderState(true);
 
-      submitOrderToBackend(payload, orderText);
+      try {
+        const result = await submitOrderToBackend(payload, orderText);
 
-      if (tg) {
-        tg.sendData(orderText);
-        tg.showAlert("Заказ отправлен. Скоро мы свяжемся с вами.");
-        showToast("Заказ отправлен");
-        trackEvent("order_submitted", {
-          total,
-          items: state.cart.map((item) => ({
-            id: item.id,
-            name: item.name,
-            qty: item.qty,
-            variant: item.selectedVariant || "",
-          })),
-        });
-      } else {
-        showToast("Заказ сформирован. Проверьте данные ниже.");
-        console.log(orderText);
+        if (tg) {
+          try {
+            tg.sendData(orderText);
+          } catch (error) {
+            console.warn("Telegram sendData failed:", error);
+          }
+          try {
+            tg.showAlert?.(`Заказ отправлен${result?.orderId ? ` #${result.orderId}` : ""}. Скоро мы свяжемся с вами.`);
+          } catch (error) {
+            console.warn("Telegram showAlert failed:", error);
+          }
+          showToast(result?.orderId ? `Заказ отправлен #${result.orderId}` : "Заказ отправлен");
+          trackEvent("order_submitted", {
+            order_id: result?.orderId || "",
+            total,
+            items: state.cart.map((item) => ({
+              id: item.id,
+              name: item.name,
+              qty: item.qty,
+              variant: item.selectedVariant || "",
+            })),
+          });
+        } else {
+          showToast(result?.orderId ? `Заказ отправлен #${result.orderId}` : "Заказ отправлен");
+          console.log(orderText);
+        }
+
+        state.cart = [];
+        persistCart();
+        renderCart();
+        updateCartButton();
+        switchView("shop");
+      } catch (error) {
+        console.warn("Order submission failed:", error);
+        showToast(error.message || "Не удалось отправить заказ. Корзина сохранена.", "error");
+      } finally {
+        setSubmitOrderState(false);
       }
-
-      state.cart = [];
-      persistCart();
-      renderCart();
-      updateCartButton();
-      switchView("shop");
     }
 
     ["customerName", "customerPhone", "customerDelivery", "customerLocation", "customerComment"].forEach((id) => {

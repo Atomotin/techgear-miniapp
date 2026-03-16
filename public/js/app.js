@@ -641,10 +641,10 @@ const tg = window.Telegram?.WebApp || null;
       const key = String(productId);
       if (isFavorite(key)) {
         state.favorites = state.favorites.filter((id) => String(id) !== key);
-        showToast("Товар убран из избранного");
+        showToast("Убрано из избранного");
       } else {
         state.favorites = [...state.favorites, key];
-        showToast("Товар добавлен в избранное");
+        showToast("Добавлено в избранное");
       }
 
       saveStorage(STORAGE_KEYS.favorites, state.favorites);

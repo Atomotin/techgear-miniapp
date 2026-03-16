@@ -809,7 +809,7 @@ const state = {
               body: JSON.stringify({ status })
             });
             await loadAdminData();
-            showActionResult("orderActionMessage", "Статус заказа обновлён");
+            showActionResult("orderActionMessage", "Статус обновлён");
             const notificationMessage = getOrderNotificationMessage(response.notification);
             if (notificationMessage) {
               showToast(notificationMessage, "warning");
@@ -841,8 +841,8 @@ const state = {
             showActionResult(
               "orderActionMessage",
               managerAssignee.trim() || managerNote.trim()
-                ? "Ответственный и заметка по заказу сохранены"
-                : "Ответственный и заметка по заказу очищены"
+                ? "CRM сохранено"
+                : "CRM очищено"
             );
           } catch (error) {
             showActionResult("orderActionMessage", error.message, true);
@@ -865,7 +865,7 @@ const state = {
             return;
           }
 
-          showActionResult("orderActionMessage", `Шаблон "${template.label}" подставлен. Нажмите "Сохранить CRM".`);
+          showActionResult("orderActionMessage", `Шаблон "${template.label}" добавлен, сохраните CRM`);
         });
       });
     }

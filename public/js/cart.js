@@ -31,7 +31,7 @@
       showToast(
         existing
           ? `${formatCartItemToastLabel(existing)}: теперь ${existing.qty} шт.`
-          : `Добавлено в корзину: ${formatCartItemToastLabel(product, selectedVariant)}`,
+          : `В корзине: ${formatCartItemToastLabel(product, selectedVariant)}`,
         "success",
         { replaceKey: `cart:${cartKey}` }
       );
@@ -54,7 +54,7 @@
       const itemLabel = formatCartItemToastLabel(item);
       if (item.qty <= 0) {
         state.cart = state.cart.filter((i) => (i.cartKey || String(i.id)) !== cartKey);
-        showToast(`${itemLabel} удалён из корзины`, "info", { replaceKey: `cart:${cartKey}` });
+        showToast(`${itemLabel} удалён`, "info", { replaceKey: `cart:${cartKey}` });
       } else {
         showToast(`${itemLabel}: ${item.qty} шт.`, "info", { replaceKey: `cart:${cartKey}` });
       }
@@ -69,7 +69,7 @@
       persistCart();
       renderCart();
       updateCartButton();
-      showToast(`${formatCartItemToastLabel(item)} удалён из корзины`, "info", { replaceKey: `cart:${cartKey}` });
+      showToast(`${formatCartItemToastLabel(item)} удалён`, "info", { replaceKey: `cart:${cartKey}` });
     }
 
     function clearCart() {
@@ -181,7 +181,7 @@
         persistProfileFields();
         applyProfileToCheckout();
         switchView("cart");
-        showToast("Данные профиля подставлены в заказ");
+        showToast("Профиль подставлен в заказ");
       });
     }
 
@@ -259,7 +259,7 @@
           const value = `${lat}, ${lon}`;
           document.getElementById("customerLocation").value = value;
           persistCheckoutFields();
-          showToast("Локация успешно получена");
+          showToast("Локация получена");
         },
         () => {
           showToast("Не удалось получить локацию. Можно продолжить и без неё.", "error");
@@ -418,7 +418,7 @@
           } catch (error) {
             console.warn("Telegram showAlert failed:", error);
           }
-          showToast(result?.orderId ? `Заказ отправлен #${result.orderId}` : "Заказ отправлен");
+          showToast(result?.orderId ? `Заказ принят #${result.orderId}` : "Заказ принят");
           trackEvent("order_submitted", {
             order_id: result?.orderId || "",
             total,
@@ -430,7 +430,7 @@
             })),
           });
         } else {
-          showToast(result?.orderId ? `Заказ отправлен #${result.orderId}` : "Заказ отправлен");
+          showToast(result?.orderId ? `Заказ принят #${result.orderId}` : "Заказ принят");
           console.log(orderText);
         }
 

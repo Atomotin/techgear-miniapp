@@ -81,7 +81,34 @@ const state = {
       const node = document.getElementById(id);
       if (!node) return;
       node.textContent = value;
-      node.style.color = isError ? "#ff9caa" : "rgba(245,251,255,0.72)";
+      node.style.color = isError ? "var(--danger)" : "var(--muted)";
+    }
+
+    function showToast(message, tone = "success") {
+      const stack = document.getElementById("toastStack");
+      const text = String(message || "").trim();
+      if (!stack || !text) return;
+
+      const toast = document.createElement("div");
+      toast.className = `toast${tone === "error" ? " error" : tone === "warning" ? " warning" : ""}`;
+      toast.textContent = text;
+      stack.appendChild(toast);
+
+      while (stack.children.length > 4) {
+        stack.firstElementChild?.remove();
+      }
+
+      window.setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-6px)";
+        toast.style.transition = "opacity 0.18s ease, transform 0.18s ease";
+        window.setTimeout(() => toast.remove(), 180);
+      }, 2800);
+    }
+
+    function showActionResult(id, value, isError = false, tone = isError ? "error" : "success") {
+      showMessage(id, value, isError);
+      showToast(value, tone);
     }
 
     function getOrderCustomerKey(order = {}) {
@@ -267,7 +294,7 @@ const state = {
       const files = Array.from(input.files || []);
 
       if (!files.length) {
-        showMessage("uploadMessage", "Сначала выбери один или несколько файлов", true);
+        showActionResult("uploadMessage", "Сначала выбери один или несколько файлов", true);
         return;
       }
 
@@ -296,9 +323,9 @@ const state = {
         state.uploadedImages = merged;
         renderUploadedImages(merged);
         input.value = "";
-        showMessage("uploadMessage", `Загружено файлов: ${uploadedPaths.length}`);
+        showActionResult("uploadMessage", `Загружено файлов: ${uploadedPaths.length}`);
       } catch (error) {
-        showMessage("uploadMessage", error.message, true);
+        showActionResult("uploadMessage", error.message, true);
       }
     }
 
@@ -362,7 +389,7 @@ const state = {
       const file = Array.from(input.files || [])[0];
 
       if (!file) {
-        showMessage("bannerUploadMessage", "Сначала выбери файл", true);
+        showActionResult("bannerUploadMessage", "Сначала выбери файл", true);
         return;
       }
 
@@ -378,9 +405,9 @@ const state = {
         document.getElementById("bannerImage").value = result.path;
         input.value = "";
         renderBannerPreview();
-        showMessage("bannerUploadMessage", "Картинка загружена");
+        showActionResult("bannerUploadMessage", "Картинка загружена");
       } catch (error) {
-        showMessage("bannerUploadMessage", error.message, true);
+        showActionResult("bannerUploadMessage", error.message, true);
       }
     }
 
@@ -434,9 +461,9 @@ const state = {
             if (state.editingBannerId === Number(button.dataset.deleteBanner)) {
               fillBannerForm(null);
             }
-            showMessage("bannerMessage", "Баннер удалён");
+            showActionResult("bannerMessage", "Баннер удалён");
           } catch (error) {
-            showMessage("bannerMessage", error.message, true);
+            showActionResult("bannerMessage", error.message, true);
           }
         });
       });
@@ -552,9 +579,9 @@ const state = {
           try {
             state.catalog = await api(`/api/admin/categories/${encodeURIComponent(button.dataset.deleteCategory)}`, { method: "DELETE" });
             renderAll();
-            showMessage("categoryMessage", "Категория удалена");
+            showActionResult("categoryMessage", "Категория удалена");
           } catch (error) {
-            showMessage("categoryMessage", error.message, true);
+            showActionResult("categoryMessage", error.message, true);
           }
         });
       });
@@ -597,9 +624,9 @@ const state = {
             if (state.editingId === Number(button.dataset.deleteProduct)) {
               fillProductForm(null);
             }
-            showMessage("productMessage", "Товар удалён");
+            showActionResult("productMessage", "Товар удалён");
           } catch (error) {
-            showMessage("productMessage", error.message, true);
+            showActionResult("productMessage", error.message, true);
           }
         });
       });
@@ -644,12 +671,13 @@ const state = {
               body: JSON.stringify({ status })
             });
             await loadAdminData();
+            showToast("Статус заказа обновлён");
             const notificationMessage = getOrderNotificationMessage(response.notification);
             if (notificationMessage) {
-              alert(notificationMessage);
+              showToast(notificationMessage, "warning");
             }
           } catch (error) {
-            alert(error.message);
+            showToast(error.message, "error");
           }
         });
       });
@@ -663,7 +691,7 @@ const state = {
       const searchValue = state.orderSearch.trim().toLowerCase();
 
       if (orderActionMessage && !orderActionMessage.textContent) {
-        orderActionMessage.style.color = "rgba(245,251,255,0.72)";
+        orderActionMessage.style.color = "var(--muted)";
       }
 
       syncOrderDateFilterButtons();
@@ -781,12 +809,13 @@ const state = {
               body: JSON.stringify({ status })
             });
             await loadAdminData();
+            showActionResult("orderActionMessage", "Статус заказа обновлён");
             const notificationMessage = getOrderNotificationMessage(response.notification);
             if (notificationMessage) {
-              alert(notificationMessage);
+              showToast(notificationMessage, "warning");
             }
           } catch (error) {
-            alert(error.message);
+            showActionResult("orderActionMessage", error.message, true);
           }
         });
       });
@@ -809,14 +838,14 @@ const state = {
               body: JSON.stringify({ managerNote, managerAssignee })
             });
             await loadAdminData();
-            showMessage(
+            showActionResult(
               "orderActionMessage",
               managerAssignee.trim() || managerNote.trim()
                 ? "Ответственный и заметка по заказу сохранены"
                 : "Ответственный и заметка по заказу очищены"
             );
           } catch (error) {
-            showMessage("orderActionMessage", error.message, true);
+            showActionResult("orderActionMessage", error.message, true);
           } finally {
             button.disabled = false;
             button.textContent = initialText;
@@ -832,11 +861,11 @@ const state = {
           const applied = applyOrderNoteTemplate(noteInput, template?.text);
 
           if (!applied) {
-            showMessage("orderActionMessage", "Не удалось подставить шаблон", true);
+            showActionResult("orderActionMessage", "Не удалось подставить шаблон", true);
             return;
           }
 
-          showMessage("orderActionMessage", `Шаблон "${template.label}" подставлен. Нажмите "Сохранить CRM".`);
+          showActionResult("orderActionMessage", `Шаблон "${template.label}" подставлен. Нажмите "Сохранить CRM".`);
         });
       });
     }
@@ -1049,8 +1078,9 @@ const state = {
         document.getElementById("loginView").classList.add("hidden");
         document.getElementById("appView").classList.remove("hidden");
         await loadAdminData();
+        showToast("Вход выполнен");
       } catch (error) {
-        showMessage("loginMessage", error.message, true);
+        showActionResult("loginMessage", error.message, true);
       }
     }
 
@@ -1062,12 +1092,12 @@ const state = {
           : await api("/api/admin/products", { method: "POST", body: JSON.stringify(payload) });
 
         renderAll();
-        showMessage("productMessage", state.editingId ? "Товар обновлён" : "Товар создан");
+        showActionResult("productMessage", state.editingId ? "Товар обновлён" : "Товар создан");
         if (!state.editingId) {
           fillProductForm(state.catalog.products[0]);
         }
       } catch (error) {
-        showMessage("productMessage", error.message, true);
+        showActionResult("productMessage", error.message, true);
       }
     }
 
@@ -1082,9 +1112,9 @@ const state = {
         document.getElementById("categoryKey").value = "";
         document.getElementById("categoryLabel").value = "";
         renderAll();
-        showMessage("categoryMessage", "Категория добавлена");
+        showActionResult("categoryMessage", "Категория добавлена");
       } catch (error) {
-        showMessage("categoryMessage", error.message, true);
+        showActionResult("categoryMessage", error.message, true);
       }
     }
 
@@ -1097,12 +1127,34 @@ const state = {
 
         state.banners = response.banners || [];
         renderBanners();
-        showMessage("bannerMessage", state.editingBannerId ? "Баннер обновлён" : "Баннер создан");
+        showActionResult("bannerMessage", state.editingBannerId ? "Баннер обновлён" : "Баннер создан");
         if (!state.editingBannerId) {
           fillBannerForm(state.banners[0] || null);
         }
       } catch (error) {
-        showMessage("bannerMessage", error.message, true);
+        showActionResult("bannerMessage", error.message, true);
+      }
+    }
+
+    async function refreshAdminData() {
+      const button = document.getElementById("refreshBtn");
+      const initialText = button?.textContent || "";
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Обновляю...";
+      }
+
+      try {
+        await loadAdminData();
+        showToast("Данные обновлены");
+      } catch (error) {
+        showToast(error.message, "error");
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = initialText;
+        }
       }
     }
 
@@ -1117,7 +1169,7 @@ const state = {
     document.getElementById("passwordInput").addEventListener("keydown", (event) => {
       if (event.key === "Enter") login();
     });
-    document.getElementById("refreshBtn").addEventListener("click", loadAdminData);
+    document.getElementById("refreshBtn").addEventListener("click", refreshAdminData);
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("orderSearchInput").addEventListener("input", (event) => {
       state.orderSearch = event.target.value;

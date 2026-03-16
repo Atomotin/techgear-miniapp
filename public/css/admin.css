@@ -411,6 +411,61 @@ button:hover {
   box-shadow: var(--shadow);
 }
 
+.toast-stack {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 40;
+  width: min(360px, calc(100vw - 28px));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 13px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(62, 122, 115, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(239, 248, 245, 0.96)),
+    linear-gradient(135deg, rgba(62, 122, 115, 0.06), rgba(224, 188, 103, 0.08));
+  color: var(--text);
+  box-shadow:
+    0 18px 32px rgba(57, 65, 62, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+  line-height: 1.45;
+  animation: toast-in 0.22s ease forwards;
+}
+
+.toast.warning {
+  border-color: rgba(224, 188, 103, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 242, 0.99), rgba(249, 238, 208, 0.96)),
+    linear-gradient(135deg, rgba(224, 188, 103, 0.12), rgba(229, 139, 98, 0.06));
+  color: #7a5d1d;
+}
+
+.toast.error {
+  border-color: rgba(184, 106, 90, 0.26);
+  background:
+    linear-gradient(180deg, rgba(255, 249, 247, 0.99), rgba(251, 236, 232, 0.96)),
+    linear-gradient(135deg, rgba(184, 106, 90, 0.08), rgba(229, 139, 98, 0.06));
+  color: #874538;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .login-card .row .btn {
   width: 100%;
 }
@@ -775,6 +830,13 @@ button:hover {
 @media (max-width: 720px) {
   body {
     padding: 14px;
+  }
+
+  .toast-stack {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
   }
 
   .panel,

@@ -16,6 +16,14 @@ const state = {
       customerSearch: ""
     };
 
+    const ORDER_NOTE_TEMPLATES = [
+      { key: "call-later", label: "Позвонить позже", text: "Позвонить клиенту позже." },
+      { key: "need-address", label: "Уточнить адрес", text: "Уточнить адрес доставки." },
+      { key: "need-variant", label: "Уточнить вариант", text: "Уточнить цвет или вариант товара." },
+      { key: "out-of-stock", label: "Нет в наличии", text: "Сообщить клиенту, что товара нет в наличии." },
+      { key: "waiting-confirmation", label: "Ждём ответ", text: "Ожидаем подтверждение заказа от клиента." }
+    ];
+
     async function api(path, options = {}) {
       const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
       if (state.token) {
@@ -102,6 +110,35 @@ const state = {
 
     function getOrderManagerAssignee(order = {}) {
       return String(order.requestMeta?.adminAssignee || "").trim();
+    }
+
+    function getOrderNoteTemplate(templateKey) {
+      return ORDER_NOTE_TEMPLATES.find((template) => template.key === templateKey) || null;
+    }
+
+    function applyOrderNoteTemplate(noteInput, templateText) {
+      if (!noteInput || !templateText) {
+        return false;
+      }
+
+      const nextLine = String(templateText).trim();
+      if (!nextLine) {
+        return false;
+      }
+
+      const existingLines = String(noteInput.value || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (!existingLines.includes(nextLine)) {
+        existingLines.push(nextLine);
+        noteInput.value = existingLines.join("\n");
+      }
+
+      noteInput.focus();
+      noteInput.setSelectionRange(noteInput.value.length, noteInput.value.length);
+      return true;
     }
 
     function getDayStart(date = new Date()) {
@@ -717,6 +754,11 @@ const state = {
               Заметка менеджера
               <textarea rows="3" maxlength="1000" data-order-note-input="${order.id}" placeholder="Например: позвонить после 18:00, уточнить цвет, предупредить о сроке">${escapeHtml(managerNote)}</textarea>
             </label>
+            <div class="template-actions">
+              ${ORDER_NOTE_TEMPLATES.map((template) => `
+                <button class="btn btn-secondary btn-small" type="button" data-order-template="${order.id}:${template.key}">${escapeHtml(template.label)}</button>
+              `).join("")}
+            </div>
             ${noteUpdatedAt ? `<div class="muted">Обновлено: ${escapeHtml(noteUpdatedAt)}</div>` : ""}
             <div class="product-actions">
               ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
@@ -779,6 +821,22 @@ const state = {
             button.disabled = false;
             button.textContent = initialText;
           }
+        });
+      });
+
+      list.querySelectorAll("[data-order-template]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const [orderId, templateKey] = String(button.dataset.orderTemplate || "").split(":");
+          const noteInput = list.querySelector(`[data-order-note-input="${orderId}"]`);
+          const template = getOrderNoteTemplate(templateKey);
+          const applied = applyOrderNoteTemplate(noteInput, template?.text);
+
+          if (!applied) {
+            showMessage("orderActionMessage", "Не удалось подставить шаблон", true);
+            return;
+          }
+
+          showMessage("orderActionMessage", `Шаблон "${template.label}" подставлен. Нажмите "Сохранить CRM".`);
         });
       });
     }

@@ -258,6 +258,13 @@
       flex-wrap: wrap;
     }
 
+    .template-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
     .list {
       display: grid;
       gap: 10px;

@@ -9,6 +9,7 @@ const state = {
       uploadedImages: [],
       orderSearch: "",
       orderStatusFilter: "all",
+      orderDateFilter: "all",
       orderAssigneeFilter: "all",
       orderCustomerKeyFilter: "",
       orderCustomerLabelFilter: "",
@@ -97,6 +98,55 @@ const state = {
 
     function getOrderManagerAssignee(order = {}) {
       return String(order.requestMeta?.adminAssignee || "").trim();
+    }
+
+    function getDayStart(date = new Date()) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function matchesOrderDateFilter(order = {}) {
+      if (state.orderDateFilter === "all") {
+        return true;
+      }
+
+      const createdAt = new Date(order.createdAt);
+      if (Number.isNaN(createdAt.getTime())) {
+        return false;
+      }
+
+      const todayStart = getDayStart();
+
+      if (state.orderDateFilter === "today") {
+        return createdAt >= todayStart;
+      }
+
+      if (state.orderDateFilter === "yesterday") {
+        const yesterdayStart = new Date(todayStart);
+        yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+        return createdAt >= yesterdayStart && createdAt < todayStart;
+      }
+
+      if (state.orderDateFilter === "7d") {
+        const start = new Date(todayStart);
+        start.setDate(start.getDate() - 6);
+        return createdAt >= start;
+      }
+
+      if (state.orderDateFilter === "30d") {
+        const start = new Date(todayStart);
+        start.setDate(start.getDate() - 29);
+        return createdAt >= start;
+      }
+
+      return true;
+    }
+
+    function syncOrderDateFilterButtons() {
+      document.querySelectorAll("[data-order-date-filter]").forEach((button) => {
+        const isActive = button.dataset.orderDateFilter === state.orderDateFilter;
+        button.classList.toggle("btn-primary", isActive);
+        button.classList.toggle("btn-secondary", !isActive);
+      });
     }
 
     function syncOrderAssigneeFilterOptions() {
@@ -558,6 +608,7 @@ const state = {
         orderActionMessage.style.color = "rgba(245,251,255,0.72)";
       }
 
+      syncOrderDateFilterButtons();
       syncOrderAssigneeFilterOptions();
 
       if (customerFilterNotice) {
@@ -571,6 +622,8 @@ const state = {
       }
 
       const filteredOrders = state.orders.filter((order) => {
+        const matchesDate = matchesOrderDateFilter(order);
+        if (!matchesDate) return false;
         const matchesStatus = state.orderStatusFilter === "all" || order.status === state.orderStatusFilter;
         if (!matchesStatus) return false;
         const orderAssignee = getOrderManagerAssignee(order);
@@ -992,6 +1045,12 @@ const state = {
     document.getElementById("orderStatusFilter").addEventListener("change", (event) => {
       state.orderStatusFilter = event.target.value;
       renderOrders();
+    });
+    document.querySelectorAll("[data-order-date-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.orderDateFilter = button.dataset.orderDateFilter || "all";
+        renderOrders();
+      });
     });
     document.getElementById("orderAssigneeFilter")?.addEventListener("change", (event) => {
       state.orderAssigneeFilter = event.target.value;

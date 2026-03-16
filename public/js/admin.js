@@ -46,6 +46,10 @@ const state = {
       return new Intl.NumberFormat("ru-RU").format(value) + " сум";
     }
 
+    function formatAmount(value) {
+      return `${new Intl.NumberFormat("ru-RU").format(Number(value) || 0)} сум`;
+    }
+
     function formatDateTime(value) {
       if (!value) return "";
       const date = new Date(value);
@@ -147,6 +151,23 @@ const state = {
         button.classList.toggle("btn-primary", isActive);
         button.classList.toggle("btn-secondary", !isActive);
       });
+    }
+
+    function renderOrderSummary(orders = []) {
+      const summary = document.getElementById("orderSummaryBadges");
+      if (!summary) return;
+
+      const totalOrders = orders.length;
+      const totalAmount = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+      const newOrders = orders.filter((order) => order.status === "new").length;
+      const unassignedOrders = orders.filter((order) => !getOrderManagerAssignee(order)).length;
+
+      summary.innerHTML = [
+        `<span class="badge">Заказов: ${totalOrders}</span>`,
+        `<span class="badge">Сумма: ${escapeHtml(formatAmount(totalAmount))}</span>`,
+        `<span class="badge">Новых: ${newOrders}</span>`,
+        `<span class="badge">Без ответственного: ${unassignedOrders}</span>`
+      ].join("");
     }
 
     function syncOrderAssigneeFilterOptions() {
@@ -646,6 +667,8 @@ const state = {
 
         return haystack.includes(searchValue);
       });
+
+      renderOrderSummary(filteredOrders);
 
       if (!state.orders.length) {
         list.innerHTML = '<div class="hint">Пока заказов нет.</div>';

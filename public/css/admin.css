@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --bg: #f6f0e7;
-  --bg-tint: #ece4d6;
+  --bg: #efe7dc;
+  --bg-tint: #e3d9ca;
   --surface: rgba(255, 252, 247, 0.94);
   --surface-strong: #fffdfa;
   --surface-muted: #f5efe7;
@@ -36,10 +36,10 @@ body {
   color: var(--text);
   padding: 28px;
   background:
-    radial-gradient(circle at top left, rgba(96, 157, 145, 0.22), transparent 28%),
-    radial-gradient(circle at 85% 12%, rgba(229, 139, 98, 0.18), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(224, 188, 103, 0.16), transparent 24%),
-    linear-gradient(180deg, #faf6ef 0%, #f2ebe0 54%, #ede5d9 100%);
+    radial-gradient(circle at top left, rgba(96, 157, 145, 0.2), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(229, 139, 98, 0.15), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(224, 188, 103, 0.14), transparent 24%),
+    linear-gradient(180deg, #f2eadf 0%, #e9dfd1 54%, #e1d7c8 100%);
 }
 
 body::before {
@@ -48,8 +48,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 28%),
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.55), transparent 22%);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 28%),
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.32), transparent 22%);
   z-index: -1;
 }
 
@@ -299,11 +299,46 @@ button:hover {
   transform: translateY(-1px);
 }
 
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  position: relative;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.46),
+    0 10px 18px rgba(57, 65, 62, 0.08);
+}
+
+.btn-small {
+  min-height: 38px;
+  padding-left: 13px;
+  padding-right: 13px;
+}
+
+.btn::after,
+.btn-primary::after,
+.btn-secondary::after,
+.btn-danger::after {
+  content: "";
+  position: absolute;
+  inset: 1px 1px auto;
+  height: 42%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-warm));
   color: #f7fbf9;
-  border: 1px solid rgba(62, 122, 115, 0.12);
-  box-shadow: 0 12px 24px rgba(98, 89, 76, 0.14);
+  border-color: rgba(62, 122, 115, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 14px 26px rgba(98, 89, 76, 0.16);
 }
 
 .btn-secondary {
@@ -311,15 +346,19 @@ button:hover {
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(238, 247, 243, 0.88)),
     linear-gradient(135deg, rgba(62, 122, 115, 0.03), rgba(229, 139, 98, 0.04));
   color: var(--text);
-  border: 1px solid var(--line);
-  box-shadow: none;
+  border-color: rgba(60, 76, 72, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 8px 16px rgba(57, 65, 62, 0.06);
 }
 
 .btn-danger {
   background: var(--danger-soft);
   color: #8e4f42;
-  border: 1px solid rgba(184, 106, 90, 0.22);
-  box-shadow: none;
+  border-color: rgba(184, 106, 90, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 8px 16px rgba(152, 92, 78, 0.08);
 }
 
 .btn-primary:hover {
@@ -335,6 +374,34 @@ button:hover {
 .btn-danger:hover {
   background: #fff5f2;
   border-color: rgba(184, 106, 90, 0.3);
+}
+
+.btn:active,
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    inset 0 2px 6px rgba(34, 49, 46, 0.12),
+    0 4px 10px rgba(57, 65, 62, 0.06);
+}
+
+.hero-actions .btn,
+.hero-actions a,
+.product-actions .btn,
+.product-actions a,
+.template-actions .btn,
+#orderDateFilters .btn {
+  border-radius: 14px;
+}
+
+.product-actions .btn,
+.product-actions a {
+  min-width: 124px;
+}
+
+.template-actions .btn {
+  min-width: 138px;
 }
 
 .login-card {

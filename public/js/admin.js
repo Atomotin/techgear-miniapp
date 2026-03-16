@@ -9,6 +9,8 @@ const state = {
       uploadedImages: [],
       orderSearch: "",
       orderStatusFilter: "all",
+      orderCustomerKeyFilter: "",
+      orderCustomerLabelFilter: "",
       customerSearch: ""
     };
 
@@ -59,6 +61,30 @@ const state = {
       if (!node) return;
       node.textContent = value;
       node.style.color = isError ? "#ff9caa" : "rgba(245,251,255,0.72)";
+    }
+
+    function getOrderCustomerKey(order = {}) {
+      return buildCustomerKey({
+        ...(order.customer || {}),
+        telegramId: order.customer?.telegramId || order.telegram?.id
+      });
+    }
+
+    function applyOrderCustomerFilter(customer = {}) {
+      const key = customer.key || buildCustomerKey(customer);
+      if (!key) return;
+
+      state.orderCustomerKeyFilter = key;
+      state.orderCustomerLabelFilter = customer.name || customer.phone || customer.username || "клиент";
+      renderOrders();
+      document.getElementById("ordersList")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function clearOrderCustomerFilter() {
+      if (!state.orderCustomerKeyFilter) return;
+      state.orderCustomerKeyFilter = "";
+      state.orderCustomerLabelFilter = "";
+      renderOrders();
     }
 
     function getOrderNotificationMessage(notification) {
@@ -490,10 +516,25 @@ const state = {
 
     function renderOrders() {
       const list = document.getElementById("ordersList");
+      const customerFilterNotice = document.getElementById("orderCustomerFilterNotice");
+      const clearCustomerFilterBtn = document.getElementById("clearOrderCustomerFilterBtn");
       const searchValue = state.orderSearch.trim().toLowerCase();
+
+      if (customerFilterNotice) {
+        customerFilterNotice.textContent = state.orderCustomerKeyFilter
+          ? `Фильтр по клиенту: ${state.orderCustomerLabelFilter}`
+          : "";
+      }
+
+      if (clearCustomerFilterBtn) {
+        clearCustomerFilterBtn.classList.toggle("hidden", !state.orderCustomerKeyFilter);
+      }
+
       const filteredOrders = state.orders.filter((order) => {
         const matchesStatus = state.orderStatusFilter === "all" || order.status === state.orderStatusFilter;
         if (!matchesStatus) return false;
+        const matchesCustomer = !state.orderCustomerKeyFilter || getOrderCustomerKey(order) === state.orderCustomerKeyFilter;
+        if (!matchesCustomer) return false;
         if (!searchValue) return true;
 
         const haystack = [
@@ -513,7 +554,9 @@ const state = {
       }
 
       if (!filteredOrders.length) {
-        list.innerHTML = '<div class="hint">По выбранным фильтрам заказы не найдены.</div>';
+        list.innerHTML = state.orderCustomerKeyFilter
+          ? '<div class="hint">По выбранному клиенту заказы не найдены.</div>'
+          : '<div class="hint">По выбранным фильтрам заказы не найдены.</div>';
         return;
       }
 
@@ -717,12 +760,21 @@ const state = {
             ${customer.comment ? `<div class="muted stack-top-gap">Комментарий: ${escapeHtml(customer.comment)}</div>` : ""}
             <div class="badge-row">${statuses}</div>
             <div class="product-actions">
+              <button class="btn btn-secondary btn-small" type="button" data-customer-orders="${escapeHtml(customer.key)}">Заказы клиента</button>
               ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
               ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
             </div>
           </article>
         `;
       }).join("");
+
+      list.querySelectorAll("[data-customer-orders]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const customer = customers.find((item) => item.key === button.dataset.customerOrders);
+          if (!customer) return;
+          applyOrderCustomerFilter(customer);
+        });
+      });
     }
 
     function renderAll() {
@@ -846,6 +898,7 @@ const state = {
       state.orderStatusFilter = event.target.value;
       renderOrders();
     });
+    document.getElementById("clearOrderCustomerFilterBtn")?.addEventListener("click", clearOrderCustomerFilter);
     document.getElementById("customerSearchInput").addEventListener("input", (event) => {
       state.customerSearch = event.target.value;
       renderCustomers();

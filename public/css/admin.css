@@ -427,16 +427,19 @@ button:hover {
   overflow: hidden;
   padding: 13px 15px;
   padding-left: 20px;
+  padding-right: 52px;
   border-radius: 16px;
-  border: 1px solid rgba(62, 122, 115, 0.3);
+  border: 1px solid rgba(109, 223, 196, 0.32);
   background:
-    linear-gradient(180deg, rgba(255, 253, 249, 0.995), rgba(241, 249, 245, 0.975)),
-    linear-gradient(135deg, rgba(62, 122, 115, 0.12), rgba(224, 188, 103, 0.08));
-  color: var(--text);
+    linear-gradient(180deg, rgba(19, 34, 31, 0.98), rgba(11, 21, 19, 0.96)),
+    linear-gradient(135deg, rgba(109, 223, 196, 0.12), rgba(224, 188, 103, 0.08));
+  color: #f4fffb;
   box-shadow:
-    0 20px 38px rgba(57, 65, 62, 0.18),
-    0 0 0 1px rgba(62, 122, 115, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    0 22px 42px rgba(24, 32, 30, 0.34),
+    0 0 0 1px rgba(109, 223, 196, 0.08),
+    0 0 24px rgba(109, 223, 196, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.45;
@@ -449,34 +452,84 @@ button:hover {
   inset: 6px auto 6px 6px;
   width: 5px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--accent), var(--accent-gold));
-  box-shadow: 0 0 12px rgba(62, 122, 115, 0.22);
+  background: linear-gradient(180deg, #6ddfc4, #f0d36f);
+  box-shadow: 0 0 14px rgba(109, 223, 196, 0.34);
+}
+
+.toast::after {
+  content: "OK";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(109, 223, 196, 0.12);
+  border: 1px solid rgba(109, 223, 196, 0.28);
+  color: #baf7ea;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .toast.warning {
-  border-color: rgba(224, 188, 103, 0.38);
+  border-color: rgba(240, 211, 111, 0.34);
   background:
-    linear-gradient(180deg, rgba(255, 251, 242, 0.995), rgba(249, 236, 199, 0.975)),
-    linear-gradient(135deg, rgba(224, 188, 103, 0.18), rgba(229, 139, 98, 0.08));
-  color: #725215;
+    linear-gradient(180deg, rgba(43, 30, 11, 0.98), rgba(28, 20, 8, 0.96)),
+    linear-gradient(135deg, rgba(240, 211, 111, 0.14), rgba(229, 139, 98, 0.08));
+  color: #fff1be;
+  box-shadow:
+    0 22px 42px rgba(24, 32, 30, 0.34),
+    0 0 0 1px rgba(240, 211, 111, 0.08),
+    0 0 24px rgba(240, 211, 111, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .toast.warning::before {
-  background: linear-gradient(180deg, var(--accent-gold), var(--accent-warm));
-  box-shadow: 0 0 12px rgba(224, 188, 103, 0.28);
+  background: linear-gradient(180deg, #f0d36f, #ffb173);
+  box-shadow: 0 0 14px rgba(240, 211, 111, 0.3);
+}
+
+.toast.warning::after {
+  content: "!";
+  background: rgba(240, 211, 111, 0.12);
+  border-color: rgba(240, 211, 111, 0.3);
+  color: #ffe7a0;
+  font-size: 15px;
+  letter-spacing: 0;
 }
 
 .toast.error {
-  border-color: rgba(184, 106, 90, 0.4);
+  border-color: rgba(255, 122, 112, 0.34);
   background:
-    linear-gradient(180deg, rgba(255, 249, 247, 0.995), rgba(251, 232, 227, 0.975)),
-    linear-gradient(135deg, rgba(184, 106, 90, 0.16), rgba(229, 139, 98, 0.08));
-  color: #7e3f33;
+    linear-gradient(180deg, rgba(43, 16, 16, 0.98), rgba(28, 10, 10, 0.96)),
+    linear-gradient(135deg, rgba(255, 122, 112, 0.15), rgba(229, 139, 98, 0.08));
+  color: #ffe8e5;
+  box-shadow:
+    0 22px 42px rgba(24, 32, 30, 0.34),
+    0 0 0 1px rgba(255, 122, 112, 0.08),
+    0 0 24px rgba(255, 122, 112, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .toast.error::before {
-  background: linear-gradient(180deg, var(--danger), var(--accent-warm));
-  box-shadow: 0 0 12px rgba(184, 106, 90, 0.26);
+  background: linear-gradient(180deg, #ff7a70, #ffb173);
+  box-shadow: 0 0 14px rgba(255, 122, 112, 0.3);
+}
+
+.toast.error::after {
+  content: "!";
+  background: rgba(255, 122, 112, 0.12);
+  border-color: rgba(255, 122, 112, 0.28);
+  color: #ffd2ce;
+  font-size: 15px;
+  letter-spacing: 0;
 }
 
 @keyframes toast-in {

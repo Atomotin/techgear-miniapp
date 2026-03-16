@@ -189,7 +189,7 @@ const tg = window.Telegram?.WebApp || null;
       activeView: loadStorage(STORAGE_KEYS.activeView, "shop"),
     };
 
-    let toastTimerId = null;
+    let toastIdCounter = 0;
     let lightboxState = {
       images: [],
       index: 0,
@@ -572,23 +572,54 @@ const tg = window.Telegram?.WebApp || null;
       return false;
     }
 
-    function showToast(message, type = "success") {
-      const stack = document.getElementById("toastStack");
-      if (!stack) return;
-
-      if (toastTimerId) {
-        clearTimeout(toastTimerId);
+    function scheduleToastRemoval(toast, duration) {
+      if (!toast) return;
+      if (toast.__removeTimer) {
+        clearTimeout(toast.__removeTimer);
       }
 
-      stack.innerHTML = "";
-      const toast = document.createElement("div");
-      toast.className = "toast" + (type === "error" ? " error" : "");
-      toast.textContent = message;
-      stack.appendChild(toast);
+      toast.__removeTimer = setTimeout(() => {
+        toast.classList.add("is-leaving");
+        window.setTimeout(() => {
+          if (toast.isConnected) {
+            toast.remove();
+          }
+        }, 180);
+      }, duration);
+    }
 
-      toastTimerId = setTimeout(() => {
-        toast.remove();
-      }, 2600);
+    function showToast(message, type = "success", options = {}) {
+      const stack = document.getElementById("toastStack");
+      const text = String(message || "").trim();
+      if (!stack || !text) return;
+
+      const replaceKey = String(options.replaceKey || "").trim();
+      const duration = Number(options.duration) || (type === "error" ? 3200 : 2400);
+      let toast = replaceKey
+        ? [...stack.children].find((node) => node.dataset.toastKey === replaceKey)
+        : null;
+
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.dataset.toastId = `toast-${toastIdCounter++}`;
+        if (replaceKey) {
+          toast.dataset.toastKey = replaceKey;
+        }
+        stack.appendChild(toast);
+      }
+
+      toast.className = "toast" + (type === "error" ? " error" : type === "info" ? " info" : "");
+      toast.textContent = text;
+      toast.classList.remove("is-leaving");
+      toast.setAttribute("role", type === "error" ? "alert" : "status");
+
+      while (stack.children.length > 3) {
+        const oldestToast = stack.firstElementChild;
+        if (!oldestToast || oldestToast === toast) break;
+        oldestToast.remove();
+      }
+
+      scheduleToastRemoval(toast, duration);
     }
 
     function getCardDescription(product) {

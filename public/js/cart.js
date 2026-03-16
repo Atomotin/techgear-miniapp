@@ -2,6 +2,11 @@
 
     let isSubmittingOrder = false;
 
+    function formatCartItemToastLabel(item, variant = item?.selectedVariant || "") {
+      if (!item) return "Товар";
+      return `${item.name}${variant ? ` (${variant})` : ""}`;
+    }
+
     function addToCart(productId, selectedVariant = "") {
       const product = normalizeProducts(PRODUCTS).find((p) => p.id === productId);
       const cartKey = selectedVariant ? `${productId}::${selectedVariant}` : String(productId);
@@ -23,7 +28,13 @@
       renderCart();
       updateCartButton();
       tg?.HapticFeedback?.impactOccurred?.("light");
-      showToast(`Добавлено в корзину: ${product.name}${selectedVariant ? ` (${selectedVariant})` : ""}`);
+      showToast(
+        existing
+          ? `${formatCartItemToastLabel(existing)}: теперь ${existing.qty} шт.`
+          : `Добавлено в корзину: ${formatCartItemToastLabel(product, selectedVariant)}`,
+        "success",
+        { replaceKey: `cart:${cartKey}` }
+      );
     }
 
     function increaseQty(cartKey) {
@@ -33,14 +44,19 @@
       persistCart();
       renderCart();
       updateCartButton();
+      showToast(`${formatCartItemToastLabel(item)}: ${item.qty} шт.`, "info", { replaceKey: `cart:${cartKey}` });
     }
 
     function decreaseQty(cartKey) {
       const item = state.cart.find((i) => (i.cartKey || String(i.id)) === cartKey);
       if (!item) return;
       item.qty -= 1;
+      const itemLabel = formatCartItemToastLabel(item);
       if (item.qty <= 0) {
         state.cart = state.cart.filter((i) => (i.cartKey || String(i.id)) !== cartKey);
+        showToast(`${itemLabel} удалён из корзины`, "info", { replaceKey: `cart:${cartKey}` });
+      } else {
+        showToast(`${itemLabel}: ${item.qty} шт.`, "info", { replaceKey: `cart:${cartKey}` });
       }
       persistCart();
       renderCart();
@@ -48,10 +64,12 @@
     }
 
     function removeItem(cartKey) {
+      const item = state.cart.find((i) => (i.cartKey || String(i.id)) === cartKey);
       state.cart = state.cart.filter((i) => (i.cartKey || String(i.id)) !== cartKey);
       persistCart();
       renderCart();
       updateCartButton();
+      showToast(`${formatCartItemToastLabel(item)} удалён из корзины`, "info", { replaceKey: `cart:${cartKey}` });
     }
 
     function clearCart() {

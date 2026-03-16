@@ -2132,6 +2132,13 @@
       opacity: 0;
       transform: translateY(12px);
       animation: toast-in 0.24s ease forwards;
+      transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .toast.info {
+      border-color: rgba(123, 214, 255, 0.34);
+      color: #e6f8ff;
+      background: rgba(8, 14, 30, 0.94);
     }
 
     .music-fab {
@@ -2179,6 +2186,11 @@
       border-color: rgba(255, 107, 107, 0.34);
       color: #ffe5e5;
       background: rgba(28, 8, 8, 0.94);
+    }
+
+    .toast.is-leaving {
+      opacity: 0;
+      transform: translateY(8px);
     }
 
     @keyframes toast-in {

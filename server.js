@@ -335,6 +335,8 @@ function sanitizePromoBanners(banners) {
 }
 
 function buildDefaultPromoBanners(products = []) {
+  // Promo banners are managed explicitly from the admin panel.
+  return [];
   const catalog = sanitizeProducts(products);
   const withImage = catalog.filter((product) => product.images?.[0]);
   const hot = withImage.find((product) => product.badge === "hot") || withImage[0];
@@ -397,7 +399,7 @@ function buildDefaultPromoBanners(products = []) {
       id: 1,
       kicker: "TechGear",
       title: "Новинки и акции",
-      image: "images.img/lolo.png",
+      image: "",
       cta: "Каталог",
       secondary: "Канал",
       actionType: "reset",

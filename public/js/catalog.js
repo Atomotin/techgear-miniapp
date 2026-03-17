@@ -19,7 +19,7 @@ function buildPromoSlides() {
             title: banner.title || "Новая подборка",
             text: "",
             chips: [],
-            image: banner.image || "images.img/lolo.png",
+            image: banner.image || "",
             cta: banner.cta || banner.ctaLabel || "Открыть",
             secondary: banner.secondary || banner.secondaryLabel || "",
             action: mapAction(banner.actionType, banner.actionValue),
@@ -28,9 +28,7 @@ function buildPromoSlides() {
         })
         .filter((slide) => slide.image && slide.title);
 
-      if (adminSlides.length) {
-        return adminSlides;
-      }
+      return adminSlides;
 
       const catalog = normalizeProducts(PRODUCTS);
       const hotProduct = catalog.find((item) => item.badge === "hot" && item.images?.length) || catalog.find((item) => item.badge === "hot");
@@ -102,7 +100,7 @@ function buildPromoSlides() {
           title: "Новинки, хиты и акции",
           text: "",
           chips: ["Mini App", "Каталог", "Telegram"],
-          image: "images.img/lolo.png",
+          image: "",
           cta: "Каталог",
           secondary: "",
           action: { type: "reset" },
@@ -193,7 +191,21 @@ function buildPromoSlides() {
       if (!shell || !track || !dotsWrap) return;
 
       promoState.slides = buildPromoSlides();
+      if (!promoState.slides.length) {
+        shell.classList.add("hidden");
+        track.innerHTML = "";
+        dotsWrap.innerHTML = "";
+        if (prevBtn) prevBtn.hidden = true;
+        if (nextBtn) nextBtn.hidden = true;
+        stopPromoAutoplay();
+        return;
+      }
+
+      shell.classList.remove("hidden");
       promoState.index = Math.min(promoState.index, Math.max(promoState.slides.length - 1, 0));
+      if (prevBtn) prevBtn.hidden = promoState.slides.length < 2;
+      if (nextBtn) nextBtn.hidden = promoState.slides.length < 2;
+      dotsWrap.hidden = promoState.slides.length < 2;
 
       track.innerHTML = promoState.slides.map((slide) => {
         const imageHtml = slide.image

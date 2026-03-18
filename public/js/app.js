@@ -158,9 +158,13 @@ const tg = window.Telegram?.WebApp || null;
       } catch (e) {}
     }
 
-    let PRODUCTS = Array.isArray(window.TECHGEAR_PRODUCTS) ? window.TECHGEAR_PRODUCTS : [];
-    let CATEGORIES = Array.isArray(window.TECHGEAR_CATEGORIES) ? window.TECHGEAR_CATEGORIES : [];
-    let PROMO_BANNERS = Array.isArray(window.TECHGEAR_BANNERS) ? window.TECHGEAR_BANNERS : [];
+    const BOOTSTRAP_PRODUCTS = Array.isArray(window.TECHGEAR_PRODUCTS) ? window.TECHGEAR_PRODUCTS : [];
+    const BOOTSTRAP_CATEGORIES = Array.isArray(window.TECHGEAR_CATEGORIES) ? window.TECHGEAR_CATEGORIES : [];
+    const BOOTSTRAP_BANNERS = Array.isArray(window.TECHGEAR_BANNERS) ? window.TECHGEAR_BANNERS : [];
+
+    let PRODUCTS = [];
+    let CATEGORIES = [];
+    let PROMO_BANNERS = [];
 
     let state = {
       activeCategory: "all",
@@ -432,13 +436,6 @@ const tg = window.Telegram?.WebApp || null;
     }
 
     async function loadCatalogFromApi() {
-      const hasBootstrapCatalog = Array.isArray(PRODUCTS) && PRODUCTS.length > 0
-        && Array.isArray(CATEGORIES) && CATEGORIES.length > 0;
-
-      if (hasBootstrapCatalog) {
-        return;
-      }
-
       try {
         const response = await fetch("/api/catalog/public", {
           method: "GET",
@@ -453,16 +450,13 @@ const tg = window.Telegram?.WebApp || null;
         }
 
         const data = await response.json();
-        if (Array.isArray(data.products) && data.products.length) {
-          PRODUCTS = data.products;
-        }
-        if (Array.isArray(data.categories) && data.categories.length) {
-          CATEGORIES = data.categories;
-        }
-        if (Array.isArray(data.banners) && data.banners.length) {
-          PROMO_BANNERS = data.banners;
-        }
+        PRODUCTS = Array.isArray(data.products) ? data.products : BOOTSTRAP_PRODUCTS;
+        CATEGORIES = Array.isArray(data.categories) ? data.categories : BOOTSTRAP_CATEGORIES;
+        PROMO_BANNERS = Array.isArray(data.banners) ? data.banners : BOOTSTRAP_BANNERS;
       } catch (error) {
+        PRODUCTS = BOOTSTRAP_PRODUCTS;
+        CATEGORIES = BOOTSTRAP_CATEGORIES;
+        PROMO_BANNERS = BOOTSTRAP_BANNERS;
         console.warn("Catalog API unavailable, fallback to local data");
       }
     }

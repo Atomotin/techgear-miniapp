@@ -143,6 +143,9 @@ const state = {
       const uploadInfo = diagnostics.uploads || null;
       const issues = [];
       const chips = [`storage: ${storageMode}`];
+      if (runtime.requirePersistentAdminStorage) {
+        chips.push("strict-persistence: on");
+      }
 
       if (bannerInfo?.mode) {
         chips.push(`banners: ${bannerInfo.mode}`);

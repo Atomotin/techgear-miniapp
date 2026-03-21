@@ -8,6 +8,7 @@ function createUploadService({
   createHttpError,
   imageUploadDir,
   supabaseEnabled,
+  requirePersistentStorage,
   uploadBinaryToSupabaseStorage
 }) {
   function sanitizeUploadName(fileName) {
@@ -39,6 +40,13 @@ function createUploadService({
     const fileName = `${Date.now()}-${safeBaseName}${extension}`;
 
     function saveLocally(storageLabel = "local") {
+      if (requirePersistentStorage) {
+        throw createHttpError(
+          503,
+          "Локальная загрузка отключена: настройте постоянное хранилище для картинок и проверьте /api/health"
+        );
+      }
+
       fs.mkdirSync(imageUploadDir, { recursive: true });
       const absolutePath = path.join(imageUploadDir, fileName);
       fs.writeFileSync(absolutePath, buffer);

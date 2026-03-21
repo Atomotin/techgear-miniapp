@@ -2,6 +2,7 @@ function createPublicRouteHandler({
   storage,
   sendJson,
   supabaseEnabled,
+  requirePersistentAdminStorage,
   telegramBotEnabled
 }) {
   function sendLegacyCatalogScript(res, catalog) {
@@ -40,6 +41,7 @@ function createPublicRouteHandler({
         ok: true,
         storage: storage.mode,
         supabaseEnabled,
+        requirePersistentAdminStorage,
         telegramBotEnabled,
         diagnostics,
         timestamp: new Date().toISOString()

@@ -33,6 +33,11 @@ const SUPABASE_REST_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/rest/v1` : "";
 const SUPABASE_STORAGE_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/storage/v1` : "";
 const SUPABASE_UPLOAD_BUCKET = normalizeString(process.env.SUPABASE_STORAGE_BUCKET || "techgear-assets") || "techgear-assets";
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
+const RAILWAY_DEPLOYMENT = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID);
+const REQUIRE_PERSISTENT_ADMIN_STORAGE = parseBooleanEnv(
+  process.env.REQUIRE_PERSISTENT_ADMIN_STORAGE,
+  RAILWAY_DEPLOYMENT || process.env.NODE_ENV === "production"
+);
 const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
 const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
 const TELEGRAM_CHANNEL_URL = normalizeTelegramUrl(process.env.TELEGRAM_CHANNEL_URL || "https://t.me/techgear_uz");
@@ -79,6 +84,14 @@ function normalizeTelegramUrl(value) {
 
 function normalizeString(value) {
   return String(value ?? "").trim();
+}
+
+function parseBooleanEnv(value, fallback = false) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return fallback;
 }
 
 const telegramService = createTelegramService({
@@ -474,6 +487,7 @@ const saveAdminUpload = createUploadService({
   createHttpError,
   imageUploadDir: IMAGE_UPLOAD_DIR,
   supabaseEnabled: SUPABASE_ENABLED,
+  requirePersistentStorage: REQUIRE_PERSISTENT_ADMIN_STORAGE,
   uploadBinaryToSupabaseStorage
 });
 
@@ -531,6 +545,7 @@ const handleApi = createApiHandler({
   ensureAdmin,
   saveAdminUpload,
   supabaseEnabled: SUPABASE_ENABLED,
+  requirePersistentAdminStorage: REQUIRE_PERSISTENT_ADMIN_STORAGE,
   telegramBotEnabled: TELEGRAM_BOT_ENABLED,
   telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET,
   handleTelegramUpdate: telegramService.handleTelegramUpdate,

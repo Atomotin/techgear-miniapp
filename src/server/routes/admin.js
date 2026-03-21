@@ -8,8 +8,33 @@ function createAdminRouteHandler({
   createToken,
   ensureAdmin,
   saveAdminUpload,
+  requirePersistentAdminStorage,
   notifyOrderStatusUpdate
 }) {
+  async function ensurePersistentBannerStorage(res) {
+    if (!requirePersistentAdminStorage) {
+      return true;
+    }
+
+    if (typeof storage.getDiagnostics !== "function") {
+      sendJson(res, 503, {
+        error: "Не удалось проверить хранилище баннеров. Откройте /api/health и проверьте storage."
+      });
+      return false;
+    }
+
+    const diagnostics = await storage.getDiagnostics();
+    const bannerInfo = diagnostics?.banners || null;
+    if (bannerInfo?.persistent !== false) {
+      return true;
+    }
+
+    sendJson(res, 503, {
+      error: `Постоянное хранилище баннеров недоступно: ${bannerInfo.reason || "проверьте /api/health и настройку Supabase"}`
+    });
+    return false;
+  }
+
   return async function handleAdminRoute(req, res, url) {
     if (req.method === "POST" && url.pathname === "/api/admin/login") {
       const body = await readBody(req);
@@ -153,12 +178,20 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/banners") {
+      if (!(await ensurePersistentBannerStorage(res))) {
+        return true;
+      }
+
       const body = await readBody(req);
       sendJson(res, 201, { banners: await storage.createBanner(body) });
       return true;
     }
 
     if (req.method === "PUT" && url.pathname.startsWith("/api/admin/banners/")) {
+      if (!(await ensurePersistentBannerStorage(res))) {
+        return true;
+      }
+
       const bannerId = Number(url.pathname.split("/").pop());
       const body = await readBody(req);
       sendJson(res, 200, { banners: await storage.updateBanner(bannerId, body) });
@@ -166,6 +199,10 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/banners/")) {
+      if (!(await ensurePersistentBannerStorage(res))) {
+        return true;
+      }
+
       const bannerId = Number(url.pathname.split("/").pop());
       sendJson(res, 200, { banners: await storage.deleteBanner(bannerId) });
       return true;

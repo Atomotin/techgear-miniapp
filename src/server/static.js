@@ -2,20 +2,42 @@ const fs = require("fs");
 const path = require("path");
 
 function createStaticHandler({ rootDir, publicDir, mimeTypes, sendText }) {
+  const publicRoot = path.resolve(publicDir);
+  const allowedRootAssets = [
+    { prefix: "/images.img/", dir: path.resolve(rootDir, "images.img") },
+    { prefix: "/songs/", dir: path.resolve(rootDir, "songs") }
+  ];
+
+  function resolveInsideBase(baseDir, requestedPath) {
+    const safeRelativePath = requestedPath.replace(/^[/\\]+/, "");
+    const absolutePath = path.resolve(baseDir, safeRelativePath);
+    const baseWithSep = `${baseDir}${path.sep}`;
+
+    if (absolutePath === baseDir || absolutePath.startsWith(baseWithSep)) {
+      return absolutePath;
+    }
+
+    return "";
+  }
+
   function resolveFilePath(urlPathname) {
     const decodedPath = decodeURIComponent(urlPathname === "/" ? "/index.html" : urlPathname);
     const requestedPath = decodedPath === "/admin" ? "/admin.html" : decodedPath;
-    const safePath = path.normalize(requestedPath).replace(/^(\.\.[/\\])+/, "");
-    const candidateRoots = [publicDir, rootDir];
+    const publicPath = resolveInsideBase(publicRoot, requestedPath);
 
-    for (const baseDir of candidateRoots) {
-      const absolutePath = path.join(baseDir, safePath);
+    if (publicPath && fs.existsSync(publicPath)) {
+      return publicPath;
+    }
 
-      if (!absolutePath.startsWith(baseDir)) {
+    for (const asset of allowedRootAssets) {
+      if (!requestedPath.startsWith(asset.prefix)) {
         continue;
       }
 
-      if (fs.existsSync(absolutePath)) {
+      const relativePath = requestedPath.slice(asset.prefix.length);
+      const absolutePath = resolveInsideBase(asset.dir, relativePath);
+
+      if (absolutePath && fs.existsSync(absolutePath)) {
         return absolutePath;
       }
     }

@@ -23,8 +23,10 @@ const BANNERS_PATH = path.join(DATA_DIR, "banners.json");
 const SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "techgear-admin";
-const TOKEN_SECRET = process.env.ADMIN_SECRET || crypto.createHash("sha256").update(ADMIN_PASSWORD).digest("hex");
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
+const ADMIN_AUTH_ENABLED = Boolean(ADMIN_PASSWORD);
+const TOKEN_SECRET_SOURCE = String(process.env.ADMIN_SECRET || ADMIN_PASSWORD || crypto.randomBytes(32).toString("hex"));
+const TOKEN_SECRET = crypto.createHash("sha256").update(TOKEN_SECRET_SOURCE).digest("hex");
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 12;
 
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
@@ -501,6 +503,11 @@ function getAuthToken(req) {
 }
 
 function ensureAdmin(req, res) {
+  if (!ADMIN_AUTH_ENABLED) {
+    sendJson(res, 503, { error: "Admin login is disabled until ADMIN_PASSWORD is configured" });
+    return false;
+  }
+
   if (verifyToken(getAuthToken(req))) return true;
   sendJson(res, 401, { error: "Unauthorized" });
   return false;
@@ -516,6 +523,7 @@ const handleApi = createApiHandler({
   validateCustomerProfile,
   validateOrderPayload,
   adminPassword: ADMIN_PASSWORD,
+  adminAuthEnabled: ADMIN_AUTH_ENABLED,
   createToken,
   ensureAdmin,
   saveAdminUpload,
@@ -561,6 +569,9 @@ async function main() {
     console.log(`TechGear server running at http://localhost:${PORT}`);
     console.log(`Admin panel: http://localhost:${PORT}/admin`);
     console.log(`Storage mode: ${storage.mode}`);
+    if (!ADMIN_AUTH_ENABLED) {
+      console.warn("Admin login is disabled: set ADMIN_PASSWORD to enable /admin access");
+    }
   });
 }
 

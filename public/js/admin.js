@@ -1438,6 +1438,10 @@ const state = {
         showToast("Вход выполнен");
       } catch (error) {
         showActionResult("loginMessage", error.message, true);
+        if (error.message.includes("ADMIN_PASSWORD")) {
+          document.getElementById("passwordInput").disabled = true;
+          document.getElementById("loginBtn").disabled = true;
+        }
       }
     }
 

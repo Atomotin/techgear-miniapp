@@ -5,6 +5,7 @@ function createAdminRouteHandler({
   normalizeString,
   sanitizeLongText,
   adminPassword,
+  adminAuthEnabled,
   createToken,
   ensureAdmin,
   saveAdminUpload,
@@ -37,6 +38,13 @@ function createAdminRouteHandler({
 
   return async function handleAdminRoute(req, res, url) {
     if (req.method === "POST" && url.pathname === "/api/admin/login") {
+      if (!adminAuthEnabled) {
+        sendJson(res, 503, {
+          error: "Админка отключена: задайте ADMIN_PASSWORD в переменных окружения и перезапустите сервер"
+        });
+        return true;
+      }
+
       const body = await readBody(req);
 
       if (normalizeString(body.password) !== adminPassword) {

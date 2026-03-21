@@ -156,6 +156,49 @@ body::before {
   padding: 28px;
 }
 
+.runtime-notice {
+  display: grid;
+  gap: 10px;
+  padding: 20px 24px;
+  border-color: rgba(224, 188, 103, 0.34);
+  background: linear-gradient(180deg, rgba(252, 245, 224, 0.98), rgba(248, 235, 198, 0.92));
+}
+
+.runtime-notice.is-safe {
+  border-color: rgba(94, 129, 103, 0.28);
+  background: linear-gradient(180deg, rgba(231, 241, 232, 0.98), rgba(219, 236, 222, 0.92));
+}
+
+.runtime-notice strong {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.runtime-notice p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.runtime-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.runtime-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 76, 72, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .panel h2 {
   position: relative;
   margin-bottom: 8px;

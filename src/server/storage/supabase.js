@@ -175,7 +175,8 @@ async function uploadBinaryToSupabaseStorage(fileName, buffer, contentType) {
     ok: true,
     path: `${supabaseStorageUrl}/object/public/${supabaseUploadBucket}/${objectPath}`,
     fileName,
-    storage: "supabase"
+    storage: "supabase",
+    persistent: true
   };
 }
 
@@ -275,6 +276,51 @@ function createSupabaseStorageProvider() {
         console.warn("Supabase upload bucket is not ready:", error.message);
       }
       await ensureSeeded();
+    },
+    async getDiagnostics() {
+      const diagnostics = {
+        storageMode: "supabase",
+        banners: {
+          mode: "supabase",
+          persistent: true,
+          reason: ""
+        },
+        uploads: {
+          mode: "supabase",
+          persistent: true,
+          reason: ""
+        }
+      };
+
+      try {
+        await supabaseRequest("GET", "promo_banners", {
+          query: "select=id&limit=1"
+        });
+      } catch (error) {
+        diagnostics.banners = shouldUseBannerFallback(error)
+          ? {
+              mode: "local-fallback",
+              persistent: false,
+              reason: "В Supabase нет таблицы promo_banners. Выполните supabase/schema.sql заново."
+            }
+          : {
+              mode: "error",
+              persistent: false,
+              reason: String(error?.message || "Не удалось проверить таблицу promo_banners")
+            };
+      }
+
+      try {
+        await ensureSupabaseUploadBucket();
+      } catch (error) {
+        diagnostics.uploads = {
+          mode: "local-fallback",
+          persistent: false,
+          reason: `Supabase Storage недоступен: ${String(error?.message || "ошибка подключения")}`
+        };
+      }
+
+      return diagnostics;
     },
     async getCatalog() {
       const catalog = await getCatalog();

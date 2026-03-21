@@ -118,6 +118,21 @@ function createLocalStorageProvider() {
     async init() {
       ensureDataFiles();
     },
+    async getDiagnostics() {
+      return {
+        storageMode: "local",
+        banners: {
+          mode: "local-file",
+          persistent: false,
+          reason: "Баннеры сохраняются в data/banners.json на диске сервера"
+        },
+        uploads: {
+          mode: "local-file",
+          persistent: false,
+          reason: "Картинки сохраняются в images.img на диске сервера"
+        }
+      };
+    },
     async getCatalog() {
       const catalog = getCatalog();
       return {

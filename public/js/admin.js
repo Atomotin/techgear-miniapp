@@ -4,6 +4,7 @@ const state = {
       orders: [],
       customers: [],
       banners: [],
+      runtime: null,
       editingId: null,
       editingBannerId: null,
       uploadedImages: [],
@@ -109,6 +110,110 @@ const state = {
     function showActionResult(id, value, isError = false, tone = isError ? "error" : "success") {
       showMessage(id, value, isError);
       showToast(value, tone);
+    }
+
+    async function loadRuntimeDiagnostics() {
+      try {
+        const response = await fetch("/api/health", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          },
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error("health_request_failed");
+        }
+
+        state.runtime = await response.json();
+      } catch (error) {
+        state.runtime = null;
+      }
+    }
+
+    function getRuntimeSummary(runtime = state.runtime) {
+      if (!runtime) {
+        return null;
+      }
+
+      const diagnostics = runtime.diagnostics || {};
+      const storageMode = diagnostics.storageMode || runtime.storage || "unknown";
+      const bannerInfo = diagnostics.banners || null;
+      const uploadInfo = diagnostics.uploads || null;
+      const issues = [];
+      const chips = [`storage: ${storageMode}`];
+
+      if (bannerInfo?.mode) {
+        chips.push(`banners: ${bannerInfo.mode}`);
+      }
+
+      if (uploadInfo?.mode) {
+        chips.push(`uploads: ${uploadInfo.mode}`);
+      }
+
+      if (storageMode === "local") {
+        issues.push("Сейчас сервер работает на local storage: баннеры и картинки лежат в файлах сервера и после нового деплоя могут исчезнуть.");
+      }
+
+      if (bannerInfo && bannerInfo.persistent === false) {
+        issues.push(`Баннеры сохраняются ненадёжно: ${bannerInfo.reason}.`);
+      }
+
+      if (uploadInfo && uploadInfo.persistent === false) {
+        issues.push(`Загрузка картинок тоже ненадёжна: ${uploadInfo.reason}.`);
+      }
+
+      if (!issues.length) {
+        return {
+          safe: true,
+          title: "Постоянное хранение включено",
+          text: "Баннеры и картинки сейчас сохраняются в постоянное хранилище, поэтому не должны исчезать после нового деплоя.",
+          chips
+        };
+      }
+
+      return {
+        safe: false,
+        title: "Есть риск потери баннеров после деплоя",
+        text: issues.join(" "),
+        chips
+      };
+    }
+
+    function renderRuntimeNotice() {
+      const notice = document.getElementById("storageNotice");
+      if (!notice) return;
+
+      const summary = getRuntimeSummary();
+      if (!summary) {
+        notice.classList.add("hidden");
+        notice.classList.remove("is-safe");
+        notice.innerHTML = "";
+        return;
+      }
+
+      notice.classList.remove("hidden");
+      notice.classList.toggle("is-safe", summary.safe);
+      notice.innerHTML = `
+        <strong>${escapeHtml(summary.title)}</strong>
+        <p>${escapeHtml(summary.text)}</p>
+        <div class="runtime-meta">
+          ${summary.chips.map((chip) => `<span class="runtime-chip">${escapeHtml(chip)}</span>`).join("")}
+        </div>
+      `;
+    }
+
+    function getUploadPersistenceWarning(result, label = "Файл") {
+      if (!result) {
+        return "";
+      }
+
+      if (result.persistent === false || (result.storage && result.storage !== "supabase")) {
+        return result.warning || `${label} сохранён локально на сервере и может исчезнуть после нового деплоя.`;
+      }
+
+      return "";
     }
 
     function getOrderCustomerKey(order = {}) {
@@ -299,6 +404,7 @@ const state = {
       }
 
       const uploadedPaths = [];
+      let fallbackUploadCount = 0;
       showMessage("uploadMessage", "Загружаю фото...");
 
       try {
@@ -311,6 +417,9 @@ const state = {
             body: file
           });
           uploadedPaths.push(result.path);
+          if (getUploadPersistenceWarning(result, "Файл")) {
+            fallbackUploadCount += 1;
+          }
         }
 
         const textarea = document.getElementById("productImages");
@@ -323,7 +432,11 @@ const state = {
         state.uploadedImages = merged;
         renderUploadedImages(merged);
         input.value = "";
-        showActionResult("uploadMessage", `Загружено файлов: ${uploadedPaths.length}`);
+        if (fallbackUploadCount > 0) {
+          showActionResult("uploadMessage", `Загружено файлов: ${uploadedPaths.length}. ${fallbackUploadCount} из них сохранены локально на сервере и могут исчезнуть после деплоя.`, false, "warning");
+        } else {
+          showActionResult("uploadMessage", `Загружено файлов: ${uploadedPaths.length}`);
+        }
       } catch (error) {
         showActionResult("uploadMessage", error.message, true);
       }
@@ -405,7 +518,12 @@ const state = {
         document.getElementById("bannerImage").value = result.path;
         input.value = "";
         renderBannerPreview();
-        showActionResult("bannerUploadMessage", "Картинка загружена");
+        const warning = getUploadPersistenceWarning(result, "Картинка");
+        if (warning) {
+          showActionResult("bannerUploadMessage", warning, false, "warning");
+        } else {
+          showActionResult("bannerUploadMessage", "Картинка загружена");
+        }
       } catch (error) {
         showActionResult("bannerUploadMessage", error.message, true);
       }
@@ -1036,6 +1154,7 @@ const state = {
     }
 
     function renderAll() {
+      renderRuntimeNotice();
       renderCategoryOptions();
       renderStats();
       renderCategories();
@@ -1058,6 +1177,8 @@ const state = {
         api("/api/admin/customers"),
         api("/api/admin/banners")
       ]);
+
+      await loadRuntimeDiagnostics();
 
       state.catalog = catalog;
       state.orders = ordersResponse.orders || [];

@@ -32,11 +32,16 @@ function createPublicRouteHandler({
     }
 
     if (req.method === "GET" && url.pathname === "/api/health") {
+      const diagnostics = typeof storage.getDiagnostics === "function"
+        ? await storage.getDiagnostics()
+        : null;
+
       sendJson(res, 200, {
         ok: true,
         storage: storage.mode,
         supabaseEnabled,
         telegramBotEnabled,
+        diagnostics,
         timestamp: new Date().toISOString()
       });
       return true;

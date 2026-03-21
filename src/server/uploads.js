@@ -47,7 +47,9 @@ function createUploadService({
         ok: true,
         path: `images.img/${fileName}`,
         fileName,
-        storage: storageLabel
+        storage: storageLabel,
+        persistent: false,
+        warning: "Файл сохранён локально на сервере и может исчезнуть после нового деплоя"
       };
     }
 

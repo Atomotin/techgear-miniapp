@@ -6,8 +6,8 @@ const state = {
       banners: [],
       settings: {
         music: {
-          enabled: true,
-          tracks: ["songs/asrorrrrrga1.mp3"],
+          enabled: false,
+          tracks: [],
           volume: 1
         }
       },
@@ -122,8 +122,8 @@ const state = {
     function getDefaultAdminSettings() {
       return {
         music: {
-          enabled: true,
-          tracks: ["songs/asrorrrrrga1.mp3"],
+          enabled: false,
+          tracks: [],
           volume: 1
         }
       };
@@ -149,7 +149,7 @@ const state = {
 
       return {
         music: {
-          enabled: music?.enabled !== false,
+          enabled: music?.enabled !== false && tracks.length > 0,
           tracks,
           volume
         }

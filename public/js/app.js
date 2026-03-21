@@ -2,119 +2,11 @@
 
 const tg = window.Telegram?.WebApp || null;
     
-    // Музыка
+    // Music is configured only through admin-managed settings.
     let audioElement = null;
     let isPlaying = false;
-    const AUDIO_ENABLED = true;
-    
-    function initAudioLegacy() {
-      if (!AUDIO_ENABLED) return;
-      audioElement = document.getElementById('bgm');
-      if (!audioElement) return;
-      if (tg && tg.MainButton) {
-        try {
-          tg.MainButton.hide();
-        } catch (error) {}
-      }
-      
-      // Несколько источников на случай, если один не загрузится
-      const urls = [
-        // 'songs/SQWOZ BAB - TOKYO (zaycev.net).mp3',
-        'songs/asrorrrrrga1.mp3',
-        // 'https://files.freemusicarchive.org/storage/files/000/000/001/chosic-com-Glance_Back_Lofi_Background_Music_7565.mp3'
-      ];
-      
-      audioElement.src = urls[0];
-      audioElement.loop = true;
-      audioElement.volume = 1.0;
-      
-      audioElement.addEventListener('play', () => {
-        isPlaying = true;
-        updateBtn();
-      });
-      audioElement.addEventListener('pause', () => {
-        isPlaying = false;
-        updateBtn();
-      });
-      let currentIndex = 0;
-      audioElement.addEventListener('error', (e) => {
-        console.error('Ошибка загрузки музыки для', audioElement.src, e);
-        // Попробовать следующий URL
-        currentIndex += 1;
-        if (currentIndex < urls.length) {
-          audioElement.src = urls[currentIndex];
-          console.log('Пробуем источник', audioElement.src);
-          audioElement.load();
-          audioElement.play().catch(err => console.warn('Автозапуск после ошибки заблокирован:', err));
-        } else {
-          console.warn('Все источники не загрузились');
-        }
-      });
-      
-      // Автозапуск при загрузке
-      const autoplay = () => {
-        const playPromise = audioElement.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            isPlaying = true;
-            updateBtn();
-            console.log('Музыка успешно запущена');
-          }).catch((err) => {
-            console.warn('Попытка запуска заблокирована:', err.name);
-            // Попробовать снова через 1 секунду
-            setTimeout(autoplay, 1000);
-          });
-        }
-      };
-      
-        // Запустить сразу и при клике/тапе
-      console.log('Попытка автозапуска музыки');
-      autoplay();
-      document.addEventListener('click', autoplay, { once: true });
-      document.addEventListener('touchstart', autoplay, { once: true });
 
-      // overlay prompt click hides and triggers
-      const prompt = document.getElementById('musicPrompt');
-      function promptHide() {
-        if (prompt) prompt.style.display = 'none';
-      }
-      if (prompt) {
-        prompt.addEventListener('click', () => {
-          autoplay();
-          promptHide();
-        });
-      }
-    }
-    
-    function toggleMuteLegacy() {
-      if (!AUDIO_ENABLED) return;
-      if (!audioElement) {
-        initAudio();
-      }
-      
-      if (audioElement.paused) {
-        audioElement.play().then(() => {
-          isPlaying = true;
-          updateBtn();
-        }).catch(err => console.warn('Ошибка play:', err));
-      } else {
-        audioElement.pause();
-        isPlaying = false;
-        updateBtn();
-      }
-    }
-    
-    function updateBtnLegacy() {
-      const btn = document.getElementById('muteBtn');
-      if (!btn) return;
-      const icon = btn.querySelector(".nav-icon");
-      if (icon) {
-        icon.textContent = isPlaying ? '⏸️' : '▶️';
-      }
-    }
-    
-    // Инициализация после загрузки страницы
-    window.addEventListener('DOMContentLoaded', initAudio);
+    window.addEventListener("DOMContentLoaded", initAudio);
     const STORAGE_KEYS = {
       cart: "techgear_cart_v1",
       favorites: "techgear_favorites_v1",
@@ -151,8 +43,8 @@ const tg = window.Telegram?.WebApp || null;
 
     const DEFAULT_APP_SETTINGS = Object.freeze({
       music: {
-        enabled: true,
-        tracks: ["songs/asrorrrrrga1.mp3"],
+        enabled: false,
+        tracks: [],
         volume: 1
       }
     });

@@ -74,7 +74,7 @@ const UPLOAD_EXTENSIONS = new Map([
   ["audio/mpeg3", ".mp3"]
 ]);
 
-const DEFAULT_MUSIC_TRACKS = ["songs/asrorrrrrga1.mp3"];
+const DEFAULT_MUSIC_TRACKS = [];
 
 function createHttpError(statusCode, message) {
   const error = new Error(message);
@@ -170,7 +170,7 @@ function sanitizeMusicSettings(payload = {}) {
 function buildDefaultAppSettings() {
   return {
     music: sanitizeMusicSettings({
-      enabled: true,
+      enabled: false,
       tracks: DEFAULT_MUSIC_TRACKS,
       volume: 1
     })
@@ -397,81 +397,6 @@ function sanitizePromoBanners(banners) {
 function buildDefaultPromoBanners(products = []) {
   // Promo banners are managed explicitly from the admin panel.
   return [];
-  const catalog = sanitizeProducts(products);
-  const withImage = catalog.filter((product) => product.images?.[0]);
-  const hot = withImage.find((product) => product.badge === "hot") || withImage[0];
-  const fresh = withImage.find((product) => product.badge === "new") || withImage[1] || hot;
-  const setup = withImage.find((product) => ["decor", "headphones", "stands"].includes(product.category)) || withImage[2] || fresh;
-
-  const banners = [];
-
-  if (hot) {
-    banners.push({
-      id: 1,
-      kicker: "Хит",
-      title: hot.name,
-      image: hot.images[0],
-      cta: "Смотреть",
-      secondary: "Каталог",
-      actionType: "product",
-      actionValue: String(hot.id),
-      secondaryActionType: "reset",
-      sortOrder: 1,
-      isActive: true
-    });
-  }
-
-  if (fresh) {
-    banners.push({
-      id: 2,
-      kicker: "Новинки",
-      title: "Новая поставка",
-      image: fresh.images[0],
-      cta: "Открыть",
-      secondary: "Все товары",
-      actionType: "product",
-      actionValue: String(fresh.id),
-      secondaryActionType: "reset",
-      sortOrder: 2,
-      isActive: true
-    });
-  }
-
-  if (setup) {
-    banners.push({
-      id: 3,
-      kicker: "Подборка",
-      title: "Для стильного сетапа",
-      image: setup.images[0],
-      cta: "Подборка",
-      secondary: "Связь",
-      actionType: "category",
-      actionValue: setup.category || "all",
-      secondaryActionType: "link",
-      secondaryActionValue: TELEGRAM_MANAGER_URL,
-      sortOrder: 3,
-      isActive: true
-    });
-  }
-
-  if (!banners.length) {
-    banners.push({
-      id: 1,
-      kicker: "TechGear",
-      title: "Новинки и акции",
-      image: "",
-      cta: "Каталог",
-      secondary: "Канал",
-      actionType: "reset",
-      actionValue: "",
-      secondaryActionType: "link",
-      secondaryActionValue: TELEGRAM_CHANNEL_URL,
-      sortOrder: 1,
-      isActive: true
-    });
-  }
-
-  return sanitizePromoBanners(banners);
 }
 
 function validateCustomerProfile(payload) {

@@ -294,34 +294,84 @@ function loadLegacyCatalog() {
   });
 }
 
+function formatOrderAmount(value) {
+  return `${new Intl.NumberFormat("ru-RU").format(Number(value) || 0)} сум`;
+}
+
+function buildOrderMapLink(location) {
+  const [lat, lon] = String(location || "").split(",").map((part) => part.trim());
+  if (!lat || !lon) return "";
+  return `https://yandex.uz/maps/?pt=${encodeURIComponent(lon)},${encodeURIComponent(lat)}&z=16&l=map`;
+}
+
+function buildOrderRawText({ customer = {}, items = [], total = 0, telegram = {} }) {
+  const telegramId = normalizeString(telegram?.id);
+  const telegramUsername = sanitizeTelegramUsername(telegram?.username).replace(/^@/, "");
+  const customerUsername = normalizeString(customer?.username) || (telegramUsername ? `@${telegramUsername}` : "");
+  const location = normalizeString(customer?.location);
+  const yandexMapsLink = buildOrderMapLink(location);
+  const itemLines = (Array.isArray(items) ? items : []).map((item) => {
+    const itemTotal = (Number(item?.price) || 0) * (Number(item?.qty) || 0);
+    const variant = normalizeString(item?.variant);
+    return `• ${normalizeString(item?.name) || "Товар"} x${Number(item?.qty) || 0}${variant ? ` (${variant})` : ""} — ${formatOrderAmount(itemTotal)}`;
+  });
+
+  const lines = [
+    "Новый заказ TechGear",
+    "",
+    `Имя: ${normalizeString(customer?.name) || "Не указано"}`,
+    `Телефон: ${normalizeString(customer?.phone) || "Не указан"}`,
+    `Telegram username: ${customerUsername || "Не указан"}`,
+    `Способ связи: ${normalizeString(customer?.contactMethod) || "Не указан"}`,
+    `Когда удобно: ${normalizeString(customer?.deliveryTime) || "Не указано"}`,
+    `Адрес / ориентир: ${normalizeString(customer?.delivery) || "Не указан"}`,
+    `Комментарий: ${normalizeString(customer?.comment) || "Нет"}`,
+    `Локация: ${location || "Не указана"}`,
+    telegramId ? `Telegram ID: ${telegramId}` : "",
+    telegramUsername ? `Telegram профиль: @${telegramUsername}` : "",
+    yandexMapsLink ? `Yandex Maps: ${yandexMapsLink}` : "",
+    "",
+    "Товары:",
+    ...itemLines,
+    "",
+    `Итого: ${formatOrderAmount(total)}`
+  ];
+
+  return lines.filter(Boolean).join("\n");
+}
+
 function buildOrderRecord(payload, req) {
   const items = Array.isArray(payload.items) ? payload.items : [];
+  const customer = {
+    name: sanitizePersonName(payload.name),
+    phone: limitString(payload.phone, 32),
+    username: sanitizeTelegramUsername(payload.username),
+    contactMethod: normalizeString(payload.contactMethod),
+    deliveryTime: normalizeString(payload.deliveryTime),
+    delivery: sanitizeLongText(payload.delivery, 300),
+    comment: sanitizeLongText(payload.comment, 500),
+    location: sanitizeLongText(payload.location, 300)
+  };
+  const normalizedItems = items.map((item) => ({
+    id: Number(item.id) || 0,
+    name: normalizeString(item.name),
+    qty: Number(item.qty) || 0,
+    variant: normalizeString(item.variant),
+    price: Number(item.price) || 0
+  }));
+  const total = Number(payload.total) || 0;
+  const telegram = payload.telegram || {};
 
   return {
     id: Date.now(),
     status: "new",
     createdAt: new Date().toISOString(),
     source: "miniapp",
-    customer: {
-      name: sanitizePersonName(payload.name),
-      phone: limitString(payload.phone, 32),
-      username: sanitizeTelegramUsername(payload.username),
-      contactMethod: normalizeString(payload.contactMethod),
-      deliveryTime: normalizeString(payload.deliveryTime),
-      delivery: sanitizeLongText(payload.delivery, 300),
-      comment: sanitizeLongText(payload.comment, 500),
-      location: sanitizeLongText(payload.location, 300)
-    },
-    items: items.map((item) => ({
-      id: Number(item.id) || 0,
-      name: normalizeString(item.name),
-      qty: Number(item.qty) || 0,
-      variant: normalizeString(item.variant),
-      price: Number(item.price) || 0
-    })),
-    total: Number(payload.total) || 0,
-    rawText: normalizeString(payload.orderText),
-    telegram: payload.telegram || {},
+    customer,
+    items: normalizedItems,
+    total,
+    rawText: buildOrderRawText({ customer, items: normalizedItems, total, telegram }),
+    telegram,
     requestMeta: {
       userAgent: req.headers["user-agent"] || "",
       ip: req.socket.remoteAddress || ""

@@ -714,12 +714,12 @@ const tg = window.Telegram?.WebApp || null;
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
       saveStorage(STORAGE_KEYS.profile, state.profile);
       renderProfile();
-      return !!user.username;
+      return true;
     }
 
     function waitForTelegramUser(attempt = 0) {
-      const success = hydrateCheckoutFromTelegram();
-      if (success) return;
+      const hydrated = hydrateCheckoutFromTelegram();
+      if (hydrated) return;
       if (attempt < 10) {
         setTimeout(() => waitForTelegramUser(attempt + 1), 500);
       }

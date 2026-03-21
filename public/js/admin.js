@@ -4,6 +4,13 @@ const state = {
       orders: [],
       customers: [],
       banners: [],
+      settings: {
+        music: {
+          enabled: true,
+          tracks: ["songs/asrorrrrrga1.mp3"],
+          volume: 1
+        }
+      },
       runtime: null,
       editingId: null,
       editingBannerId: null,
@@ -112,6 +119,95 @@ const state = {
       showToast(value, tone);
     }
 
+    function getDefaultAdminSettings() {
+      return {
+        music: {
+          enabled: true,
+          tracks: ["songs/asrorrrrrga1.mp3"],
+          volume: 1
+        }
+      };
+    }
+
+    function normalizeAdminTrackList(value) {
+      const source = Array.isArray(value) ? value : (typeof value === "string" ? value.split(/\r?\n|,/) : []);
+      return [...new Set(
+        source
+          .map((item) => String(item || "").trim())
+          .filter(Boolean)
+      )].slice(0, 8);
+    }
+
+    function normalizeAdminSettings(settings = {}) {
+      const fallback = getDefaultAdminSettings();
+      const music = settings?.music || fallback.music;
+      const tracks = normalizeAdminTrackList(music?.tracks);
+      const parsedVolume = Number(music?.volume);
+      const volume = Number.isFinite(parsedVolume)
+        ? Math.min(1, Math.max(0, parsedVolume))
+        : fallback.music.volume;
+
+      return {
+        music: {
+          enabled: music?.enabled !== false,
+          tracks,
+          volume
+        }
+      };
+    }
+
+    function getMusicPayload() {
+      const tracks = normalizeAdminTrackList(document.getElementById("musicTracks")?.value || "");
+      const volumeValue = Number(document.getElementById("musicVolume")?.value);
+      const volume = Number.isFinite(volumeValue)
+        ? Math.min(1, Math.max(0, volumeValue / 100))
+        : 1;
+
+      return {
+        music: {
+          enabled: document.getElementById("musicEnabled")?.value === "true",
+          tracks,
+          volume
+        }
+      };
+    }
+
+    function renderMusicPreview() {
+      const wrapper = document.getElementById("musicPreview");
+      const player = document.getElementById("musicPreviewAudio");
+      if (!wrapper || !player) return;
+
+      const tracks = normalizeAdminTrackList(document.getElementById("musicTracks")?.value || "");
+      const firstTrack = tracks[0] || "";
+
+      if (!firstTrack) {
+        wrapper.classList.add("hidden");
+        player.pause();
+        player.removeAttribute("src");
+        delete player.dataset.src;
+        player.load();
+        return;
+      }
+
+      wrapper.classList.remove("hidden");
+      if (player.dataset.src !== firstTrack) {
+        player.dataset.src = firstTrack;
+        player.src = firstTrack;
+        player.load();
+      }
+    }
+
+    function fillMusicForm(settings = state.settings) {
+      state.settings = normalizeAdminSettings(settings || getDefaultAdminSettings());
+      document.getElementById("musicEnabled").value = String(state.settings.music.enabled !== false);
+      document.getElementById("musicVolume").value = String(Math.round((Number(state.settings.music.volume) || 0) * 100));
+      document.getElementById("musicTracks").value = state.settings.music.tracks.join("\n");
+      document.getElementById("musicUpload").value = "";
+      showMessage("musicMessage", "");
+      showMessage("musicUploadMessage", "");
+      renderMusicPreview();
+    }
+
     async function loadRuntimeDiagnostics() {
       try {
         const response = await fetch("/api/health", {
@@ -140,6 +236,7 @@ const state = {
       const diagnostics = runtime.diagnostics || {};
       const storageMode = diagnostics.storageMode || runtime.storage || "unknown";
       const catalogInfo = diagnostics.catalog || null;
+      const settingsInfo = diagnostics.settings || null;
       const bannerInfo = diagnostics.banners || null;
       const uploadInfo = diagnostics.uploads || null;
       const issues = [];
@@ -150,6 +247,10 @@ const state = {
 
       if (catalogInfo?.mode) {
         chips.push(`catalog: ${catalogInfo.mode}`);
+      }
+
+      if (settingsInfo?.mode) {
+        chips.push(`settings: ${settingsInfo.mode}`);
       }
 
       if (bannerInfo?.mode) {
@@ -166,6 +267,10 @@ const state = {
 
       if (catalogInfo && catalogInfo.persistent === false) {
         issues.push(`Каталог и товары тоже сохраняются ненадёжно: ${catalogInfo.reason}.`);
+      }
+
+      if (settingsInfo && settingsInfo.persistent === false) {
+        issues.push(`Настройки Mini App и музыка сохраняются ненадёжно: ${settingsInfo.reason}.`);
       }
 
       if (bannerInfo && bannerInfo.persistent === false) {
@@ -538,6 +643,63 @@ const state = {
         }
       } catch (error) {
         showActionResult("bannerUploadMessage", error.message, true);
+      }
+    }
+
+    async function uploadMusicTrack() {
+      const input = document.getElementById("musicUpload");
+      const file = Array.from(input.files || [])[0];
+
+      if (!file) {
+        showActionResult("musicUploadMessage", "РЎРЅР°С‡Р°Р»Р° РІС‹Р±РµСЂРё MP3-С„Р°Р№Р»", true);
+        return;
+      }
+
+      showMessage("musicUploadMessage", "Р—Р°РіСЂСѓР¶Р°СЋ MP3...");
+
+      try {
+        const result = await api(`/api/admin/uploads?filename=${encodeURIComponent(file.name)}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "audio/mpeg"
+          },
+          body: file
+        });
+
+        const textarea = document.getElementById("musicTracks");
+        const existing = normalizeAdminTrackList(textarea.value);
+        const tracks = [...new Set([...existing, result.path])];
+        textarea.value = tracks.join("\n");
+        input.value = "";
+        renderMusicPreview();
+
+        const warning = getUploadPersistenceWarning(result, "MP3");
+        if (warning) {
+          showActionResult("musicUploadMessage", warning, false, "warning");
+        } else {
+          showActionResult("musicUploadMessage", "MP3 Р·Р°РіСЂСѓР¶РµРЅ");
+        }
+      } catch (error) {
+        showActionResult("musicUploadMessage", error.message, true);
+      }
+    }
+
+    async function saveMusicSettings() {
+      const payload = getMusicPayload();
+
+      try {
+        const response = await api("/api/admin/settings", {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        });
+
+        state.settings = normalizeAdminSettings(response.settings || payload);
+        await loadRuntimeDiagnostics();
+        renderRuntimeNotice();
+        fillMusicForm(state.settings);
+        showActionResult("musicMessage", "РњСѓР·С‹РєР° РѕР±РЅРѕРІР»РµРЅР°");
+      } catch (error) {
+        showActionResult("musicMessage", error.message, true);
       }
     }
 
@@ -1180,14 +1342,16 @@ const state = {
       if (!state.editingBannerId) {
         fillBannerForm(null);
       }
+      fillMusicForm(state.settings);
     }
 
     async function loadAdminData() {
-      const [catalog, ordersResponse, customersResponse, bannersResponse] = await Promise.all([
+      const [catalog, ordersResponse, customersResponse, bannersResponse, settingsResponse] = await Promise.all([
         api("/api/admin/catalog"),
         api("/api/admin/orders"),
         api("/api/admin/customers"),
-        api("/api/admin/banners")
+        api("/api/admin/banners"),
+        api("/api/admin/settings")
       ]);
 
       await loadRuntimeDiagnostics();
@@ -1196,6 +1360,7 @@ const state = {
       state.orders = ordersResponse.orders || [];
       state.customers = customersResponse.customers || [];
       state.banners = bannersResponse.banners || [];
+      state.settings = normalizeAdminSettings(settingsResponse.settings || catalog.settings || getDefaultAdminSettings());
       renderAll();
     }
 
@@ -1337,6 +1502,9 @@ const state = {
     ["bannerTitle", "bannerKicker", "bannerImage"].forEach((id) => {
       document.getElementById(id).addEventListener("input", renderBannerPreview);
     });
+    document.getElementById("saveMusicBtn").addEventListener("click", saveMusicSettings);
+    document.getElementById("uploadMusicBtn").addEventListener("click", uploadMusicTrack);
+    document.getElementById("musicTracks").addEventListener("input", renderMusicPreview);
 
     if (state.token) {
       document.getElementById("loginView").classList.add("hidden");

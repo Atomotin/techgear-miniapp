@@ -76,6 +76,11 @@ function createAdminRouteHandler({
       return true;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/admin/settings") {
+      sendJson(res, 200, { settings: await storage.getSettings() });
+      return true;
+    }
+
     if (req.method === "POST" && url.pathname === "/api/admin/uploads") {
       sendJson(res, 201, await saveAdminUpload(req, url));
       return true;
@@ -257,6 +262,20 @@ function createAdminRouteHandler({
 
       const bannerId = Number(url.pathname.split("/").pop());
       sendJson(res, 200, { banners: await storage.deleteBanner(bannerId) });
+      return true;
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/admin/settings") {
+      if (!(await ensurePersistentStorage(
+        res,
+        "settings",
+        "Не удалось проверить хранилище настроек Mini App. Откройте /api/health и проверьте storage."
+      ))) {
+        return true;
+      }
+
+      const body = await readBody(req);
+      sendJson(res, 200, { settings: await storage.updateSettings(body) });
       return true;
     }
 

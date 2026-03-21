@@ -6,14 +6,17 @@ function buildSharedStorageModule({
   sanitizeCustomerProfile,
   sanitizePromoBanner,
   sanitizePromoBanners,
+  sanitizeAppSettings,
   sanitizeProduct,
   buildDefaultPromoBanners,
+  buildDefaultAppSettings,
   loadLegacyCatalog,
   dataDir,
   catalogPath,
   ordersPath,
   customersPath,
-  bannersPath
+  bannersPath,
+  settingsPath
 }) {
 function readJson(filePath, fallback) {
   try {
@@ -45,6 +48,10 @@ function ensureDataFiles() {
   if (!fs.existsSync(bannersPath)) {
     const catalog = fs.existsSync(catalogPath) ? readJson(catalogPath, loadLegacyCatalog()) : loadLegacyCatalog();
     writeJson(bannersPath, buildDefaultPromoBanners(Array.isArray(catalog?.products) ? catalog.products : []));
+  }
+
+  if (!fs.existsSync(settingsPath)) {
+    writeJson(settingsPath, buildDefaultAppSettings());
   }
 }
 
@@ -86,6 +93,18 @@ function upsertFallbackCustomerProfile(payload) {
   return customers.find((item) => item.key === profile.key) || profile;
 }
 
+function getFallbackSettings() {
+  ensureDataFiles();
+  return sanitizeAppSettings(readJson(settingsPath, buildDefaultAppSettings()));
+}
+
+function saveFallbackSettings(settings) {
+  ensureDataFiles();
+  const normalized = sanitizeAppSettings(settings);
+  writeJson(settingsPath, normalized);
+  return normalized;
+}
+
 function shouldUseCustomerFallback(error) {
   const message = String(error?.message || "").toLowerCase();
   return message.includes("customers") && (message.includes("relation") || message.includes("schema cache") || message.includes("does not exist"));
@@ -94,6 +113,11 @@ function shouldUseCustomerFallback(error) {
 function shouldUseBannerFallback(error) {
   const message = String(error?.message || "").toLowerCase();
   return message.includes("promo_banners") && (message.includes("relation") || message.includes("schema cache") || message.includes("does not exist"));
+}
+
+function shouldUseSettingsFallback(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("app_settings") && (message.includes("relation") || message.includes("schema cache") || message.includes("does not exist"));
 }
 
 function categoryRowToModel(row) {
@@ -256,14 +280,33 @@ function bannerModelToRow(banner, { includeId = true } = {}) {
   return row;
 }
 
+function settingsRowToModel(row) {
+  return sanitizeAppSettings(row?.value || {});
+}
+
+function settingsModelToRow(settings, { id = "miniapp", includeId = true } = {}) {
+  const row = {
+    value: sanitizeAppSettings(settings)
+  };
+
+  if (includeId) {
+    row.id = id;
+  }
+
+  return row;
+}
+
   return {
     readJson,
     writeJson,
     ensureDataFiles,
     getFallbackCustomers,
     upsertFallbackCustomerProfile,
+    getFallbackSettings,
+    saveFallbackSettings,
     shouldUseCustomerFallback,
     shouldUseBannerFallback,
+    shouldUseSettingsFallback,
     categoryRowToModel,
     productRowToModel,
     productModelToRow,
@@ -272,7 +315,9 @@ function bannerModelToRow(banner, { includeId = true } = {}) {
     customerRowToModel,
     customerModelToRow,
     bannerRowToModel,
-    bannerModelToRow
+    bannerModelToRow,
+    settingsRowToModel,
+    settingsModelToRow
   };
 }
 

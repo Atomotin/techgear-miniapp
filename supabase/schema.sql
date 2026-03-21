@@ -69,6 +69,13 @@ create table if not exists public.promo_banners (
   constraint promo_banners_secondary_action_type_check check (secondary_action_type in ('', 'reset', 'category', 'product', 'link'))
 );
 
+create table if not exists public.app_settings (
+  id text primary key,
+  value jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists products_category_key_idx on public.products (category_key);
 create index if not exists products_sort_order_idx on public.products (sort_order, id);
 create index if not exists orders_created_at_idx on public.orders (created_at desc);
@@ -77,6 +84,7 @@ create index if not exists customers_phone_idx on public.customers (phone);
 create index if not exists customers_username_idx on public.customers (username);
 create index if not exists customers_updated_at_idx on public.customers (updated_at desc);
 create index if not exists promo_banners_sort_order_idx on public.promo_banners (sort_order, id);
+create index if not exists app_settings_updated_at_idx on public.app_settings (updated_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -106,5 +114,10 @@ before update on public.promo_banners
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists app_settings_set_updated_at on public.app_settings;
+create trigger app_settings_set_updated_at
+before update on public.app_settings
+for each row
+execute function public.set_updated_at();
 
 

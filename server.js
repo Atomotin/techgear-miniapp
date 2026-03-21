@@ -20,6 +20,7 @@ const CATALOG_PATH = path.join(DATA_DIR, "catalog.json");
 const ORDERS_PATH = path.join(DATA_DIR, "orders.json");
 const CUSTOMERS_PATH = path.join(DATA_DIR, "customers.json");
 const BANNERS_PATH = path.join(DATA_DIR, "banners.json");
+const SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "techgear-admin";
@@ -66,8 +67,14 @@ const UPLOAD_EXTENSIONS = new Map([
   ["image/jpeg", ".jpg"],
   ["image/png", ".png"],
   ["image/webp", ".webp"],
-  ["image/svg+xml", ".svg"]
+  ["image/svg+xml", ".svg"],
+  ["audio/mpeg", ".mp3"],
+  ["audio/mp3", ".mp3"],
+  ["audio/x-mpeg-3", ".mp3"],
+  ["audio/mpeg3", ".mp3"]
 ]);
+
+const DEFAULT_MUSIC_TRACKS = ["songs/asrorrrrrga1.mp3"];
 
 function createHttpError(statusCode, message) {
   const error = new Error(message);
@@ -134,6 +141,46 @@ function sanitizeLongText(value, maxLength) {
     .replace(/\s{3,}/g, "  ")
     .trim()
     .slice(0, maxLength);
+}
+
+function sanitizeTrackList(value) {
+  const source = Array.isArray(value) ? value : (typeof value === "string" ? value.split(/\r?\n|,/) : []);
+  return [...new Set(
+    source
+      .map((item) => normalizeString(item))
+      .filter(Boolean)
+  )].slice(0, 8);
+}
+
+function sanitizeMusicSettings(payload = {}) {
+  const tracks = sanitizeTrackList(payload?.tracks);
+  const parsedVolume = Number(payload?.volume);
+  const volume = Number.isFinite(parsedVolume)
+    ? Math.min(1, Math.max(0, parsedVolume))
+    : 1;
+  const enabled = payload?.enabled !== false && tracks.length > 0;
+
+  return {
+    enabled,
+    tracks,
+    volume
+  };
+}
+
+function buildDefaultAppSettings() {
+  return {
+    music: sanitizeMusicSettings({
+      enabled: true,
+      tracks: DEFAULT_MUSIC_TRACKS,
+      volume: 1
+    })
+  };
+}
+
+function sanitizeAppSettings(settings = {}) {
+  return {
+    music: sanitizeMusicSettings(settings?.music || {})
+  };
 }
 
 function normalizeArray(value) {
@@ -462,7 +509,9 @@ const storageRuntime = createStorageRuntime({
   sanitizeCustomerProfile,
   sanitizePromoBanner,
   sanitizePromoBanners,
+  sanitizeAppSettings,
   buildDefaultPromoBanners,
+  buildDefaultAppSettings,
   buildOrderRecord,
   loadLegacyCatalog,
   dataDir: DATA_DIR,
@@ -470,6 +519,7 @@ const storageRuntime = createStorageRuntime({
   ordersPath: ORDERS_PATH,
   customersPath: CUSTOMERS_PATH,
   bannersPath: BANNERS_PATH,
+  settingsPath: SETTINGS_PATH,
   supabaseEnabled: SUPABASE_ENABLED,
   supabaseRestUrl: SUPABASE_REST_URL,
   supabaseStorageUrl: SUPABASE_STORAGE_URL,

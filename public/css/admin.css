@@ -851,6 +851,19 @@ button:hover {
   gap: 8px;
 }
 
+.music-preview {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: var(--tg-radius-lg);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.music-preview audio {
+  width: 100%;
+  display: block;
+}
+
 .upload-chip {
   padding: 10px 12px;
   border-radius: var(--tg-radius-sm);

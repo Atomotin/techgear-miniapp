@@ -247,6 +247,41 @@
         </section>
       </div>
 
+      <section class="panel">
+        <h2>РњСѓР·С‹РєР°</h2>
+        <p class="panel-subtitle">Р—РґРµСЃСЊ РјРѕР¶РЅРѕ РјРµРЅСЏС‚СЊ С„РѕРЅРѕРІСѓСЋ РјСѓР·С‹РєСѓ Mini App: РІРєР»СЋС‡Р°С‚СЊ РёР»Рё РІС‹РєР»СЋС‡Р°С‚СЊ РµС‘, РјРµРЅСЏС‚СЊ РіСЂРѕРјРєРѕСЃС‚СЊ Рё Р·Р°РіСЂСѓР¶Р°С‚СЊ РЅРѕРІС‹Рµ MP3.</p>
+        <div class="toolbar">
+          <button id="saveMusicBtn" class="btn btn-primary btn-small" type="button">РЎРѕС…СЂР°РЅРёС‚СЊ РјСѓР·С‹РєСѓ</button>
+        </div>
+        <div class="field-grid two">
+          <label>Р’РєР»СЋС‡РµРЅР°
+            <select id="musicEnabled">
+              <option value="true">Р”Р°</option>
+              <option value="false">РќРµС‚</option>
+            </select>
+          </label>
+          <label>Р“СЂРѕРјРєРѕСЃС‚СЊ, %
+            <input id="musicVolume" type="number" min="0" max="100" step="5" />
+          </label>
+        </div>
+        <label>РЎРїРёСЃРѕРє С‚СЂРµРєРѕРІ
+          <textarea id="musicTracks" placeholder="songs/asrorrrrrga1.mp3&#10;https://.../track.mp3"></textarea>
+        </label>
+        <div class="upload-row">
+          <label>Р—Р°РіСЂСѓР·РєР° MP3
+            <input id="musicUpload" type="file" accept="audio/mpeg,audio/mp3" />
+          </label>
+          <div class="upload-actions">
+            <button id="uploadMusicBtn" class="btn btn-secondary btn-small" type="button">Р—Р°РіСЂСѓР·РёС‚СЊ MP3</button>
+            <span id="musicUploadMessage" class="hint"></span>
+          </div>
+        </div>
+        <div id="musicPreview" class="music-preview hidden">
+          <audio id="musicPreviewAudio" controls preload="none"></audio>
+        </div>
+        <div id="musicMessage" class="hint"></div>
+      </section>
+
     </section>
   </div>
 

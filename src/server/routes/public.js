@@ -9,11 +9,13 @@ function createPublicRouteHandler({
     const categories = Array.isArray(catalog?.categories) ? catalog.categories : [];
     const products = Array.isArray(catalog?.products) ? catalog.products : [];
     const banners = Array.isArray(catalog?.banners) ? catalog.banners : [];
+    const settings = catalog?.settings || {};
     const script = [
       "// Generated from current catalog storage. card-tovary.js is compatibility-only.",
       `window.TECHGEAR_CATEGORIES = ${JSON.stringify(categories, null, 2)};`,
       `window.TECHGEAR_PRODUCTS = ${JSON.stringify(products, null, 2)};`,
-      `window.TECHGEAR_BANNERS = ${JSON.stringify(banners, null, 2)};`
+      `window.TECHGEAR_BANNERS = ${JSON.stringify(banners, null, 2)};`,
+      `window.TECHGEAR_SETTINGS = ${JSON.stringify(settings, null, 2)};`
     ].join("\n\n");
 
     res.writeHead(200, {

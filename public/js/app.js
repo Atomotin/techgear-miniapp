@@ -7,7 +7,7 @@ const tg = window.Telegram?.WebApp || null;
     let isPlaying = false;
     const AUDIO_ENABLED = true;
     
-    function initAudio() {
+    function initAudioLegacy() {
       if (!AUDIO_ENABLED) return;
       audioElement = document.getElementById('bgm');
       if (!audioElement) return;
@@ -86,7 +86,7 @@ const tg = window.Telegram?.WebApp || null;
       }
     }
     
-    function toggleMute() {
+    function toggleMuteLegacy() {
       if (!AUDIO_ENABLED) return;
       if (!audioElement) {
         initAudio();
@@ -104,7 +104,7 @@ const tg = window.Telegram?.WebApp || null;
       }
     }
     
-    function updateBtn() {
+    function updateBtnLegacy() {
       const btn = document.getElementById('muteBtn');
       if (!btn) return;
       const icon = btn.querySelector(".nav-icon");
@@ -149,6 +149,278 @@ const tg = window.Telegram?.WebApp || null;
     `);
     window.__TG_IMAGE_FALLBACK__ = IMAGE_FALLBACK_SRC;
 
+    const DEFAULT_APP_SETTINGS = Object.freeze({
+      music: {
+        enabled: true,
+        tracks: ["songs/asrorrrrrga1.mp3"],
+        volume: 1
+      }
+    });
+
+    let audioInitialized = false;
+    let audioPromptBound = false;
+    let audioTrackIndex = 0;
+    let audioSettingsLoaded = false;
+    let appSettings = normalizeClientAppSettings(DEFAULT_APP_SETTINGS);
+
+    function normalizeMusicTrackList(value) {
+      const source = Array.isArray(value) ? value : (typeof value === "string" ? value.split(/\r?\n|,/) : []);
+      return [...new Set(
+        source
+          .map((item) => String(item || "").trim())
+          .filter(Boolean)
+      )].slice(0, 8);
+    }
+
+    function normalizeClientMusicSettings(settings = {}) {
+      const tracks = normalizeMusicTrackList(settings?.tracks);
+      const parsedVolume = Number(settings?.volume);
+      const volume = Number.isFinite(parsedVolume)
+        ? Math.min(1, Math.max(0, parsedVolume))
+        : 1;
+
+      return {
+        enabled: settings?.enabled !== false && tracks.length > 0,
+        tracks,
+        volume
+      };
+    }
+
+    function normalizeClientAppSettings(settings = {}) {
+      return {
+        music: normalizeClientMusicSettings(settings?.music || {})
+      };
+    }
+
+    function getMusicPrompt() {
+      return document.getElementById("musicPrompt");
+    }
+
+    function getMuteButton() {
+      return document.getElementById("muteBtn");
+    }
+
+    function hideMusicUi() {
+      const prompt = getMusicPrompt();
+      const button = getMuteButton();
+      if (prompt) prompt.style.display = "none";
+      if (button) button.style.display = "none";
+    }
+
+    function showMusicUi() {
+      const prompt = getMusicPrompt();
+      const button = getMuteButton();
+      if (button) button.style.display = "";
+      if (prompt) {
+        prompt.style.display = isPlaying ? "none" : "";
+      }
+    }
+
+    function setAudioSource(track) {
+      if (!audioElement) return;
+
+      const nextTrack = String(track || "").trim();
+      if (!nextTrack) {
+        if (audioElement.getAttribute("src")) {
+          audioElement.pause();
+          audioElement.removeAttribute("src");
+          delete audioElement.dataset.trackSrc;
+          audioElement.load();
+        }
+        return;
+      }
+
+      if (audioElement.dataset.trackSrc === nextTrack) {
+        return;
+      }
+
+      audioElement.dataset.trackSrc = nextTrack;
+      audioElement.src = nextTrack;
+      audioElement.load();
+    }
+
+    function syncMusicUi() {
+      const music = appSettings.music;
+      if (!music.enabled || !music.tracks.length) {
+        hideMusicUi();
+        isPlaying = false;
+        updateBtn();
+        return;
+      }
+
+      showMusicUi();
+      if (audioElement) {
+        audioElement.loop = true;
+        audioElement.volume = music.volume;
+      }
+      updateBtn();
+    }
+
+    function tryPlayAudio() {
+      const music = appSettings.music;
+      if (!audioElement || !audioSettingsLoaded || !music.enabled || !music.tracks.length) {
+        return Promise.resolve();
+      }
+
+      setAudioSource(music.tracks[audioTrackIndex] || music.tracks[0]);
+      const playPromise = audioElement.play();
+      if (playPromise && typeof playPromise.then === "function") {
+        return playPromise
+          .then(() => {
+            isPlaying = true;
+            updateBtn();
+            const prompt = getMusicPrompt();
+            if (prompt) prompt.style.display = "none";
+          })
+          .catch((error) => {
+            isPlaying = false;
+            updateBtn();
+            showMusicUi();
+            console.warn("Music autoplay blocked:", error?.name || error);
+          });
+      }
+
+      isPlaying = !audioElement.paused;
+      updateBtn();
+      return Promise.resolve();
+    }
+
+    function handleAudioError(error) {
+      const music = appSettings.music;
+      console.error("Music load error for", audioElement?.src || "", error);
+      audioTrackIndex += 1;
+
+      if (audioTrackIndex < music.tracks.length) {
+        setAudioSource(music.tracks[audioTrackIndex]);
+        tryPlayAudio();
+        return;
+      }
+
+      console.warn("All configured music sources failed to load");
+    }
+
+    function applyMusicSettings(settings = {}, options = {}) {
+      const { autoplay = false } = options;
+      appSettings = normalizeClientAppSettings(settings);
+      audioSettingsLoaded = true;
+      audioTrackIndex = 0;
+
+      if (!audioInitialized) {
+        return;
+      }
+
+      const music = appSettings.music;
+      syncMusicUi();
+
+      if (!audioElement) {
+        return;
+      }
+
+      if (!music.enabled || !music.tracks.length) {
+        audioElement.pause();
+        setAudioSource("");
+        return;
+      }
+
+      const shouldResume = autoplay || !audioElement.paused;
+      setAudioSource(music.tracks[0]);
+      if (shouldResume) {
+        tryPlayAudio();
+      }
+    }
+
+    function initAudio() {
+      if (audioInitialized) {
+        syncMusicUi();
+        return;
+      }
+
+      audioElement = document.getElementById("bgm");
+      if (!audioElement) return;
+
+      audioInitialized = true;
+
+      if (tg && tg.MainButton) {
+        try {
+          tg.MainButton.hide();
+        } catch (error) {}
+      }
+
+      audioElement.addEventListener("play", () => {
+        isPlaying = true;
+        updateBtn();
+        const prompt = getMusicPrompt();
+        if (prompt) prompt.style.display = "none";
+      });
+
+      audioElement.addEventListener("pause", () => {
+        isPlaying = false;
+        updateBtn();
+        if (appSettings.music.enabled && appSettings.music.tracks.length) {
+          showMusicUi();
+        }
+      });
+
+      audioElement.addEventListener("error", handleAudioError);
+
+      const prompt = getMusicPrompt();
+      if (prompt && !audioPromptBound) {
+        prompt.addEventListener("click", () => {
+          tryPlayAudio();
+          prompt.style.display = "none";
+        });
+        audioPromptBound = true;
+      }
+
+      const autoplay = () => {
+        tryPlayAudio();
+      };
+
+      document.addEventListener("click", autoplay, { once: true });
+      document.addEventListener("touchstart", autoplay, { once: true });
+
+      syncMusicUi();
+      if (audioSettingsLoaded) {
+        tryPlayAudio();
+      }
+    }
+
+    function toggleMute() {
+      if (!audioInitialized) {
+        initAudio();
+      }
+
+      const music = appSettings.music;
+      if (!audioElement || !audioSettingsLoaded || !music.enabled || !music.tracks.length) {
+        return;
+      }
+
+      if (audioElement.paused) {
+        tryPlayAudio().catch((error) => console.warn("Music play error:", error));
+        return;
+      }
+
+      audioElement.pause();
+      isPlaying = false;
+      updateBtn();
+    }
+
+    function updateBtn() {
+      const btn = getMuteButton();
+      if (!btn) return;
+
+      const music = appSettings.music;
+      const canPlay = music.enabled && music.tracks.length > 0;
+      btn.style.display = canPlay ? "" : "none";
+      btn.disabled = !canPlay;
+      btn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
+
+      const icon = btn.querySelector(".nav-icon");
+      if (icon) {
+        icon.textContent = isPlaying ? "⏸️" : "▶️";
+      }
+    }
+
     if (tg) {
       tg.ready();
       tg.expand();
@@ -161,6 +433,9 @@ const tg = window.Telegram?.WebApp || null;
     const BOOTSTRAP_PRODUCTS = Array.isArray(window.TECHGEAR_PRODUCTS) ? window.TECHGEAR_PRODUCTS : [];
     const BOOTSTRAP_CATEGORIES = Array.isArray(window.TECHGEAR_CATEGORIES) ? window.TECHGEAR_CATEGORIES : [];
     const BOOTSTRAP_BANNERS = Array.isArray(window.TECHGEAR_BANNERS) ? window.TECHGEAR_BANNERS : [];
+    const BOOTSTRAP_SETTINGS = normalizeClientAppSettings(window.TECHGEAR_SETTINGS || DEFAULT_APP_SETTINGS);
+
+    appSettings = BOOTSTRAP_SETTINGS;
 
     let PRODUCTS = [];
     let CATEGORIES = [];
@@ -453,10 +728,12 @@ const tg = window.Telegram?.WebApp || null;
         PRODUCTS = Array.isArray(data.products) ? data.products : BOOTSTRAP_PRODUCTS;
         CATEGORIES = Array.isArray(data.categories) ? data.categories : BOOTSTRAP_CATEGORIES;
         PROMO_BANNERS = Array.isArray(data.banners) ? data.banners : BOOTSTRAP_BANNERS;
+        applyMusicSettings(data.settings || BOOTSTRAP_SETTINGS, { autoplay: true });
       } catch (error) {
         PRODUCTS = BOOTSTRAP_PRODUCTS;
         CATEGORIES = BOOTSTRAP_CATEGORIES;
         PROMO_BANNERS = BOOTSTRAP_BANNERS;
+        applyMusicSettings(BOOTSTRAP_SETTINGS, { autoplay: true });
         console.warn("Catalog API unavailable, fallback to local data");
       }
     }

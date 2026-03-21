@@ -6,13 +6,16 @@ function buildLocalStorageModule({
   sanitizeCustomerProfile,
   sanitizePromoBanner,
   sanitizePromoBanners,
+  sanitizeAppSettings,
   buildDefaultPromoBanners,
+  buildDefaultAppSettings,
   buildOrderRecord,
   loadLegacyCatalog,
   catalogPath,
   ordersPath,
   customersPath,
   bannersPath,
+  settingsPath,
   readJson,
   writeJson,
   ensureDataFiles
@@ -88,6 +91,23 @@ function createLocalStorageProvider() {
     return normalized;
   }
 
+  function getSettings() {
+    const settings = readJson(settingsPath, null);
+    if (!settings) {
+      const seeded = buildDefaultAppSettings();
+      writeJson(settingsPath, seeded);
+      return seeded;
+    }
+
+    return sanitizeAppSettings(settings);
+  }
+
+  function saveSettings(settings) {
+    const normalized = sanitizeAppSettings(settings);
+    writeJson(settingsPath, normalized);
+    return normalized;
+  }
+
   function upsertCustomerProfile(payload) {
     const profile = sanitizeCustomerProfile(payload);
     if (!profile.key) {
@@ -126,6 +146,11 @@ function createLocalStorageProvider() {
           persistent: false,
           reason: "Каталог и товары сохраняются в data/catalog.json на диске сервера"
         },
+        settings: {
+          mode: "local-file",
+          persistent: false,
+          reason: "РќР°СЃС‚СЂРѕР№РєРё Mini App Рё РјСѓР·С‹РєР° СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ РІ data/settings.json РЅР° РґРёСЃРєРµ СЃРµСЂРІРµСЂР°"
+        },
         banners: {
           mode: "local-file",
           persistent: false,
@@ -142,7 +167,8 @@ function createLocalStorageProvider() {
       const catalog = getCatalog();
       return {
         ...catalog,
-        banners: getBanners()
+        banners: getBanners(),
+        settings: getSettings()
       };
     },
     async getOrders() {
@@ -153,6 +179,12 @@ function createLocalStorageProvider() {
     },
     async getBanners() {
       return getBanners();
+    },
+    async getSettings() {
+      return getSettings();
+    },
+    async updateSettings(payload) {
+      return saveSettings(payload);
     },
     async upsertCustomerProfile(payload) {
       return upsertCustomerProfile(payload);

@@ -7,10 +7,13 @@ function buildSupabaseStorageModule({
   sanitizeCustomerProfile,
   sanitizePromoBanner,
   sanitizePromoBanners,
+  sanitizeAppSettings,
   buildDefaultPromoBanners,
+  buildDefaultAppSettings,
   buildOrderRecord,
   loadLegacyCatalog,
   bannersPath,
+  settingsPath,
   supabaseEnabled,
   supabaseRestUrl,
   supabaseStorageUrl,
@@ -23,6 +26,9 @@ function buildSupabaseStorageModule({
   upsertFallbackCustomerProfile,
   shouldUseCustomerFallback,
   shouldUseBannerFallback,
+  getFallbackSettings,
+  saveFallbackSettings,
+  shouldUseSettingsFallback,
   categoryRowToModel,
   productRowToModel,
   productModelToRow,
@@ -31,7 +37,9 @@ function buildSupabaseStorageModule({
   customerRowToModel,
   customerModelToRow,
   bannerRowToModel,
-  bannerModelToRow
+  bannerModelToRow,
+  settingsRowToModel,
+  settingsModelToRow
 }) {
 function parseSupabaseError(payload, response) {
   if (payload && typeof payload === "object") {
@@ -217,6 +225,21 @@ function createSupabaseStorageProvider() {
     };
   }
 
+  async function getSettings() {
+    try {
+      const rows = await supabaseRequest("GET", "app_settings", {
+        query: "id=eq.miniapp&select=id,value&limit=1"
+      });
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      return row ? settingsRowToModel(row) : buildDefaultAppSettings();
+    } catch (error) {
+      if (shouldUseSettingsFallback(error)) {
+        return getFallbackSettings();
+      }
+      throw error;
+    }
+  }
+
   async function ensureSeeded() {
     const existingCategories = await supabaseRequest("GET", "categories", {
       query: "select=key&limit=1"
@@ -265,6 +288,23 @@ function createSupabaseStorageProvider() {
         throw error;
       }
     }
+
+    try {
+      const existingSettings = await supabaseRequest("GET", "app_settings", {
+        query: "id=eq.miniapp&select=id&limit=1"
+      });
+
+      if (!Array.isArray(existingSettings) || existingSettings.length === 0) {
+        await supabaseRequest("POST", "app_settings", {
+          body: [settingsModelToRow(buildDefaultAppSettings())],
+          prefer: "return=representation,resolution=merge-duplicates"
+        });
+      }
+    } catch (error) {
+      if (!shouldUseSettingsFallback(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -285,6 +325,11 @@ function createSupabaseStorageProvider() {
           persistent: true,
           reason: ""
         },
+        settings: {
+          mode: "supabase",
+          persistent: true,
+          reason: ""
+        },
         banners: {
           mode: "supabase",
           persistent: true,
@@ -296,6 +341,24 @@ function createSupabaseStorageProvider() {
           reason: ""
         }
       };
+
+      try {
+        await supabaseRequest("GET", "app_settings", {
+          query: "id=eq.miniapp&select=id&limit=1"
+        });
+      } catch (error) {
+        diagnostics.settings = shouldUseSettingsFallback(error)
+          ? {
+              mode: "local-fallback",
+              persistent: false,
+              reason: "В Supabase нет таблицы app_settings. Выполните supabase/schema.sql заново."
+            }
+          : {
+              mode: "error",
+              persistent: false,
+              reason: String(error?.message || "Не удалось проверить таблицу app_settings")
+            };
+      }
 
       try {
         await supabaseRequest("GET", "promo_banners", {
@@ -330,6 +393,7 @@ function createSupabaseStorageProvider() {
     async getCatalog() {
       const catalog = await getCatalog();
       let banners = [];
+      const settings = await getSettings();
 
       try {
         const rows = await supabaseRequest("GET", "promo_banners", {
@@ -346,7 +410,8 @@ function createSupabaseStorageProvider() {
 
       return {
         ...catalog,
-        banners
+        banners,
+        settings
       };
     },
     async getOrders() {
@@ -379,6 +444,27 @@ function createSupabaseStorageProvider() {
       } catch (error) {
         if (shouldUseBannerFallback(error)) {
           return readJson(bannersPath, buildDefaultPromoBanners(loadLegacyCatalog().products));
+        }
+        throw error;
+      }
+    },
+    async getSettings() {
+      return getSettings();
+    },
+    async updateSettings(payload) {
+      const settings = sanitizeAppSettings(payload);
+
+      try {
+        const rows = await supabaseRequest("POST", "app_settings", {
+          body: [settingsModelToRow(settings)],
+          prefer: "return=representation,resolution=merge-duplicates"
+        });
+
+        const row = Array.isArray(rows) ? rows[0] : rows;
+        return settingsRowToModel(row || settingsModelToRow(settings));
+      } catch (error) {
+        if (shouldUseSettingsFallback(error)) {
+          return saveFallbackSettings(settings);
         }
         throw error;
       }

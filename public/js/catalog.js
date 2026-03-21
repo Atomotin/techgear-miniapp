@@ -264,32 +264,6 @@ function buildPromoSlides() {
           const variants = Array.isArray(variantOptions.variants) ? variantOptions.variants : [];
           const colors = Array.isArray(variantOptions.colors) ? variantOptions.colors : [];
           const models = Array.isArray(variantOptions.models) ? variantOptions.models : [];
-          const previewBlocks = [
-            models.length
-              ? `
-                <div class="variant-group">
-                  <div class="variant-group-label">Модели</div>
-                  <div class="variants">${models.map((value) => `<span class="variant">${escapeHtml(value)}</span>`).join("")}</div>
-                </div>
-              `
-              : "",
-            colors.length
-              ? `
-                <div class="variant-group">
-                  <div class="variant-group-label">Цвета</div>
-                  <div class="variants">${colors.map((value) => `<span class="variant">${escapeHtml(value)}</span>`).join("")}</div>
-                </div>
-              `
-              : "",
-            variants.length
-              ? `
-                <div class="variant-group">
-                  <div class="variant-group-label">${colors.length || models.length ? "Дополнительно" : "Варианты"}</div>
-                  <div class="variants">${variants.map((value) => `<span class="variant">${escapeHtml(value)}</span>`).join("")}</div>
-                </div>
-              `
-              : ""
-          ].join("");
           const buildVariantSelect = (kind, label, values) => values.length
             ? `
               <label class="variant-picker">
@@ -318,7 +292,6 @@ function buildPromoSlides() {
               <h3>${escapeHtml(product.name)}</h3>
               ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}
               <div class="stock">${escapeHtml(product.stock)}</div>
-              ${previewBlocks}
               ${variantSelectHtml}
               <div class="meta-row">
                 ${renderProductPrice(product)}

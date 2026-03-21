@@ -651,11 +651,11 @@ const state = {
       const file = Array.from(input.files || [])[0];
 
       if (!file) {
-        showActionResult("musicUploadMessage", "РЎРЅР°С‡Р°Р»Р° РІС‹Р±РµСЂРё MP3-С„Р°Р№Р»", true);
+        showActionResult("musicUploadMessage", "Сначала выбери MP3-файл", true);
         return;
       }
 
-      showMessage("musicUploadMessage", "Р—Р°РіСЂСѓР¶Р°СЋ MP3...");
+      showMessage("musicUploadMessage", "Загружаю MP3...");
 
       try {
         const result = await api(`/api/admin/uploads?filename=${encodeURIComponent(file.name)}`, {
@@ -677,7 +677,7 @@ const state = {
         if (warning) {
           showActionResult("musicUploadMessage", warning, false, "warning");
         } else {
-          showActionResult("musicUploadMessage", "MP3 Р·Р°РіСЂСѓР¶РµРЅ");
+          showActionResult("musicUploadMessage", "MP3 загружен");
         }
       } catch (error) {
         showActionResult("musicUploadMessage", error.message, true);
@@ -697,7 +697,7 @@ const state = {
         await loadRuntimeDiagnostics();
         renderRuntimeNotice();
         fillMusicForm(state.settings);
-        showActionResult("musicMessage", "РњСѓР·С‹РєР° РѕР±РЅРѕРІР»РµРЅР°");
+        showActionResult("musicMessage", "Музыка обновлена");
       } catch (error) {
         showActionResult("musicMessage", error.message, true);
       }

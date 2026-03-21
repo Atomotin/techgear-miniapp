@@ -149,7 +149,7 @@ function createLocalStorageProvider() {
         settings: {
           mode: "local-file",
           persistent: false,
-          reason: "РќР°СЃС‚СЂРѕР№РєРё Mini App Рё РјСѓР·С‹РєР° СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ РІ data/settings.json РЅР° РґРёСЃРєРµ СЃРµСЂРІРµСЂР°"
+          reason: "Настройки Mini App и музыка сохраняются в data/settings.json на диске сервера"
         },
         banners: {
           mode: "local-file",

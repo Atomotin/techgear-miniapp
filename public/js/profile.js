@@ -253,23 +253,6 @@ function ensureProfileNavigation() {
       return originalSubmitOrder();
     }
 
-    function updateBtn() {
-      const btn = document.getElementById("muteBtn");
-      if (!btn) return;
-      const icon = btn.querySelector(".nav-icon");
-      const label = btn.querySelector(".nav-label");
-
-      if (icon) {
-        icon.textContent = isPlaying ? "⏸️" : "▶️";
-      }
-
-      if (label) {
-        label.textContent = isPlaying ? "Музыка: вкл" : "Музыка";
-      }
-
-      btn.classList.toggle("active", isPlaying);
-    }
-
     document.getElementById("searchInput").addEventListener("input", function (e) {
       state.search = e.target.value;
       renderProducts();

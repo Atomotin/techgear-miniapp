@@ -137,7 +137,7 @@ const tg = window.Telegram?.WebApp || null;
       if (!music.enabled || !music.tracks.length) {
         hideMusicUi();
         isPlaying = false;
-        updateBtn();
+        syncAudioButtonState();
         return;
       }
 
@@ -146,7 +146,7 @@ const tg = window.Telegram?.WebApp || null;
         audioElement.loop = true;
         audioElement.volume = music.volume;
       }
-      updateBtn();
+      syncAudioButtonState();
     }
 
     function tryPlayAudio() {
@@ -161,20 +161,20 @@ const tg = window.Telegram?.WebApp || null;
         return playPromise
           .then(() => {
             isPlaying = true;
-            updateBtn();
+            syncAudioButtonState();
             const prompt = getMusicPrompt();
             if (prompt) prompt.style.display = "none";
           })
           .catch((error) => {
             isPlaying = false;
-            updateBtn();
+            syncAudioButtonState();
             showMusicUi();
             console.warn("Music autoplay blocked:", error?.name || error);
           });
       }
 
       isPlaying = !audioElement.paused;
-      updateBtn();
+      syncAudioButtonState();
       return Promise.resolve();
     }
 
@@ -241,14 +241,14 @@ const tg = window.Telegram?.WebApp || null;
 
       audioElement.addEventListener("play", () => {
         isPlaying = true;
-        updateBtn();
+        syncAudioButtonState();
         const prompt = getMusicPrompt();
         if (prompt) prompt.style.display = "none";
       });
 
       audioElement.addEventListener("pause", () => {
         isPlaying = false;
-        updateBtn();
+        syncAudioButtonState();
         if (appSettings.music.enabled && appSettings.music.tracks.length) {
           showMusicUi();
         }
@@ -295,10 +295,10 @@ const tg = window.Telegram?.WebApp || null;
 
       audioElement.pause();
       isPlaying = false;
-      updateBtn();
+      syncAudioButtonState();
     }
 
-    function updateBtn() {
+    function syncAudioButtonState() {
       const btn = getMuteButton();
       if (!btn) return;
 
@@ -309,9 +309,16 @@ const tg = window.Telegram?.WebApp || null;
       btn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
 
       const icon = btn.querySelector(".nav-icon");
+      const label = btn.querySelector(".nav-label");
       if (icon) {
         icon.textContent = isPlaying ? "⏸️" : "▶️";
       }
+
+      if (label) {
+        label.textContent = isPlaying ? "Музыка: вкл" : "Музыка";
+      }
+
+      btn.classList.toggle("active", isPlaying);
     }
 
     if (tg) {
@@ -720,8 +727,12 @@ const tg = window.Telegram?.WebApp || null;
 
     function persistCheckoutFields() {
       const customerName = document.getElementById("customerName");
+      const customerPhone = document.getElementById("customerPhone");
       const customerUsername = document.getElementById("customerUsername");
       const customerDelivery = document.getElementById("customerDelivery");
+      const customerLocation = document.getElementById("customerLocation");
+      const customerContactMethod = document.getElementById("customerContactMethod");
+      const customerDeliveryTime = document.getElementById("customerDeliveryTime");
       const customerComment = document.getElementById("customerComment");
       if (customerName) customerName.value = sanitizeNameInput(customerName.value);
       if (customerUsername) customerUsername.value = sanitizeUsernameInput(customerUsername.value);
@@ -729,14 +740,14 @@ const tg = window.Telegram?.WebApp || null;
       if (customerComment) customerComment.value = sanitizeLongText(customerComment.value, 500);
 
       state.checkout = {
-        name: document.getElementById("customerName")?.value.trim() || state.checkout.name || "",
-        phone: document.getElementById("customerPhone")?.value.trim() || state.checkout.phone || "",
-        username: document.getElementById("customerUsername")?.value.trim() || state.checkout.username || "",
-        delivery: document.getElementById("customerDelivery")?.value.trim() || state.checkout.delivery || "",
-        location: document.getElementById("customerLocation")?.value.trim() || state.checkout.location || "",
-        contactMethod: document.getElementById("customerContactMethod")?.value || state.checkout.contactMethod || "telegram",
-        deliveryTime: document.getElementById("customerDeliveryTime")?.value || state.checkout.deliveryTime || "asap",
-        comment: document.getElementById("customerComment")?.value.trim() || state.checkout.comment || "",
+        name: customerName ? customerName.value.trim() : (state.checkout.name || ""),
+        phone: customerPhone ? customerPhone.value.trim() : (state.checkout.phone || ""),
+        username: customerUsername ? customerUsername.value.trim() : (state.checkout.username || ""),
+        delivery: customerDelivery ? customerDelivery.value.trim() : (state.checkout.delivery || ""),
+        location: customerLocation ? customerLocation.value.trim() : (state.checkout.location || ""),
+        contactMethod: customerContactMethod ? customerContactMethod.value : (state.checkout.contactMethod || "telegram"),
+        deliveryTime: customerDeliveryTime ? customerDeliveryTime.value : (state.checkout.deliveryTime || "asap"),
+        comment: customerComment ? customerComment.value.trim() : (state.checkout.comment || ""),
       };
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
     }

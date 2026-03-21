@@ -46,29 +46,52 @@ function createHttpHelpers({ createHttpError }) {
   function readBody(req) {
     return new Promise((resolve, reject) => {
       let raw = "";
+      let total = 0;
+      let settled = false;
+
+      function fail(error) {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      }
+
+      function succeed(value) {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      }
 
       req.on("data", (chunk) => {
-        raw += chunk;
-        if (raw.length > 1024 * 1024 * 2) {
-          reject(new Error("Payload too large"));
+        total += chunk.length;
+        if (settled) return;
+
+        if (total > 1024 * 1024 * 2) {
+          fail(createHttpError(413, "Payload too large"));
           req.destroy();
+          return;
         }
+
+        raw += chunk;
       });
 
       req.on("end", () => {
+        if (settled) return;
+
         if (!raw) {
-          resolve({});
+          succeed({});
           return;
         }
 
         try {
-          resolve(JSON.parse(raw));
+          succeed(JSON.parse(raw));
         } catch (error) {
-          reject(new Error("Invalid JSON"));
+          fail(createHttpError(400, "Invalid JSON"));
         }
       });
 
-      req.on("error", reject);
+      req.on("error", (error) => {
+        fail(error);
+      });
     });
   }
 

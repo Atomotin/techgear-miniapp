@@ -409,11 +409,6 @@
 
         if (tg) {
           try {
-            tg.sendData(orderText);
-          } catch (error) {
-            console.warn("Telegram sendData failed:", error);
-          }
-          try {
             tg.showAlert?.(`Заказ отправлен${result?.orderId ? ` #${result.orderId}` : ""}. Скоро мы свяжемся с вами.`);
           } catch (error) {
             console.warn("Telegram showAlert failed:", error);

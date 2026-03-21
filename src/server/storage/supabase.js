@@ -280,6 +280,11 @@ function createSupabaseStorageProvider() {
     async getDiagnostics() {
       const diagnostics = {
         storageMode: "supabase",
+        catalog: {
+          mode: "supabase",
+          persistent: true,
+          reason: ""
+        },
         banners: {
           mode: "supabase",
           persistent: true,

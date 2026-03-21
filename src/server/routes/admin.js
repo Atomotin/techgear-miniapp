@@ -11,26 +11,26 @@ function createAdminRouteHandler({
   requirePersistentAdminStorage,
   notifyOrderStatusUpdate
 }) {
-  async function ensurePersistentBannerStorage(res) {
+  async function ensurePersistentStorage(res, areaKey, fallbackMessage) {
     if (!requirePersistentAdminStorage) {
       return true;
     }
 
     if (typeof storage.getDiagnostics !== "function") {
       sendJson(res, 503, {
-        error: "Не удалось проверить хранилище баннеров. Откройте /api/health и проверьте storage."
+        error: fallbackMessage || "Не удалось проверить постоянное хранилище. Откройте /api/health и проверьте storage."
       });
       return false;
     }
 
     const diagnostics = await storage.getDiagnostics();
-    const bannerInfo = diagnostics?.banners || null;
-    if (bannerInfo?.persistent !== false) {
+    const areaInfo = diagnostics?.[areaKey] || null;
+    if (areaInfo?.persistent !== false) {
       return true;
     }
 
     sendJson(res, 503, {
-      error: `Постоянное хранилище баннеров недоступно: ${bannerInfo.reason || "проверьте /api/health и настройку Supabase"}`
+      error: `Постоянное хранилище недоступно: ${areaInfo.reason || "проверьте /api/health и настройку Supabase"}`
     });
     return false;
   }
@@ -137,6 +137,14 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/categories") {
+      if (!(await ensurePersistentStorage(
+        res,
+        "catalog",
+        "Не удалось проверить хранилище каталога. Откройте /api/health и проверьте storage."
+      ))) {
+        return true;
+      }
+
       const body = await readBody(req);
       const category = {
         key: normalizeString(body.key),
@@ -153,18 +161,42 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/categories/")) {
+      if (!(await ensurePersistentStorage(
+        res,
+        "catalog",
+        "Не удалось проверить хранилище каталога. Откройте /api/health и проверьте storage."
+      ))) {
+        return true;
+      }
+
       const categoryKey = decodeURIComponent(url.pathname.split("/").pop() || "");
       sendJson(res, 200, await storage.deleteCategory(categoryKey));
       return true;
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/products") {
+      if (!(await ensurePersistentStorage(
+        res,
+        "catalog",
+        "Не удалось проверить хранилище каталога. Откройте /api/health и проверьте storage."
+      ))) {
+        return true;
+      }
+
       const body = await readBody(req);
       sendJson(res, 201, await storage.createProduct(body));
       return true;
     }
 
     if (req.method === "PUT" && url.pathname.startsWith("/api/admin/products/")) {
+      if (!(await ensurePersistentStorage(
+        res,
+        "catalog",
+        "Не удалось проверить хранилище каталога. Откройте /api/health и проверьте storage."
+      ))) {
+        return true;
+      }
+
       const productId = Number(url.pathname.split("/").pop());
       const body = await readBody(req);
       sendJson(res, 200, await storage.updateProduct(productId, body));
@@ -172,13 +204,25 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/products/")) {
+      if (!(await ensurePersistentStorage(
+        res,
+        "catalog",
+        "Не удалось проверить хранилище каталога. Откройте /api/health и проверьте storage."
+      ))) {
+        return true;
+      }
+
       const productId = Number(url.pathname.split("/").pop());
       sendJson(res, 200, await storage.deleteProduct(productId));
       return true;
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/banners") {
-      if (!(await ensurePersistentBannerStorage(res))) {
+      if (!(await ensurePersistentStorage(
+        res,
+        "banners",
+        "Не удалось проверить хранилище баннеров. Откройте /api/health и проверьте storage."
+      ))) {
         return true;
       }
 
@@ -188,7 +232,11 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "PUT" && url.pathname.startsWith("/api/admin/banners/")) {
-      if (!(await ensurePersistentBannerStorage(res))) {
+      if (!(await ensurePersistentStorage(
+        res,
+        "banners",
+        "Не удалось проверить хранилище баннеров. Откройте /api/health и проверьте storage."
+      ))) {
         return true;
       }
 
@@ -199,7 +247,11 @@ function createAdminRouteHandler({
     }
 
     if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/banners/")) {
-      if (!(await ensurePersistentBannerStorage(res))) {
+      if (!(await ensurePersistentStorage(
+        res,
+        "banners",
+        "Не удалось проверить хранилище баннеров. Откройте /api/health и проверьте storage."
+      ))) {
         return true;
       }
 

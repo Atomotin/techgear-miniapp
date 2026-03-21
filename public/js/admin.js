@@ -139,12 +139,17 @@ const state = {
 
       const diagnostics = runtime.diagnostics || {};
       const storageMode = diagnostics.storageMode || runtime.storage || "unknown";
+      const catalogInfo = diagnostics.catalog || null;
       const bannerInfo = diagnostics.banners || null;
       const uploadInfo = diagnostics.uploads || null;
       const issues = [];
       const chips = [`storage: ${storageMode}`];
       if (runtime.requirePersistentAdminStorage) {
         chips.push("strict-persistence: on");
+      }
+
+      if (catalogInfo?.mode) {
+        chips.push(`catalog: ${catalogInfo.mode}`);
       }
 
       if (bannerInfo?.mode) {
@@ -157,6 +162,10 @@ const state = {
 
       if (storageMode === "local") {
         issues.push("Сейчас сервер работает на local storage: баннеры и картинки лежат в файлах сервера и после нового деплоя могут исчезнуть.");
+      }
+
+      if (catalogInfo && catalogInfo.persistent === false) {
+        issues.push(`Каталог и товары тоже сохраняются ненадёжно: ${catalogInfo.reason}.`);
       }
 
       if (bannerInfo && bannerInfo.persistent === false) {

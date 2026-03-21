@@ -121,6 +121,11 @@ function createLocalStorageProvider() {
     async getDiagnostics() {
       return {
         storageMode: "local",
+        catalog: {
+          mode: "local-file",
+          persistent: false,
+          reason: "Каталог и товары сохраняются в data/catalog.json на диске сервера"
+        },
         banners: {
           mode: "local-file",
           persistent: false,

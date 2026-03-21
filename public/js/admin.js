@@ -817,59 +817,6 @@ const state = {
       });
     }
 
-    function getCustomers() {
-      const customers = new Map();
-
-      for (const order of state.orders) {
-        const customer = order.customer || {};
-        const phone = String(customer.phone || "").trim();
-        const username = String(customer.username || "").replace(/^@/, "").trim().toLowerCase();
-        const name = String(customer.name || "").trim();
-        const fallbackKey = `${name}|${String(customer.delivery || "").trim()}`.toLowerCase();
-        const key = phone || username || fallbackKey;
-        if (!key) continue;
-
-        const itemsCount = Array.isArray(order.items)
-          ? order.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
-          : 0;
-
-        if (!customers.has(key)) {
-          customers.set(key, {
-            key,
-            name: name || "Без имени",
-            phone,
-            username,
-            delivery: String(customer.delivery || "").trim(),
-            comment: String(customer.comment || "").trim(),
-            ordersCount: 0,
-            itemsCount: 0,
-            spent: 0,
-            lastOrderAt: order.createdAt,
-            statuses: new Set()
-          });
-        }
-
-        const entry = customers.get(key);
-        entry.name = entry.name === "Без имени" && name ? name : entry.name;
-        entry.phone = entry.phone || phone;
-        entry.username = entry.username || username;
-        entry.delivery = entry.delivery || String(customer.delivery || "").trim();
-        entry.comment = entry.comment || String(customer.comment || "").trim();
-        entry.ordersCount += 1;
-        entry.itemsCount += itemsCount;
-        entry.spent += Number(order.total) || 0;
-        entry.statuses.add(order.status || "new");
-
-        if (!entry.lastOrderAt || new Date(order.createdAt).getTime() > new Date(entry.lastOrderAt).getTime()) {
-          entry.lastOrderAt = order.createdAt;
-        }
-      }
-
-      return [...customers.values()]
-        .map((customer) => ({ ...customer, statuses: [...customer.statuses] }))
-        .sort((a, b) => new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime());
-    }
-
     function fillProductForm(product = null) {
       const optionGroups = parseProductOptionGroups(product?.variants);
       state.editingId = product ? product.id : null;
@@ -978,57 +925,6 @@ const state = {
             showActionResult("productMessage", "Товар удалён");
           } catch (error) {
             showActionResult("productMessage", error.message, true);
-          }
-        });
-      });
-    }
-
-    function renderOrders() {
-      const list = document.getElementById("ordersList");
-      if (!state.orders.length) {
-        list.innerHTML = '<div class="hint">Пока заказов нет.</div>';
-        return;
-      }
-
-      list.innerHTML = state.orders.map((order) => `
-        <article class="order-card">
-          <div class="order-top">
-            <div>
-              <h3>${escapeHtml(order.customer?.name || "Без имени")}</h3>
-              <div class="muted">${escapeHtml(order.customer?.phone || "")}</div>
-            </div>
-            <span class="status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
-          </div>
-          <div class="badge-row">
-            <span class="badge">${new Date(order.createdAt).toLocaleString("ru-RU")}</span>
-            <span class="badge">${formatPrice(order.total)}</span>
-          </div>
-          <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
-          <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
-          <div class="product-actions">
-            <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
-            <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:done">Готово</button>
-            <button class="btn btn-danger btn-small" type="button" data-status="${order.id}:cancelled">Отменить</button>
-          </div>
-        </article>
-      `).join("");
-
-      list.querySelectorAll("[data-status]").forEach((button) => {
-        button.addEventListener("click", async () => {
-          const [orderId, status] = button.dataset.status.split(":");
-          try {
-            const response = await api(`/api/admin/orders/${orderId}`, {
-              method: "PATCH",
-              body: JSON.stringify({ status })
-            });
-            await loadAdminData();
-            showToast("Статус заказа обновлён");
-            const notificationMessage = getOrderNotificationMessage(response.notification);
-            if (notificationMessage) {
-              showToast(notificationMessage, "warning");
-            }
-          } catch (error) {
-            showToast(error.message, "error");
           }
         });
       });

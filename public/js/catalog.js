@@ -205,7 +205,8 @@ function buildPromoSlides() {
       const query = state.search.trim().toLowerCase();
       const filtered = normalizeProducts(PRODUCTS).filter((product) => {
         const byCategory = state.activeCategory === "all" || product.category === state.activeCategory;
-        const bySearch = !query || [product.name, product.desc, ...(product.variants || [])].join(" ").toLowerCase().includes(query);
+        const searchableVariants = product.variantOptions?.searchableValues || product.variants || [];
+        const bySearch = !query || [product.name, product.desc, ...searchableVariants].join(" ").toLowerCase().includes(query);
         const byAvailability = state.availability === "all"
           || (state.availability === "available" && !product.isSoon)
           || (state.availability === "soon" && product.isSoon);
@@ -259,15 +260,53 @@ function buildPromoSlides() {
             `
             : (images[0] ? `<div class="product-media zoomable" data-single-image="${escapeHtml(images[0])}"><img src="${escapeHtml(images[0])}" alt="${escapeHtml(product.name)}" class="product-image" loading="lazy" onerror="if(this.dataset.fallbackApplied)return;this.dataset.fallbackApplied='1';this.src=window.__TG_IMAGE_FALLBACK__;"></div>` : "");
 
-          const variants = Array.isArray(product.variants) ? product.variants : [];
-          const variantsHtml = variants.length
-            ? `<div class="variants">${variants.map((v) => `<span class="variant">${escapeHtml(v)}</span>`).join("")}</div>`
-            : "";
-          const variantSelectHtml = variants.length > 1
+          const variantOptions = product.variantOptions || parseProductVariantOptions(product.variants);
+          const variants = Array.isArray(variantOptions.variants) ? variantOptions.variants : [];
+          const colors = Array.isArray(variantOptions.colors) ? variantOptions.colors : [];
+          const models = Array.isArray(variantOptions.models) ? variantOptions.models : [];
+          const previewBlocks = [
+            models.length
+              ? `
+                <div class="variant-group">
+                  <div class="variant-group-label">Модели</div>
+                  <div class="variants">${models.map((value) => `<span class="variant">${escapeHtml(value)}</span>`).join("")}</div>
+                </div>
+              `
+              : "",
+            colors.length
+              ? `
+                <div class="variant-group">
+                  <div class="variant-group-label">Цвета</div>
+                  <div class="variants">${colors.map((value) => `<span class="variant">${escapeHtml(value)}</span>`).join("")}</div>
+                </div>
+              `
+              : "",
+            variants.length
+              ? `
+                <div class="variant-group">
+                  <div class="variant-group-label">${colors.length || models.length ? "Дополнительно" : "Варианты"}</div>
+                  <div class="variants">${variants.map((value) => `<span class="variant">${escapeHtml(value)}</span>`).join("")}</div>
+                </div>
+              `
+              : ""
+          ].join("");
+          const buildVariantSelect = (kind, label, values) => values.length
             ? `
-              <select class="variant-select" data-product-id="${product.id}">
-                ${variants.map((variant) => `<option value="${escapeHtml(variant)}">${escapeHtml(variant)}</option>`).join("")}
-              </select>
+              <label class="variant-picker">
+                <span class="variant-picker-label">${label}</span>
+                <select class="variant-select" data-variant-kind="${kind}" data-product-id="${product.id}">
+                  ${values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}
+                </select>
+              </label>
+            `
+            : "";
+          const variantSelectHtml = (models.length || colors.length || variants.length > 1)
+            ? `
+              <div class="variant-picker-stack">
+                ${buildVariantSelect("model", "Модель", models)}
+                ${buildVariantSelect("color", "Цвет", colors)}
+                ${variants.length > 1 ? buildVariantSelect("variant", "Вариант", variants) : ""}
+              </div>
             `
             : "";
           const favoriteActive = isFavorite(product.id);
@@ -279,7 +318,7 @@ function buildPromoSlides() {
               <h3>${escapeHtml(product.name)}</h3>
               ${cardDescription ? `<div class="desc">${escapeHtml(cardDescription)}</div>` : ""}
               <div class="stock">${escapeHtml(product.stock)}</div>
-              ${variantsHtml}
+              ${previewBlocks}
               ${variantSelectHtml}
               <div class="meta-row">
                 ${renderProductPrice(product)}
@@ -293,8 +332,11 @@ function buildPromoSlides() {
 
           card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
           card.querySelector(".btn-primary").onclick = () => {
-            const select = card.querySelector(".variant-select");
-            const selectedVariant = select?.value || variants[0] || "";
+            const selectedVariant = formatSelectedVariant({
+              model: card.querySelector('[data-variant-kind="model"]')?.value || models[0] || "",
+              color: card.querySelector('[data-variant-kind="color"]')?.value || colors[0] || "",
+              variant: card.querySelector('[data-variant-kind="variant"]')?.value || (variants.length === 1 ? variants[0] : "")
+            });
             addToCart(product.id, selectedVariant);
           };
 

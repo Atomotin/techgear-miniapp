@@ -20,6 +20,7 @@ const tg = window.Telegram?.WebApp || null;
       analyticsWebhookUrl: "https://script.google.com/macros/s/AKfycbwHfhqIfh7p1AEGuEDuBg2LeqgQcFS14Mtw9KfpSYAq3JyWINXA41rIp5yGmULwFFxS/exec",
       analyticsEnabled: true,
     };
+    const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
     const IMAGE_FALLBACK_SRC = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
         <defs>
@@ -476,6 +477,49 @@ const tg = window.Telegram?.WebApp || null;
       return new Intl.NumberFormat("ru-RU").format(value) + " сум";
     }
 
+    function normalizeVariantOptionList(value) {
+      const source = Array.isArray(value) ? value : (typeof value === "string" ? value.split(/\r?\n|,/) : []);
+      return [...new Set(
+        source
+          .map((item) => normalizeString(item))
+          .filter(Boolean)
+      )].slice(0, 16);
+    }
+
+    function parseProductVariantOptions(variants = []) {
+      const parsed = {
+        colors: [],
+        models: [],
+        variants: []
+      };
+
+      (Array.isArray(variants) ? variants : []).forEach((item) => {
+        const value = normalizeString(item);
+        if (!value) return;
+
+        if (value.startsWith(PRODUCT_OPTION_GROUP_PREFIX)) {
+          try {
+            const payload = JSON.parse(value.slice(PRODUCT_OPTION_GROUP_PREFIX.length));
+            parsed.colors = normalizeVariantOptionList(payload?.colors);
+            parsed.models = normalizeVariantOptionList(payload?.models);
+            return;
+          } catch (error) {}
+        }
+
+        parsed.variants.push(value);
+      });
+
+      parsed.searchableValues = [...parsed.colors, ...parsed.models, ...parsed.variants];
+      return parsed;
+    }
+
+    function formatSelectedVariant(parts = {}) {
+      return [parts.color, parts.model, parts.variant]
+        .map((item) => normalizeString(item))
+        .filter(Boolean)
+        .join(" • ");
+    }
+
     function getDiscountPercent(product) {
       const oldPrice = Number(product?.oldPrice) || 0;
       const price = Number(product?.price) || 0;
@@ -507,13 +551,15 @@ const tg = window.Telegram?.WebApp || null;
               .map((image) => normalizeString(image))
               .filter(Boolean)
           )];
+          const variantOptions = parseProductVariantOptions(product.variants);
 
           return {
             ...product,
             image: images[0] || normalizeString(product.image),
             oldPrice: Number(product.oldPrice) > Number(product.price || 0) ? Number(product.oldPrice) : 0,
             sortOrder: Number.isFinite(product.sortOrder) ? product.sortOrder : index + 1,
-            variants: Array.isArray(product.variants) ? product.variants : [],
+            variants: variantOptions.variants,
+            variantOptions,
             images,
             isSoon: typeof product.isSoon === "boolean"
               ? product.isSoon

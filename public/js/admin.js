@@ -31,6 +31,7 @@ const state = {
       { key: "out-of-stock", label: "Нет в наличии", text: "Сообщить клиенту, что товара нет в наличии." },
       { key: "waiting-confirmation", label: "Ждём ответ", text: "Ожидаем подтверждение заказа от клиента." }
     ];
+    const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
 
     async function api(path, options = {}) {
       const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
@@ -78,6 +79,58 @@ const state = {
       const price = Number(product?.price) || 0;
       if (!oldPrice || !price || oldPrice <= price) return 0;
       return Math.round(((oldPrice - price) / oldPrice) * 100);
+    }
+
+    function normalizeAdminOptionList(value) {
+      const source = Array.isArray(value) ? value : (typeof value === "string" ? value.split(/\r?\n|,/) : []);
+      return [...new Set(
+        source
+          .map((item) => String(item || "").trim())
+          .filter(Boolean)
+      )].slice(0, 16);
+    }
+
+    function parseProductOptionGroups(variants = []) {
+      const parsed = { colors: [], models: [], variants: [] };
+
+      (Array.isArray(variants) ? variants : []).forEach((item) => {
+        const value = String(item || "").trim();
+        if (!value) return;
+
+        if (value.startsWith(PRODUCT_OPTION_GROUP_PREFIX)) {
+          try {
+            const payload = JSON.parse(value.slice(PRODUCT_OPTION_GROUP_PREFIX.length));
+            parsed.colors = normalizeAdminOptionList(payload?.colors);
+            parsed.models = normalizeAdminOptionList(payload?.models);
+            return;
+          } catch (error) {}
+        }
+
+        parsed.variants.push(value);
+      });
+
+      return parsed;
+    }
+
+    function buildProductVariantsPayload({ colors = [], models = [], variants = [] } = {}) {
+      const payload = {};
+      const normalizedColors = normalizeAdminOptionList(colors);
+      const normalizedModels = normalizeAdminOptionList(models);
+      const normalizedVariants = normalizeAdminOptionList(variants);
+
+      if (normalizedColors.length) {
+        payload.colors = normalizedColors;
+      }
+
+      if (normalizedModels.length) {
+        payload.models = normalizedModels;
+      }
+
+      const encoded = Object.keys(payload).length
+        ? [`${PRODUCT_OPTION_GROUP_PREFIX}${JSON.stringify(payload)}`]
+        : [];
+
+      return [...encoded, ...normalizedVariants];
     }
 
     function setText(id, value) {
@@ -493,6 +546,9 @@ const state = {
         .split(/\r?\n/)
         .map((item) => item.trim())
         .filter(Boolean);
+      const colors = normalizeAdminOptionList(document.getElementById("productColors").value);
+      const models = normalizeAdminOptionList(document.getElementById("productModels").value);
+      const variants = normalizeAdminOptionList(document.getElementById("productVariants").value);
 
       return {
         name: document.getElementById("productName").value.trim(),
@@ -503,7 +559,7 @@ const state = {
         stock: document.getElementById("productStock").value.trim(),
         badge: "",
         desc: document.getElementById("productDesc").value.trim(),
-        variants: document.getElementById("productVariants").value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
+        variants: buildProductVariantsPayload({ colors, models, variants }),
         images,
         image: images[0] || "",
         isVisible: document.getElementById("productVisible").value === "true",
@@ -815,6 +871,7 @@ const state = {
     }
 
     function fillProductForm(product = null) {
+      const optionGroups = parseProductOptionGroups(product?.variants);
       state.editingId = product ? product.id : null;
       document.getElementById("productName").value = product?.name || "";
       document.getElementById("productCategory").value = product?.category || state.catalog.categories.find((item) => item.key !== "all")?.key || "all";
@@ -823,7 +880,9 @@ const state = {
       document.getElementById("productSortOrder").value = product?.sortOrder ?? "";
       document.getElementById("productStock").value = product?.stock || "";
       document.getElementById("productDesc").value = product?.desc || "";
-      document.getElementById("productVariants").value = Array.isArray(product?.variants) ? product.variants.join("\n") : "";
+      document.getElementById("productColors").value = optionGroups.colors.join("\n");
+      document.getElementById("productModels").value = optionGroups.models.join("\n");
+      document.getElementById("productVariants").value = optionGroups.variants.join("\n");
       document.getElementById("productImages").value = Array.isArray(product?.images) ? product.images.join("\n") : "";
       document.getElementById("productImageUpload").value = "";
       document.getElementById("productVisible").value = String(product?.isVisible !== false);

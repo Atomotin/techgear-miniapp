@@ -21,8 +21,11 @@ const state = {
       orderAssigneeFilter: "all",
       orderCustomerKeyFilter: "",
       orderCustomerLabelFilter: "",
-      customerSearch: ""
+      customerSearch: "",
+      activeSection: localStorage.getItem("techgear_admin_section") || "overview"
     };
+
+    const ADMIN_SECTIONS = new Set(["overview", "products", "categories", "orders", "customers", "banners", "music"]);
 
     const ORDER_NOTE_TEMPLATES = [
       { key: "call-later", label: "Позвонить позже", text: "Позвонить клиенту позже." },
@@ -423,6 +426,7 @@ const state = {
 
       state.orderCustomerKeyFilter = key;
       state.orderCustomerLabelFilter = customer.name || customer.phone || customer.username || "клиент";
+      setActiveSection("orders", { scrollIntoView: false });
       renderOrders();
       document.getElementById("ordersList")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -1317,6 +1321,42 @@ const state = {
       });
     }
 
+    function renderAdminSections() {
+      const activeSection = ADMIN_SECTIONS.has(state.activeSection) ? state.activeSection : "overview";
+
+      document.querySelectorAll("[data-admin-section]").forEach((element) => {
+        element.classList.toggle("section-hidden", element.dataset.adminSection !== activeSection);
+      });
+
+      document.querySelectorAll("[data-admin-section-target]").forEach((button) => {
+        const isActive = button.dataset.adminSectionTarget === activeSection;
+        button.classList.toggle("is-active", isActive);
+        button.classList.toggle("btn-primary", isActive);
+        button.classList.toggle("btn-secondary", !isActive);
+        button.setAttribute("aria-current", isActive ? "page" : "false");
+      });
+
+      document.querySelectorAll("#appView .grid").forEach((grid) => {
+        const visibleChildren = [...grid.children].filter((child) => !child.classList.contains("hidden") && !child.classList.contains("section-hidden"));
+        if (!grid.dataset.adminSection) {
+          grid.classList.toggle("section-hidden", visibleChildren.length === 0);
+        }
+        grid.classList.toggle("is-single-panel", visibleChildren.length <= 1);
+      });
+    }
+
+    function setActiveSection(sectionKey, options = {}) {
+      const nextSection = ADMIN_SECTIONS.has(sectionKey) ? sectionKey : "overview";
+      const { scrollIntoView = true } = options;
+
+      state.activeSection = nextSection;
+      localStorage.setItem("techgear_admin_section", nextSection);
+      renderAdminSections();
+
+      if (!scrollIntoView) return;
+      document.querySelector(`[data-admin-section="${nextSection}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
     function renderAll() {
       renderRuntimeNotice();
       renderCategoryOptions();
@@ -1333,6 +1373,7 @@ const state = {
         fillBannerForm(null);
       }
       fillMusicForm(state.settings);
+      renderAdminSections();
     }
 
     async function loadAdminData() {
@@ -1463,6 +1504,11 @@ const state = {
     });
     document.getElementById("refreshBtn").addEventListener("click", refreshAdminData);
     document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.querySelectorAll("[data-admin-section-target]").forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveSection(button.dataset.adminSectionTarget || "overview");
+      });
+    });
     document.getElementById("orderSearchInput").addEventListener("input", (event) => {
       state.orderSearch = event.target.value;
       renderOrders();

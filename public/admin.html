@@ -36,9 +36,19 @@
         </div>
       </section>
 
-      <section id="storageNotice" class="panel runtime-notice hidden"></section>
+      <nav class="panel admin-section-nav" aria-label="Разделы админки">
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="overview">Сводка</button>
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="products">Товары</button>
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="categories">Категории</button>
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="orders">Заказы</button>
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="customers">Клиенты</button>
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="banners">Баннеры</button>
+        <button class="btn btn-secondary btn-small" type="button" data-admin-section-target="music">Музыка</button>
+      </nav>
 
-      <section class="panel">
+      <section id="storageNotice" class="panel runtime-notice hidden" data-admin-section="overview"></section>
+
+      <section class="panel" data-admin-section="overview">
         <h2>Сводка</h2>
         <div class="stats">
           <div class="stat"><span class="muted">Товаров</span><strong id="statProducts">0</strong></div>
@@ -47,7 +57,7 @@
         </div>
       </section>
 
-      <div class="grid">
+      <div class="grid" data-admin-section="products">
         <section class="panel">
           <h2>Товар</h2>
           <p class="panel-subtitle">Форма для создания нового товара или редактирования выбранной карточки.</p>
@@ -119,7 +129,7 @@
       </div>
 
       <div class="grid">
-        <section class="panel">
+        <section class="panel" data-admin-section="categories">
           <h2>Категории</h2>
           <p class="panel-subtitle">Категории управляют фильтрами в магазине и селектором в форме товара.</p>
           <div class="field-grid two">
@@ -133,7 +143,7 @@
           <div class="list" id="categoryList"></div>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-admin-section="orders">
           <h2>Заказы</h2>
           <p class="panel-subtitle">Заказы, отправленные из Mini App через backend. Здесь можно менять статус обработки.</p>
           <div class="grid two">
@@ -171,7 +181,7 @@
           </section>
       </div>
 
-      <section class="panel">
+      <section class="panel" data-admin-section="customers">
         <h2>Клиенты</h2>
         <p class="panel-subtitle">Список клиентов собирается из уже оформленных заказов. Здесь можно найти контакт, посмотреть количество заказов и быстро открыть Telegram или звонок.</p>
         <div class="field-grid two">
@@ -181,7 +191,7 @@
         <div class="collection" id="customersList"></div>
       </section>
 
-      <div class="grid">
+      <div class="grid" data-admin-section="banners">
         <section class="panel">
           <h2>Баннеры</h2>
           <p class="panel-subtitle">Управление верхней каруселью Mini App: картинка, заголовок, кнопки и действия без правки кода.</p>
@@ -255,7 +265,7 @@
         </section>
       </div>
 
-      <section class="panel">
+      <section class="panel" data-admin-section="music">
         <h2>Музыка</h2>
         <p class="panel-subtitle">Здесь можно менять фоновую музыку Mini App: включать или выключать её, менять громкость и загружать новые MP3.</p>
         <div class="toolbar">

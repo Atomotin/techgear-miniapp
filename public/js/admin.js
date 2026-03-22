@@ -1,9 +1,34 @@
     const DEFAULT_ADMIN_SECTION = "orders";
     const ADMIN_SECTIONS = new Set(["overview", "products", "categories", "orders", "customers", "banners", "music"]);
 
+    function normalizeAdminSection(sectionKey) {
+      return ADMIN_SECTIONS.has(sectionKey) ? sectionKey : DEFAULT_ADMIN_SECTION;
+    }
+
+    function getHashAdminSection() {
+      const hashValue = String(window.location.hash || "").replace(/^#\/?/, "").trim().toLowerCase();
+      return ADMIN_SECTIONS.has(hashValue) ? hashValue : "";
+    }
+
+    function syncAdminSectionHash(sectionKey, { replace = false } = {}) {
+      const normalizedSection = normalizeAdminSection(sectionKey);
+      const nextHash = `#${normalizedSection}`;
+      if (window.location.hash === nextHash) return;
+
+      if (replace) {
+        window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${nextHash}`);
+        return;
+      }
+
+      window.location.hash = normalizedSection;
+    }
+
     function getInitialAdminSection() {
+      const hashSection = getHashAdminSection();
+      if (hashSection) return hashSection;
+
       const savedSection = localStorage.getItem("techgear_admin_section");
-      return ADMIN_SECTIONS.has(savedSection) ? savedSection : DEFAULT_ADMIN_SECTION;
+      return normalizeAdminSection(savedSection);
     }
 
     const state = {
@@ -30,7 +55,9 @@
       orderCustomerKeyFilter: "",
       orderCustomerLabelFilter: "",
       customerSearch: "",
-      activeSection: getInitialAdminSection()
+      activeSection: getInitialAdminSection(),
+      productDraftSnapshot: null,
+      bannerDraftSnapshot: null
     };
 
     const ORDER_NOTE_TEMPLATES = [
@@ -601,6 +628,21 @@
       };
     }
 
+    function getProductDraftSnapshot() {
+      return JSON.stringify({
+        editingId: Number(state.editingId) || 0,
+        payload: getProductPayload()
+      });
+    }
+
+    function syncProductDraftSnapshot() {
+      state.productDraftSnapshot = getProductDraftSnapshot();
+    }
+
+    function hasUnsavedProductChanges() {
+      return state.productDraftSnapshot !== null && getProductDraftSnapshot() !== state.productDraftSnapshot;
+    }
+
     async function uploadSelectedImages() {
       const input = document.getElementById("productImageUpload");
       const files = Array.from(input.files || []);
@@ -670,6 +712,52 @@
       };
     }
 
+    function getBannerDraftSnapshot() {
+      return JSON.stringify({
+        editingBannerId: Number(state.editingBannerId) || 0,
+        payload: getBannerPayload()
+      });
+    }
+
+    function syncBannerDraftSnapshot() {
+      state.bannerDraftSnapshot = getBannerDraftSnapshot();
+    }
+
+    function hasUnsavedBannerChanges() {
+      return state.bannerDraftSnapshot !== null && getBannerDraftSnapshot() !== state.bannerDraftSnapshot;
+    }
+
+    function confirmDiscardAdminDraft(kind, actionText) {
+      const subject = kind === "product" ? "в форме товара" : "в форме баннера";
+      return window.confirm(`Есть несохранённые изменения ${subject}. ${actionText}?`);
+    }
+
+    function confirmProductDraftDiscard(actionText) {
+      if (!hasUnsavedProductChanges()) return true;
+      return confirmDiscardAdminDraft("product", actionText);
+    }
+
+    function confirmBannerDraftDiscard(actionText) {
+      if (!hasUnsavedBannerChanges()) return true;
+      return confirmDiscardAdminDraft("banner", actionText);
+    }
+
+    function hasAnyUnsavedAdminDrafts() {
+      return hasUnsavedProductChanges() || hasUnsavedBannerChanges();
+    }
+
+    function confirmCurrentAdminSectionLeave(actionText) {
+      if (state.activeSection === "products") {
+        return confirmProductDraftDiscard(actionText);
+      }
+
+      if (state.activeSection === "banners") {
+        return confirmBannerDraftDiscard(actionText);
+      }
+
+      return true;
+    }
+
     function fillBannerForm(banner = null) {
       state.editingBannerId = banner ? banner.id : null;
       document.getElementById("bannerTitle").value = banner?.title || "";
@@ -686,6 +774,7 @@
       document.getElementById("bannerActive").value = String(banner?.isActive !== false);
       showMessage("bannerUploadMessage", "");
       renderBannerPreview();
+      syncBannerDraftSnapshot();
       showMessage("bannerMessage", banner ? `Редактируется баннер #${banner.id}` : "Форма очищена для нового баннера");
     }
 
@@ -829,6 +918,7 @@
 
       list.querySelectorAll("[data-edit-banner]").forEach((button) => {
         button.addEventListener("click", () => {
+          if (!confirmBannerDraftDiscard("Открыть другой баннер и потерять их")) return;
           const banner = state.banners.find((item) => item.id === Number(button.dataset.editBanner));
           fillBannerForm(banner);
         });
@@ -871,6 +961,7 @@
       state.uploadedImages = Array.isArray(product?.images) ? product.images : [];
       renderUploadedImages(state.uploadedImages);
       showMessage("uploadMessage", "");
+      syncProductDraftSnapshot();
       showMessage("productMessage", product ? `Редактируется товар #${product.id}` : "Форма очищена для нового товара");
     }
 
@@ -943,6 +1034,7 @@
 
       list.querySelectorAll("[data-edit-product]").forEach((button) => {
         button.addEventListener("click", () => {
+          if (!confirmProductDraftDiscard("Открыть другой товар и потерять их")) return;
           const product = state.catalog.products.find((item) => item.id === Number(button.dataset.editProduct));
           fillProductForm(product);
         });
@@ -1356,7 +1448,7 @@
     }
 
     function renderAdminSections() {
-      const activeSection = ADMIN_SECTIONS.has(state.activeSection) ? state.activeSection : DEFAULT_ADMIN_SECTION;
+      const activeSection = normalizeAdminSection(state.activeSection);
 
       document.querySelectorAll("[data-admin-section]").forEach((element) => {
         element.classList.toggle("section-hidden", element.dataset.adminSection !== activeSection);
@@ -1380,15 +1472,24 @@
     }
 
     function setActiveSection(sectionKey, options = {}) {
-      const nextSection = ADMIN_SECTIONS.has(sectionKey) ? sectionKey : DEFAULT_ADMIN_SECTION;
-      const { scrollIntoView = true } = options;
+      const nextSection = normalizeAdminSection(sectionKey);
+      const { scrollIntoView = true, updateHash = true, replaceHash = false } = options;
+
+      if (nextSection !== state.activeSection && !confirmCurrentAdminSectionLeave("Перейти в другой раздел и потерять их")) {
+        return false;
+      }
 
       state.activeSection = nextSection;
       localStorage.setItem("techgear_admin_section", nextSection);
       renderAdminSections();
 
-      if (!scrollIntoView) return;
+      if (updateHash) {
+        syncAdminSectionHash(nextSection, { replace: replaceHash });
+      }
+
+      if (!scrollIntoView) return true;
       document.querySelector(`[data-admin-section="${nextSection}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return true;
     }
 
     function renderAll() {
@@ -1409,6 +1510,7 @@
       fillMusicForm(state.settings);
       renderAdminSectionNav();
       renderAdminSections();
+      syncAdminSectionHash(state.activeSection, { replace: true });
     }
 
     async function loadAdminData() {
@@ -1463,6 +1565,8 @@
         showActionResult("productMessage", state.editingId ? "Товар обновлён" : "Товар создан");
         if (!state.editingId) {
           fillProductForm(state.catalog.products[0]);
+        } else {
+          syncProductDraftSnapshot();
         }
       } catch (error) {
         showActionResult("productMessage", error.message, true);
@@ -1498,6 +1602,8 @@
         showActionResult("bannerMessage", state.editingBannerId ? "Баннер обновлён" : "Баннер создан");
         if (!state.editingBannerId) {
           fillBannerForm(state.banners[0] || null);
+        } else {
+          syncBannerDraftSnapshot();
         }
       } catch (error) {
         showActionResult("bannerMessage", error.message, true);
@@ -1505,6 +1611,8 @@
     }
 
     async function refreshAdminData() {
+      if (!confirmCurrentAdminSectionLeave("Обновить данные и потерять их")) return;
+
       const button = document.getElementById("refreshBtn");
       const initialText = button?.textContent || "";
 
@@ -1527,6 +1635,8 @@
     }
 
     function logout() {
+      if (!confirmCurrentAdminSectionLeave("Выйти и потерять их")) return;
+
       state.token = "";
       localStorage.removeItem("techgear_admin_token");
       document.getElementById("appView").classList.add("hidden");
@@ -1539,6 +1649,19 @@
     });
     document.getElementById("refreshBtn").addEventListener("click", refreshAdminData);
     document.getElementById("logoutBtn").addEventListener("click", logout);
+    window.addEventListener("beforeunload", (event) => {
+      if (!hasAnyUnsavedAdminDrafts()) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+    window.addEventListener("hashchange", () => {
+      const hashSection = getHashAdminSection();
+      if (!hashSection || hashSection === state.activeSection) return;
+      const applied = setActiveSection(hashSection, { scrollIntoView: false, updateHash: false });
+      if (!applied) {
+        syncAdminSectionHash(state.activeSection, { replace: true });
+      }
+    });
     document.querySelectorAll("[data-admin-section-target]").forEach((button) => {
       button.addEventListener("click", () => {
         setActiveSection(button.dataset.adminSectionTarget || DEFAULT_ADMIN_SECTION);
@@ -1568,11 +1691,17 @@
       renderCustomers();
     });
     document.getElementById("saveProductBtn").addEventListener("click", saveProduct);
-    document.getElementById("newProductBtn").addEventListener("click", () => fillProductForm(null));
+    document.getElementById("newProductBtn").addEventListener("click", () => {
+      if (!confirmProductDraftDiscard("Открыть новую форму и потерять их")) return;
+      fillProductForm(null);
+    });
     document.getElementById("uploadImagesBtn").addEventListener("click", uploadSelectedImages);
     document.getElementById("addCategoryBtn").addEventListener("click", addCategory);
     document.getElementById("saveBannerBtn").addEventListener("click", saveBanner);
-    document.getElementById("newBannerBtn").addEventListener("click", () => fillBannerForm(null));
+    document.getElementById("newBannerBtn").addEventListener("click", () => {
+      if (!confirmBannerDraftDiscard("Открыть новую форму и потерять их")) return;
+      fillBannerForm(null);
+    });
     document.getElementById("uploadBannerImageBtn").addEventListener("click", uploadBannerImage);
     ["bannerTitle", "bannerKicker", "bannerImage"].forEach((id) => {
       document.getElementById(id).addEventListener("input", renderBannerPreview);

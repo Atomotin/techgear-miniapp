@@ -98,11 +98,11 @@ function ensureProfileNavigation() {
     function applyProfileToCheckout() {
       state.checkout = {
         ...state.checkout,
-        name: state.profile.name || state.checkout.name || "",
-        phone: state.profile.phone || state.checkout.phone || "",
-        username: state.profile.username || state.checkout.username || "",
-        delivery: state.profile.delivery || state.checkout.delivery || "",
-        comment: state.profile.comment || state.checkout.comment || "",
+        name: state.profile.name || "",
+        phone: state.profile.phone || "",
+        username: state.profile.username || "",
+        delivery: state.profile.delivery || "",
+        comment: state.profile.comment || "",
       };
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
       fillCheckoutFields();

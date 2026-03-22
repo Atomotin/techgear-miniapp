@@ -1,6 +1,7 @@
 // Cart, checkout validation, and order submission
 
     let isSubmittingOrder = false;
+    const MAX_CART_ITEM_QTY = 20;
 
     function formatCartItemToastLabel(item, variant = item?.selectedVariant || "") {
       if (!item) return "Товар";
@@ -9,11 +10,17 @@
 
     function addToCart(productId, selectedVariant = "") {
       const product = normalizeProducts(PRODUCTS).find((p) => p.id === productId);
+      if (!product) return;
       const cartKey = selectedVariant ? `${productId}::${selectedVariant}` : String(productId);
       const existing = state.cart.find((item) => item.cartKey === cartKey);
-      if (!product) return;
 
       if (existing) {
+        if (existing.qty >= MAX_CART_ITEM_QTY) {
+          showToast(`Максимум ${MAX_CART_ITEM_QTY} шт. для ${formatCartItemToastLabel(existing)}`, "error", {
+            replaceKey: `cart-limit:${cartKey}`
+          });
+          return;
+        }
         existing.qty += 1;
       } else {
         state.cart.push({
@@ -40,6 +47,12 @@
     function increaseQty(cartKey) {
       const item = state.cart.find((i) => (i.cartKey || String(i.id)) === cartKey);
       if (!item) return;
+      if (item.qty >= MAX_CART_ITEM_QTY) {
+        showToast(`Максимум ${MAX_CART_ITEM_QTY} шт. для ${formatCartItemToastLabel(item)}`, "error", {
+          replaceKey: `cart-limit:${cartKey}`
+        });
+        return;
+      }
       item.qty += 1;
       persistCart();
       renderCart();
@@ -295,7 +308,7 @@
         payload.location ? `Yandex Maps: ${buildYandexMapsLink(payload.location)}` : "",
         "",
         "Товары:",
-        ...state.cart.map((item) => `• ${item.name} × ${item.qty} — ${formatPrice((item.price || 0) * item.qty)}`),
+        ...state.cart.map((item) => `• ${item.name}${item.selectedVariant ? ` (${item.selectedVariant})` : ""} × ${item.qty} — ${formatPrice((item.price || 0) * item.qty)}`),
         "",
         `Итого: ${formatPrice(payload.total)}`,
       ];
@@ -303,7 +316,7 @@
       return lines.filter(Boolean).join("\n");
     }
 
-    async function submitOrderToBackend(payload, orderText) {
+    async function submitOrderToBackend(payload) {
       const user = getTelegramUser();
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -319,7 +332,6 @@
             variant: item.selectedVariant || "",
             price: item.price || 0,
           })),
-          orderText,
           telegram: {
             id: user?.id || "",
             username: user?.username || "",
@@ -358,7 +370,7 @@
 
       const name = document.getElementById("customerName").value.trim();
       const phone = sanitizePhone(document.getElementById("customerPhone").value.trim());
-      const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "Не указан");
+      const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "");
       const contactMethod = document.getElementById("customerContactMethod").value;
       const deliveryTime = document.getElementById("customerDeliveryTime").value;
       const delivery = document.getElementById("customerDelivery").value.trim();
@@ -405,7 +417,7 @@
       setSubmitOrderState(true);
 
       try {
-        const result = await submitOrderToBackend(payload, orderText);
+        const result = await submitOrderToBackend(payload);
 
         if (tg) {
           try {

@@ -74,6 +74,30 @@ const state = {
       return date.toLocaleString("ru-RU");
     }
 
+    function parseLocationCoordinates(value) {
+      const match = String(value || "").trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+      if (!match) return null;
+
+      const lat = Number(match[1]);
+      const lon = Number(match[2]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+
+      return { lat, lon };
+    }
+
+    function buildCustomerLocationLink(location) {
+      const coords = parseLocationCoordinates(location);
+      if (!coords) return "";
+      return `https://yandex.com/maps/?pt=${coords.lon},${coords.lat}&z=17&l=map`;
+    }
+
+    function getCustomerAddressLabel(customer = {}) {
+      const delivery = String(customer.delivery || "").trim();
+      if (delivery) return delivery;
+      return buildCustomerLocationLink(customer.location) ? "Точка на карте выбрана" : "Адрес не указан";
+    }
+
     function getDiscountPercent(product) {
       const oldPrice = Number(product?.oldPrice) || 0;
       const price = Number(product?.price) || 0;
@@ -972,6 +996,7 @@ const state = {
           order.customer?.phone,
           order.customer?.username,
           order.customer?.delivery,
+          order.customer?.location,
           order.customer?.telegramId,
           order.requestMeta?.adminAssignee,
           order.requestMeta?.adminNote
@@ -998,6 +1023,8 @@ const state = {
         const username = String(order.customer?.username || "").replace(/^@/, "");
         const telegramLink = username ? `https://t.me/${encodeURIComponent(username)}` : "";
         const phoneLink = order.customer?.phone ? `tel:${String(order.customer.phone).replace(/[^\d+]/g, "")}` : "";
+        const locationLink = buildCustomerLocationLink(order.customer?.location);
+        const addressLabel = getCustomerAddressLabel(order.customer);
         const managerAssignee = getOrderManagerAssignee(order);
         const assigneeUpdatedAt = formatDateTime(order.requestMeta?.adminAssigneeUpdatedAt);
         const managerNote = String(order.requestMeta?.adminNote || "");
@@ -1018,7 +1045,7 @@ const state = {
               <span class="badge">${formatPrice(order.total)}</span>
               <span class="badge">${escapeHtml(managerAssignee || "Без ответственного")}</span>
             </div>
-            <div class="muted">${escapeHtml(order.customer?.delivery || "Без адреса")}</div>
+            <div class="muted">${escapeHtml(addressLabel)}</div>
             <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
             <label class="stack-top-gap">
               Ответственный
@@ -1037,6 +1064,7 @@ const state = {
             ${noteUpdatedAt ? `<div class="muted">Обновлено: ${escapeHtml(noteUpdatedAt)}</div>` : ""}
             <div class="product-actions">
               ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
+              ${locationLink ? `<a class="btn btn-secondary btn-small" href="${locationLink}" target="_blank" rel="noreferrer">Карта</a>` : ""}
               <button class="btn btn-primary btn-small" type="button" data-save-note="${order.id}">Сохранить CRM</button>
               ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
               <button class="btn btn-secondary btn-small" type="button" data-status="${order.id}:processing">В работу</button>
@@ -1143,6 +1171,7 @@ const state = {
           phone: String(profile.phone || "").trim(),
           username: String(profile.username || "").replace(/^@/, "").trim(),
           delivery: String(profile.delivery || "").trim(),
+          location: String(profile.location || "").trim(),
           comment: String(profile.comment || "").trim(),
           telegramId: String(profile.telegramId || "").trim(),
           ordersCount: 0,
@@ -1172,6 +1201,7 @@ const state = {
             phone: String(customer.phone || "").trim(),
             username: String(customer.username || "").replace(/^@/, "").trim(),
             delivery: String(customer.delivery || "").trim(),
+            location: String(customer.location || "").trim(),
             comment: String(customer.comment || "").trim(),
             telegramId: String(customer.telegramId || order.telegram?.id || "").trim(),
             ordersCount: 0,
@@ -1187,6 +1217,7 @@ const state = {
         entry.phone = entry.phone || String(customer.phone || "").trim();
         entry.username = entry.username || String(customer.username || "").replace(/^@/, "").trim();
         entry.delivery = entry.delivery || String(customer.delivery || "").trim();
+        entry.location = entry.location || String(customer.location || "").trim();
         entry.comment = entry.comment || String(customer.comment || "").trim();
         entry.telegramId = entry.telegramId || String(customer.telegramId || order.telegram?.id || "").trim();
         entry.ordersCount += 1;
@@ -1216,6 +1247,7 @@ const state = {
           customer.phone,
           customer.username,
           customer.delivery,
+          customer.location,
           customer.comment
         ].filter(Boolean).join(" ").toLowerCase();
         return haystack.includes(searchValue);
@@ -1239,6 +1271,8 @@ const state = {
       list.innerHTML = filteredCustomers.map((customer) => {
         const telegramLink = customer.username ? `https://t.me/${encodeURIComponent(customer.username)}` : "";
         const phoneLink = customer.phone ? `tel:${String(customer.phone).replace(/[^\d+]/g, "")}` : "";
+        const locationLink = buildCustomerLocationLink(customer.location);
+        const addressLabel = getCustomerAddressLabel(customer);
         const lastSeenLabel = customer.lastOrderAt
           ? new Date(customer.lastOrderAt).toLocaleString("ru-RU")
           : "Без заказов";
@@ -1261,11 +1295,12 @@ const state = {
               <span class="badge">${formatPrice(customer.spent)}</span>
               <span class="badge">${escapeHtml(lastSeenLabel)}</span>
             </div>
-            <div class="muted">${escapeHtml(customer.delivery || "Адрес не указан")}</div>
+            <div class="muted">${escapeHtml(addressLabel)}</div>
             ${customer.comment ? `<div class="muted stack-top-gap">Комментарий: ${escapeHtml(customer.comment)}</div>` : ""}
             <div class="badge-row">${statuses}</div>
             <div class="product-actions">
               <button class="btn btn-secondary btn-small" type="button" data-customer-orders="${escapeHtml(customer.key)}">Заказы клиента</button>
+              ${locationLink ? `<a class="btn btn-secondary btn-small" href="${locationLink}" target="_blank" rel="noreferrer">Карта</a>` : ""}
               ${telegramLink ? `<a class="btn btn-secondary btn-small" href="${telegramLink}" target="_blank" rel="noreferrer">Telegram</a>` : ""}
               ${phoneLink ? `<a class="btn btn-secondary btn-small" href="${phoneLink}">Позвонить</a>` : ""}
             </div>

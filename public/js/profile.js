@@ -108,6 +108,26 @@ function ensureProfileNavigation() {
       fillCheckoutFields();
     }
 
+    function readServerProfileField(customer = {}, key, fallback = "") {
+      if (!Object.prototype.hasOwnProperty.call(customer, key)) {
+        return fallback;
+      }
+
+      return String(customer[key] || "").trim();
+    }
+
+    function syncProfileFromServer(customer = {}) {
+      state.profile = {
+        name: readServerProfileField(customer, "name", state.profile.name || ""),
+        phone: readServerProfileField(customer, "phone", state.profile.phone || ""),
+        username: readServerProfileField(customer, "username", state.profile.username || ""),
+        delivery: readServerProfileField(customer, "delivery", state.profile.delivery || ""),
+        comment: readServerProfileField(customer, "comment", state.profile.comment || ""),
+      };
+      saveStorage(STORAGE_KEYS.profile, state.profile);
+      renderProfile();
+    }
+
     async function saveProfileToServer() {
       if (!state.profile.name) {
         throw new Error("Введите имя");
@@ -135,14 +155,8 @@ function ensureProfileNavigation() {
       }
 
       if (data.customer) {
-        state.profile = {
-          name: data.customer.name || state.profile.name || "",
-          phone: data.customer.phone || state.profile.phone || "",
-          username: data.customer.username || state.profile.username || "",
-          delivery: data.customer.delivery || state.profile.delivery || "",
-          comment: data.customer.comment || state.profile.comment || "",
-        };
-        saveStorage(STORAGE_KEYS.profile, state.profile);
+        syncProfileFromServer(data.customer);
+        applyProfileToCheckout();
       }
     }
 
@@ -159,14 +173,7 @@ function ensureProfileNavigation() {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.customer) return;
 
-        state.profile = {
-          name: data.customer.name || state.profile.name || "",
-          phone: data.customer.phone || state.profile.phone || "",
-          username: data.customer.username || state.profile.username || "",
-          delivery: data.customer.delivery || state.profile.delivery || "",
-          comment: data.customer.comment || state.profile.comment || "",
-        };
-        saveStorage(STORAGE_KEYS.profile, state.profile);
+        syncProfileFromServer(data.customer);
       } catch (error) {
         console.warn("Profile sync failed:", error);
       }

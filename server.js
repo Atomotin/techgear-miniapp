@@ -298,10 +298,22 @@ function formatOrderAmount(value) {
   return `${new Intl.NumberFormat("ru-RU").format(Number(value) || 0)} сум`;
 }
 
+function parseOrderCoordinates(location) {
+  const match = String(location || "").trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lon = Number(match[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+  return { lat, lon };
+}
+
 function buildOrderMapLink(location) {
-  const [lat, lon] = String(location || "").split(",").map((part) => part.trim());
-  if (!lat || !lon) return "";
-  return `https://yandex.uz/maps/?pt=${encodeURIComponent(lon)},${encodeURIComponent(lat)}&z=16&l=map`;
+  const coords = parseOrderCoordinates(location);
+  if (!coords) return "";
+  return `https://yandex.uz/maps/?pt=${encodeURIComponent(coords.lon)},${encodeURIComponent(coords.lat)}&z=16&l=map`;
 }
 
 function buildOrderRawText({ customer = {}, items = [], total = 0, telegram = {} }) {
@@ -466,11 +478,12 @@ function validateOrderPayload(payload) {
   const name = sanitizePersonName(payload.name);
   const username = sanitizeTelegramUsername(payload.username);
   const delivery = sanitizeLongText(payload.delivery, 300);
+  const location = sanitizeLongText(payload.location, 300);
   const comment = sanitizeLongText(payload.comment, 500);
   if (!name) return "Введите имя";
   if (!/^[\p{L}\s'-]+$/u.test(name)) return "В имени нельзя цифры и эмодзи";
   if (!normalizeString(payload.phone)) return "Введите телефон";
-  if (!delivery) return "Введите адрес";
+  if (!delivery && !location) return "Выберите точку на карте или укажите адрес";
   if (username.length > 50) return "Username слишком длинный";
   if (comment.length > 500) return "Комментарий слишком длинный";
   if (!Array.isArray(payload.items) || payload.items.length === 0) return "Добавьте товары";

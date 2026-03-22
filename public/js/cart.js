@@ -2,6 +2,17 @@
 
     let isSubmittingOrder = false;
     const MAX_CART_ITEM_QTY = 20;
+    const DEFAULT_LOCATION_PICKER_CENTER = Object.freeze({ lat: 41.311081, lon: 69.240562 });
+    const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    const LEAFLET_CSS_INTEGRITY = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
+    const LEAFLET_JS_INTEGRITY = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
+    const locationPickerState = {
+      assetsPromise: null,
+      map: null,
+      marker: null,
+      pendingLocation: ""
+    };
 
     function formatCartItemToastLabel(item, variant = item?.selectedVariant || "") {
       if (!item) return "Товар";
@@ -169,7 +180,7 @@
         document.getElementById(id)?.addEventListener("input", persistProfileFields);
       });
 
-      ["customerName", "customerUsername", "customerDelivery", "customerComment"].forEach((id) => {
+      ["customerName", "customerUsername", "customerComment"].forEach((id) => {
         document.getElementById(id)?.addEventListener("input", persistCheckoutFields);
       });
 
@@ -259,32 +270,270 @@
         .slice(0, maxLength);
     }
 
-    function requestUserLocation() {
-      if (!navigator.geolocation) {
-        showToast("Геолокация не поддерживается на этом устройстве. Можно продолжить без неё.", "error");
+    function parseLocationCoordinates(location) {
+      const match = String(location || "").trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+      if (!match) return null;
+
+      const lat = Number(match[1]);
+      const lon = Number(match[2]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+      return { lat, lon };
+    }
+
+    function getCurrentUserCoordinates() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Геолокация не поддерживается на этом устройстве."));
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: Number(position.coords.latitude),
+              lon: Number(position.coords.longitude)
+            });
+          },
+          () => reject(new Error("Не удалось получить локацию.")),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+    }
+
+    function formatLocationValue(lat, lon) {
+      return `${Number(lat).toFixed(6)}, ${Number(lon).toFixed(6)}`;
+    }
+
+    function ensureLeafletAssets() {
+      if (window.L) {
+        return Promise.resolve(window.L);
+      }
+
+      if (locationPickerState.assetsPromise) {
+        return locationPickerState.assetsPromise;
+      }
+
+      if (!document.getElementById("leafletStylesheet")) {
+        const link = document.createElement("link");
+        link.id = "leafletStylesheet";
+        link.rel = "stylesheet";
+        link.href = LEAFLET_CSS_URL;
+        link.integrity = LEAFLET_CSS_INTEGRITY;
+        link.crossOrigin = "";
+        document.head.appendChild(link);
+      }
+
+      locationPickerState.assetsPromise = new Promise((resolve, reject) => {
+        const existingScript = document.getElementById("leafletScript");
+        const handleLoad = () => {
+          if (window.L) {
+            resolve(window.L);
+            return;
+          }
+
+          reject(new Error("leaflet_unavailable"));
+        };
+        const handleError = () => reject(new Error("leaflet_load_failed"));
+
+        if (existingScript) {
+          existingScript.addEventListener("load", handleLoad, { once: true });
+          existingScript.addEventListener("error", handleError, { once: true });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.id = "leafletScript";
+        script.src = LEAFLET_JS_URL;
+        script.integrity = LEAFLET_JS_INTEGRITY;
+        script.crossOrigin = "";
+        script.async = true;
+        script.addEventListener("load", handleLoad, { once: true });
+        script.addEventListener("error", handleError, { once: true });
+        document.body.appendChild(script);
+      }).catch((error) => {
+        locationPickerState.assetsPromise = null;
+        throw error;
+      });
+
+      return locationPickerState.assetsPromise;
+    }
+
+    function updateLocationPickerStatus() {
+      const title = document.getElementById("locationPickerStatusTitle");
+      const note = document.getElementById("locationPickerStatusNote");
+      const saveBtn = document.getElementById("locationPickerSave");
+      const hasPoint = Boolean(locationPickerState.pendingLocation);
+
+      if (title) {
+        title.textContent = hasPoint ? "Точка выбрана" : "Точка ещё не выбрана";
+      }
+
+      if (note) {
+        note.textContent = hasPoint
+          ? "Если нужно, просто тапни по другому месту на карте"
+          : "Тапни по карте, чтобы поставить метку в удобном месте";
+      }
+
+      if (saveBtn) {
+        saveBtn.disabled = !hasPoint;
+      }
+    }
+
+    function clearLocationPickerMarker() {
+      if (locationPickerState.map && locationPickerState.marker) {
+        locationPickerState.map.removeLayer(locationPickerState.marker);
+      }
+
+      locationPickerState.marker = null;
+      locationPickerState.pendingLocation = "";
+      updateLocationPickerStatus();
+    }
+
+    function setLocationPickerPoint(lat, lon, options = {}) {
+      const { center = true } = options;
+      if (!locationPickerState.map || !window.L) return;
+
+      const point = [Number(lat), Number(lon)];
+      if (!locationPickerState.marker) {
+        locationPickerState.marker = window.L.marker(point).addTo(locationPickerState.map);
+      } else {
+        locationPickerState.marker.setLatLng(point);
+      }
+
+      locationPickerState.pendingLocation = formatLocationValue(point[0], point[1]);
+      if (center) {
+        locationPickerState.map.setView(point, Math.max(locationPickerState.map.getZoom() || 16, 16), { animate: false });
+      }
+
+      updateLocationPickerStatus();
+    }
+
+    function initLocationPickerMap() {
+      if (locationPickerState.map || !window.L) return;
+
+      locationPickerState.map = window.L.map("locationPickerMap", {
+        zoomControl: true
+      });
+
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(locationPickerState.map);
+
+      locationPickerState.map.on("click", (event) => {
+        setLocationPickerPoint(event.latlng.lat, event.latlng.lng);
+      });
+    }
+
+    function syncLocationPickerFromCheckout() {
+      if (!locationPickerState.map) return;
+
+      const currentValue = document.getElementById("customerLocation")?.value || state.checkout.location || "";
+      const coords = parseLocationCoordinates(currentValue);
+      if (coords) {
+        setLocationPickerPoint(coords.lat, coords.lon);
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = Number(position.coords.latitude).toFixed(6);
-          const lon = Number(position.coords.longitude).toFixed(6);
-          const value = `${lat}, ${lon}`;
+      clearLocationPickerMarker();
+      locationPickerState.map.setView([DEFAULT_LOCATION_PICKER_CENTER.lat, DEFAULT_LOCATION_PICKER_CENTER.lon], 12, { animate: false });
+    }
+
+    function requestUserLocation() {
+      getCurrentUserCoordinates()
+        .then(({ lat, lon }) => {
+          const value = formatLocationValue(lat, lon);
           document.getElementById("customerLocation").value = value;
           persistCheckoutFields();
           showToast("Локация получена");
-        },
-        () => {
+        })
+        .catch(() => {
           showToast("Не удалось получить локацию. Можно продолжить и без неё.", "error");
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+        });
+    }
+
+    function openLocationPicker() {
+      const modal = document.getElementById("locationPickerModal");
+      if (!modal) return;
+
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+
+      ensureLeafletAssets()
+        .then(() => {
+          initLocationPickerMap();
+          syncLocationPickerFromCheckout();
+          window.setTimeout(() => {
+            locationPickerState.map?.invalidateSize();
+          }, 40);
+        })
+        .catch(() => {
+          closeLocationPicker();
+          showToast("Не удалось загрузить карту. Можно использовать автолокацию.", "error");
+        });
+    }
+
+    function closeLocationPicker() {
+      const modal = document.getElementById("locationPickerModal");
+      if (!modal) return;
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function applyLocationPickerSelection() {
+      if (!locationPickerState.pendingLocation) {
+        showToast("Сначала выбери точку на карте", "error");
+        return;
+      }
+
+      const input = document.getElementById("customerLocation");
+      if (!input) return;
+
+      input.value = locationPickerState.pendingLocation;
+      persistCheckoutFields();
+      closeLocationPicker();
+      showToast("Точка на карте сохранена");
+    }
+
+    function useCurrentLocationInPicker() {
+      const button = document.getElementById("locationPickerMyLocation");
+      const defaultText = button?.textContent || "";
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Ищем...";
+      }
+
+      getCurrentUserCoordinates()
+        .then(({ lat, lon }) => {
+          setLocationPickerPoint(lat, lon);
+        })
+        .catch(() => {
+          showToast("Не удалось получить текущую локацию", "error");
+        })
+        .finally(() => {
+          if (button) {
+            button.disabled = false;
+            button.textContent = defaultText;
+          }
+        });
+    }
+
+    function clearUserLocation() {
+      const input = document.getElementById("customerLocation");
+      if (!input) return;
+      input.value = "";
+      clearLocationPickerMarker();
+      persistCheckoutFields();
+      showToast("Локация очищена", "info");
     }
 
     function buildYandexMapsLink(location) {
-      const [lat, lon] = location.split(",").map(part => part.trim());
-      if (!lat || !lon) return location;
-      return `https://yandex.uz/maps/?pt=${encodeURIComponent(lon)},${encodeURIComponent(lat)}&z=16&l=map`;
+      const coords = parseLocationCoordinates(location);
+      if (!coords) return "";
+      return `https://yandex.uz/maps/?pt=${encodeURIComponent(coords.lon)},${encodeURIComponent(coords.lat)}&z=16&l=map`;
     }
 
     function buildOrderText(payload) {
@@ -361,11 +610,9 @@
       const telegramUser = getTelegramUser();
       const customerNameInput = document.getElementById("customerName");
       const customerUsernameInput = document.getElementById("customerUsername");
-      const customerDeliveryInput = document.getElementById("customerDelivery");
       const customerCommentInput = document.getElementById("customerComment");
       if (customerNameInput) customerNameInput.value = sanitizeNameInput(customerNameInput.value);
       if (customerUsernameInput) customerUsernameInput.value = sanitizeUsernameInput(customerUsernameInput.value);
-      if (customerDeliveryInput) customerDeliveryInput.value = sanitizeLongText(customerDeliveryInput.value, 300);
       if (customerCommentInput) customerCommentInput.value = sanitizeLongText(customerCommentInput.value, 500);
 
       const name = document.getElementById("customerName").value.trim();
@@ -373,7 +620,7 @@
       const username = telegramUser?.username ? "@" + telegramUser.username : (document.getElementById("customerUsername").value.trim() || "");
       const contactMethod = document.getElementById("customerContactMethod").value;
       const deliveryTime = document.getElementById("customerDeliveryTime").value;
-      const delivery = document.getElementById("customerDelivery").value.trim();
+      const delivery = String(state.profile?.delivery || state.checkout.delivery || "").trim();
       const comment = document.getElementById("customerComment").value.trim();
       const location = document.getElementById("customerLocation").value.trim();
 
@@ -402,8 +649,8 @@
         return;
       }
 
-      if (!delivery) {
-        showToast("Введите точный адрес или ориентир", "error");
+      if (!delivery && !location) {
+        showToast("Выбери точку на карте или укажи адрес в профиле", "error");
         return;
       }
 
@@ -454,8 +701,8 @@
       }
     }
 
-    ["customerName", "customerPhone", "customerDelivery", "customerLocation", "customerComment"].forEach((id) => {
-      document.getElementById(id).addEventListener("input", persistCheckoutFields);
+    ["customerName", "customerPhone", "customerLocation", "customerComment"].forEach((id) => {
+      document.getElementById(id)?.addEventListener("input", persistCheckoutFields);
     });
 
     ["customerContactMethod", "customerDeliveryTime"].forEach((id) => {
@@ -466,5 +713,20 @@
       const formatted = formatPhoneInput(e.target.value);
       e.target.value = formatted;
       persistCheckoutFields();
+    });
+
+    document.getElementById("locationPickerClose")?.addEventListener("click", closeLocationPicker);
+    document.getElementById("locationPickerCancel")?.addEventListener("click", closeLocationPicker);
+    document.getElementById("locationPickerSave")?.addEventListener("click", applyLocationPickerSelection);
+    document.getElementById("locationPickerMyLocation")?.addEventListener("click", useCurrentLocationInPicker);
+    document.getElementById("locationPickerModal")?.addEventListener("click", (event) => {
+      if (event.target?.id === "locationPickerModal") {
+        closeLocationPicker();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (document.getElementById("locationPickerModal")?.classList.contains("hidden")) return;
+      closeLocationPicker();
     });
 

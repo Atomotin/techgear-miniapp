@@ -520,6 +520,13 @@ const tg = window.Telegram?.WebApp || null;
       return parsed;
     }
 
+    function sanitizeLocationInput(value) {
+      return String(value || "")
+        .replace(/\s{2,}/g, " ")
+        .trim()
+        .slice(0, 120);
+    }
+
     function formatSelectedVariant(parts = {}) {
       return [parts.color, parts.model, parts.variant]
         .map((item) => normalizeString(item))
@@ -729,38 +736,66 @@ const tg = window.Telegram?.WebApp || null;
       const customerName = document.getElementById("customerName");
       const customerPhone = document.getElementById("customerPhone");
       const customerUsername = document.getElementById("customerUsername");
-      const customerDelivery = document.getElementById("customerDelivery");
       const customerLocation = document.getElementById("customerLocation");
       const customerContactMethod = document.getElementById("customerContactMethod");
       const customerDeliveryTime = document.getElementById("customerDeliveryTime");
       const customerComment = document.getElementById("customerComment");
+      const profileDelivery = String(state.profile?.delivery || "").trim();
       if (customerName) customerName.value = sanitizeNameInput(customerName.value);
       if (customerUsername) customerUsername.value = sanitizeUsernameInput(customerUsername.value);
-      if (customerDelivery) customerDelivery.value = sanitizeLongText(customerDelivery.value, 300);
+      if (customerLocation) customerLocation.value = sanitizeLocationInput(customerLocation.value);
       if (customerComment) customerComment.value = sanitizeLongText(customerComment.value, 500);
 
       state.checkout = {
         name: customerName ? customerName.value.trim() : (state.checkout.name || ""),
         phone: customerPhone ? customerPhone.value.trim() : (state.checkout.phone || ""),
         username: customerUsername ? customerUsername.value.trim() : (state.checkout.username || ""),
-        delivery: customerDelivery ? customerDelivery.value.trim() : (state.checkout.delivery || ""),
+        delivery: profileDelivery,
         location: customerLocation ? customerLocation.value.trim() : (state.checkout.location || ""),
         contactMethod: customerContactMethod ? customerContactMethod.value : (state.checkout.contactMethod || "telegram"),
         deliveryTime: customerDeliveryTime ? customerDeliveryTime.value : (state.checkout.deliveryTime || "asap"),
         comment: customerComment ? customerComment.value.trim() : (state.checkout.comment || ""),
       };
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
+      renderLocationPreview();
+    }
+
+    function renderLocationPreview() {
+      const preview = document.getElementById("customerLocationPreview");
+      if (!preview) return;
+
+      const title = preview.querySelector(".location-preview-title");
+      const note = preview.querySelector(".location-preview-note");
+      const hasLocation = Boolean(String(state.checkout.location || "").trim());
+
+      preview.classList.toggle("is-ready", hasLocation);
+
+      if (title) {
+        title.textContent = hasLocation ? "Локация добавлена" : "Локация не выбрана";
+      }
+
+      if (note) {
+        note.textContent = hasLocation
+          ? "Можно открыть карту и выбрать другое место"
+          : "Можно добавить точку на карте в один тап";
+      }
     }
 
     function fillCheckoutFields() {
+      const normalizedDelivery = String(state.profile?.delivery || "").trim();
+      if (state.checkout.delivery !== normalizedDelivery) {
+        state.checkout.delivery = normalizedDelivery;
+        saveStorage(STORAGE_KEYS.checkout, state.checkout);
+      }
+
       document.getElementById("customerName").value = state.checkout.name || "";
       document.getElementById("customerPhone").value = state.checkout.phone || "";
       document.getElementById("customerUsername").value = state.checkout.username || "";
-      document.getElementById("customerDelivery").value = state.checkout.delivery || "";
       document.getElementById("customerLocation").value = state.checkout.location || "";
       document.getElementById("customerContactMethod").value = state.checkout.contactMethod || "telegram";
       document.getElementById("customerDeliveryTime").value = state.checkout.deliveryTime || "asap";
       document.getElementById("customerComment").value = state.checkout.comment || "";
+      renderLocationPreview();
       waitForTelegramUser();
     }
 

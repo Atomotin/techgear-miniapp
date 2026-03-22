@@ -153,11 +153,6 @@
           </div>
 
           <div>
-            <div class="field-label">Точный адрес / ориентир *</div>
-            <textarea id="customerDelivery" rows="3" placeholder="Например: Чиланзар, 19 квартал, возле метро" maxlength="300"></textarea>
-          </div>
-
-          <div>
             <div class="field-label">Комментарий к заказу</div>
             <textarea id="customerComment" rows="2" placeholder="Например: домофон, этаж, цвет уточнить" maxlength="500"></textarea>
           </div>
@@ -165,10 +160,18 @@
           <div class="location-row">
             <div>
               <div class="field-label">Точная локация</div>
-              <input type="text" id="customerLocation" placeholder="Необязательно, можно пропустить" readonly />
+              <div id="customerLocationPreview" class="location-preview">
+                <strong class="location-preview-title">Локация не выбрана</strong>
+                <span class="location-preview-note">Можно добавить точку на карте в один тап</span>
+              </div>
+              <input type="hidden" id="customerLocation" maxlength="120" />
             </div>
-            <button class="btn btn-outline" type="button" onclick="requestUserLocation()">📍 Получить мою локацию</button>
-            <div class="hint">Необязательно, но это ускорит доставку: в заказе появится ссылка на Yandex Maps.</div>
+            <div class="location-actions">
+              <button class="btn btn-outline" type="button" onclick="requestUserLocation()">📍 Получить мою локацию</button>
+              <button class="btn btn-outline" type="button" onclick="openLocationPicker()">🗺️ Выбрать на карте</button>
+              <button class="btn btn-outline" type="button" onclick="clearUserLocation()">Очистить</button>
+            </div>
+            <div class="hint">Необязательно, но это ускорит доставку: менеджер получит точку и ссылку на карту, если координаты корректные.</div>
           </div>
         </div>
 
@@ -295,6 +298,26 @@
       <img id="lightboxImage" class="lightbox-image" src="" alt="Фото товара">
       <button id="lightboxNext" class="carousel-btn next" type="button" aria-label="Следующее фото">›</button>
       <div id="lightboxDots" class="carousel-dots"></div>
+    </div>
+  </div>
+  <div id="locationPickerModal" class="location-picker hidden" aria-hidden="true">
+    <div class="location-picker-card" role="dialog" aria-modal="true" aria-labelledby="locationPickerTitle">
+      <div class="location-picker-head">
+        <div>
+          <h3 id="locationPickerTitle">Выбери точку на карте</h3>
+          <div class="location-picker-status">
+            <strong id="locationPickerStatusTitle">Точка ещё не выбрана</strong>
+            <span id="locationPickerStatusNote">Тапни по карте, чтобы поставить метку в удобном месте</span>
+          </div>
+        </div>
+        <button id="locationPickerClose" class="location-picker-close" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <div id="locationPickerMap" class="location-picker-map" aria-label="Карта выбора точки"></div>
+      <div class="location-picker-footer">
+        <button id="locationPickerMyLocation" class="btn btn-outline" type="button">Моя геолокация</button>
+        <button id="locationPickerCancel" class="btn btn-outline" type="button">Отмена</button>
+        <button id="locationPickerSave" class="btn btn-primary" type="button">Сохранить точку</button>
+      </div>
     </div>
   </div>
   <div class="bottom-nav">

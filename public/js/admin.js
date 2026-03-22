@@ -1,4 +1,12 @@
-const state = {
+    const DEFAULT_ADMIN_SECTION = "orders";
+    const ADMIN_SECTIONS = new Set(["overview", "products", "categories", "orders", "customers", "banners", "music"]);
+
+    function getInitialAdminSection() {
+      const savedSection = localStorage.getItem("techgear_admin_section");
+      return ADMIN_SECTIONS.has(savedSection) ? savedSection : DEFAULT_ADMIN_SECTION;
+    }
+
+    const state = {
       token: localStorage.getItem("techgear_admin_token") || "",
       catalog: { categories: [], products: [] },
       orders: [],
@@ -22,10 +30,8 @@ const state = {
       orderCustomerKeyFilter: "",
       orderCustomerLabelFilter: "",
       customerSearch: "",
-      activeSection: localStorage.getItem("techgear_admin_section") || "overview"
+      activeSection: getInitialAdminSection()
     };
-
-    const ADMIN_SECTIONS = new Set(["overview", "products", "categories", "orders", "customers", "banners", "music"]);
 
     const ORDER_NOTE_TEMPLATES = [
       { key: "call-later", label: "Позвонить позже", text: "Позвонить клиенту позже." },
@@ -1321,8 +1327,36 @@ const state = {
       });
     }
 
+    function getAdminSectionNavItems() {
+      return [
+        { key: "overview", label: "Сводка", count: null },
+        { key: "products", label: "Товары", count: state.catalog.products.length },
+        { key: "categories", label: "Категории", count: state.catalog.categories.filter((item) => item.key !== "all").length },
+        { key: "orders", label: "Заказы", count: state.orders.length },
+        { key: "customers", label: "Клиенты", count: getCustomers().length },
+        { key: "banners", label: "Баннеры", count: state.banners.length },
+        { key: "music", label: "Музыка", count: state.settings.music.tracks.length }
+      ];
+    }
+
+    function renderAdminSectionNav() {
+      const items = new Map(getAdminSectionNavItems().map((item) => [item.key, item]));
+
+      document.querySelectorAll("[data-admin-section-target]").forEach((button) => {
+        const key = button.dataset.adminSectionTarget || "";
+        const item = items.get(key);
+        if (!item) return;
+
+        const countMarkup = Number.isFinite(item.count)
+          ? `<span class="admin-section-count">${escapeHtml(String(item.count))}</span>`
+          : "";
+
+        button.innerHTML = `<span class="admin-section-label">${escapeHtml(item.label)}</span>${countMarkup}`;
+      });
+    }
+
     function renderAdminSections() {
-      const activeSection = ADMIN_SECTIONS.has(state.activeSection) ? state.activeSection : "overview";
+      const activeSection = ADMIN_SECTIONS.has(state.activeSection) ? state.activeSection : DEFAULT_ADMIN_SECTION;
 
       document.querySelectorAll("[data-admin-section]").forEach((element) => {
         element.classList.toggle("section-hidden", element.dataset.adminSection !== activeSection);
@@ -1346,7 +1380,7 @@ const state = {
     }
 
     function setActiveSection(sectionKey, options = {}) {
-      const nextSection = ADMIN_SECTIONS.has(sectionKey) ? sectionKey : "overview";
+      const nextSection = ADMIN_SECTIONS.has(sectionKey) ? sectionKey : DEFAULT_ADMIN_SECTION;
       const { scrollIntoView = true } = options;
 
       state.activeSection = nextSection;
@@ -1373,6 +1407,7 @@ const state = {
         fillBannerForm(null);
       }
       fillMusicForm(state.settings);
+      renderAdminSectionNav();
       renderAdminSections();
     }
 
@@ -1506,7 +1541,7 @@ const state = {
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.querySelectorAll("[data-admin-section-target]").forEach((button) => {
       button.addEventListener("click", () => {
-        setActiveSection(button.dataset.adminSectionTarget || "overview");
+        setActiveSection(button.dataset.adminSectionTarget || DEFAULT_ADMIN_SECTION);
       });
     });
     document.getElementById("orderSearchInput").addEventListener("input", (event) => {

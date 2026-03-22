@@ -78,7 +78,34 @@ body::before {
 }
 
 .admin-section-nav .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 120px;
+}
+
+.admin-section-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 76, 72, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .admin-section-nav .btn.is-active {
@@ -88,6 +115,13 @@ body::before {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 14px 26px rgba(98, 89, 76, 0.16);
+}
+
+.admin-section-nav .btn.is-active .admin-section-count {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #f7fbf9;
+  box-shadow: none;
 }
 
 .hero,

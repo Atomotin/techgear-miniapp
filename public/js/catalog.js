@@ -435,6 +435,46 @@ function buildPromoSlides() {
       renderProductPagination({ loading: true });
     }
 
+    function hasResettableCatalogState() {
+      return Boolean(
+        String(state.search || "").trim()
+        || state.activeCategory !== "all"
+        || state.availability !== "all"
+        || state.sort !== "manual"
+      );
+    }
+
+    function resetCatalogFilters() {
+      state.search = "";
+      state.activeCategory = "all";
+      state.availability = "all";
+      state.sort = "manual";
+      resetProductPage();
+      setToolbarState();
+      renderCategories();
+      renderProducts();
+    }
+
+    function renderCatalogEmptyState() {
+      const list = document.getElementById("productList");
+      if (!list) return;
+
+      const hasProductsInCatalog = normalizeProducts(PRODUCTS).length > 0;
+      const canReset = hasProductsInCatalog && hasResettableCatalogState();
+      list.innerHTML = `
+        <div class="empty-text empty-text-stack">
+          <strong>${canReset ? "Ничего не найдено по текущим фильтрам." : "Ничего не найдено."}</strong>
+          ${canReset ? "<span>Сбросьте поиск и фильтры, чтобы снова увидеть весь каталог.</span>" : ""}
+          ${canReset ? '<button class="btn btn-outline empty-reset-btn" type="button" data-reset-catalog-filters>Сбросить фильтры</button>' : ""}
+        </div>
+      `;
+
+      const resetButton = list.querySelector("[data-reset-catalog-filters]");
+      if (resetButton) {
+        resetButton.addEventListener("click", resetCatalogFilters);
+      }
+    }
+
     function getFilteredProducts() {
       const query = state.search.trim().toLowerCase();
       const filtered = normalizeProducts(PRODUCTS).filter((product) => {
@@ -483,7 +523,7 @@ function buildPromoSlides() {
 
       if (!filtered.length) {
         renderProductPagination(null);
-        list.innerHTML = '<div class="empty-text">Ничего не найдено.</div>';
+        renderCatalogEmptyState();
         return;
       }
 

@@ -119,15 +119,8 @@ function buildPromoSlides() {
       return true;
     }
 
-    function scrollToProductList() {
-      const list = document.getElementById("productList");
-      if (!list) return;
-      list.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-
     function disconnectProductFeedObserver() {
-      if (!productFeedState.observer) {
-      } else {
+      if (productFeedState.observer) {
         productFeedState.observer.disconnect();
         productFeedState.observer = null;
       }

@@ -57,8 +57,7 @@
       customerSearch: "",
       activeSection: getInitialAdminSection(),
       productDraftSnapshot: null,
-      bannerDraftSnapshot: null,
-      catalogImportPreview: null
+      bannerDraftSnapshot: null
     };
 
     const ORDER_NOTE_TEMPLATES = [
@@ -300,10 +299,8 @@
     async function previewCatalogImport() {
       try {
         const report = await requestCatalogImport({ apply: false });
-        state.catalogImportPreview = report;
         showMessage("catalogImportMessage", formatCatalogImportReport(report), false);
       } catch (error) {
-        state.catalogImportPreview = null;
         showActionResult("catalogImportMessage", error.message, true);
       }
     }
@@ -311,7 +308,6 @@
     async function applyCatalogImport() {
       try {
         const preview = await requestCatalogImport({ apply: false });
-        state.catalogImportPreview = preview;
 
         if (!getCatalogImportChangesCount(preview)) {
           showActionResult("catalogImportMessage", "Импорт не нужен: различий между файлом и storage не найдено.");
@@ -332,7 +328,6 @@
         }
 
         const report = await requestCatalogImport({ apply: true });
-        state.catalogImportPreview = report;
         await loadAdminData();
         showActionResult("catalogImportMessage", `Импорт завершён. ${formatCatalogImportReport(report)}`);
       } catch (error) {
@@ -1949,7 +1944,6 @@
     document.getElementById("previewCatalogImportBtn").addEventListener("click", previewCatalogImport);
     document.getElementById("applyCatalogImportBtn").addEventListener("click", applyCatalogImport);
     document.getElementById("catalogImportSource").addEventListener("change", () => {
-      state.catalogImportPreview = null;
       showMessage("catalogImportMessage", "", false);
     });
     document.getElementById("addCategoryBtn").addEventListener("click", addCategory);

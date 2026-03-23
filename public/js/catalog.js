@@ -58,6 +58,11 @@ function buildPromoSlides() {
       }, 4600);
     }
 
+    const productFeedState = {
+      observer: null,
+      autoLoading: false
+    };
+
     function getProductPageSize() {
       return PRODUCTS_PER_PAGE;
     }
@@ -95,34 +100,47 @@ function buildPromoSlides() {
       list.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
-    function buildProductPaginationItems(totalPages, currentPage) {
-      if (totalPages <= 7) {
-        return Array.from({ length: totalPages }, (_, index) => index + 1);
+    function disconnectProductFeedObserver() {
+      if (!productFeedState.observer) {
+        return;
       }
 
-      const items = [1];
-      const startPage = Math.max(2, currentPage - 1);
-      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      productFeedState.observer.disconnect();
+      productFeedState.observer = null;
+    }
 
-      if (startPage > 2) {
-        items.push("ellipsis-start");
+    function loadNextProductPage(paginationState, options = {}) {
+      const source = options.source || "manual";
+      if (!paginationState || paginationState.currentPage >= paginationState.totalPages) {
+        return false;
       }
 
-      for (let page = startPage; page <= endPage; page += 1) {
-        items.push(page);
+      if (source === "auto" && productFeedState.autoLoading) {
+        return false;
       }
 
-      if (endPage < totalPages - 1) {
-        items.push("ellipsis-end");
+      if (source === "auto") {
+        productFeedState.autoLoading = true;
       }
 
-      items.push(totalPages);
-      return items;
+      state.productPage = paginationState.currentPage + 1;
+      renderProducts();
+
+      if (source === "auto") {
+        requestAnimationFrame(() => {
+          productFeedState.autoLoading = false;
+        });
+      }
+
+      return true;
     }
 
     function renderProductPagination(paginationState) {
       const pagination = document.getElementById("productPagination");
       if (!pagination) return;
+
+      disconnectProductFeedObserver();
+      productFeedState.autoLoading = false;
 
       if (!paginationState || paginationState.totalPages <= 1) {
         pagination.hidden = true;
@@ -130,58 +148,52 @@ function buildPromoSlides() {
         return;
       }
 
-      const { totalItems, totalPages, currentPage, startIndex, endIndex } = paginationState;
-      const pageItems = buildProductPaginationItems(totalPages, currentPage);
+      const { totalItems, totalPages, currentPage, endIndex } = paginationState;
+      const hasMorePages = currentPage < totalPages;
+      const autoLoadSupported = typeof window.IntersectionObserver === "function";
 
       pagination.hidden = false;
       pagination.innerHTML = `
-        <div class="pagination-summary">${startIndex + 1}-${endIndex} \u0438\u0437 ${totalItems}</div>
-        <div class="pagination-controls" aria-label="\u0421\u0442\u0440\u0430\u043d\u0438\u0446\u044b \u0442\u043e\u0432\u0430\u0440\u043e\u0432">
-          <button
-            class="pagination-btn pagination-nav"
-            type="button"
-            data-page="${currentPage - 1}"
-            ${currentPage === 1 ? "disabled" : ""}
-            aria-label="\u041f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0430\u044f \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430"
-          >\u2039</button>
-          <div class="pagination-pages">
-            ${pageItems.map((item) => {
-              if (typeof item !== "number") {
-                return '<span class="pagination-ellipsis" aria-hidden="true">...</span>';
-              }
-
-              return `
-                <button
-                  class="pagination-btn${item === currentPage ? " active" : ""}"
-                  type="button"
-                  data-page="${item}"
-                  ${item === currentPage ? 'aria-current="page"' : ""}
-                >${item}</button>
-              `;
-            }).join("")}
+        <div class="pagination-summary">\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u043e ${endIndex} \u0438\u0437 ${totalItems}</div>
+        ${hasMorePages ? `
+          <button class="btn btn-outline pagination-load-more" type="button" data-load-more-products>
+            \u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435
+          </button>
+          <div class="pagination-auto-hint">
+            ${autoLoadSupported
+              ? "\u041f\u0440\u043e\u0441\u0442\u043e \u043b\u0438\u0441\u0442\u0430\u0439 \u0432\u043d\u0438\u0437, \u0438 \u043c\u044b \u0434\u043e\u0433\u0440\u0443\u0437\u0438\u043c \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0435 \u0442\u043e\u0432\u0430\u0440\u044b"
+              : "\u0415\u0441\u043b\u0438 \u043d\u0443\u0436\u043d\u043e, \u0434\u043e\u0433\u0440\u0443\u0437\u0438 \u0441\u043f\u0438\u0441\u043e\u043a \u043a\u043d\u043e\u043f\u043a\u043e\u0439 \u0432\u044b\u0448\u0435"}
           </div>
-          <button
-            class="pagination-btn pagination-nav"
-            type="button"
-            data-page="${currentPage + 1}"
-            ${currentPage === totalPages ? "disabled" : ""}
-            aria-label="\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0430\u044f \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430"
-          >\u203a</button>
-        </div>
+          <div class="pagination-sentinel" data-product-feed-sentinel aria-hidden="true"></div>
+        ` : `
+          <div class="pagination-end">\u0412\u0441\u0435 \u0442\u043e\u0432\u0430\u0440\u044b \u0443\u0436\u0435 \u043d\u0430 \u044d\u043a\u0440\u0430\u043d\u0435</div>
+        `}
       `;
 
-      pagination.querySelectorAll("[data-page]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const nextPage = Number(button.dataset.page);
-          if (!Number.isFinite(nextPage) || nextPage === state.productPage) {
-            return;
-          }
-
-          state.productPage = nextPage;
-          renderProducts();
-          requestAnimationFrame(scrollToProductList);
-        });
+      pagination.querySelector("[data-load-more-products]")?.addEventListener("click", () => {
+        loadNextProductPage(paginationState, { source: "manual" });
       });
+
+      if (!hasMorePages || !autoLoadSupported) {
+        return;
+      }
+
+      const sentinel = pagination.querySelector("[data-product-feed-sentinel]");
+      if (!sentinel) {
+        return;
+      }
+
+      productFeedState.observer = new IntersectionObserver((entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) {
+          return;
+        }
+
+        loadNextProductPage(paginationState, { source: "auto" });
+      }, {
+        rootMargin: "320px 0px 480px 0px"
+      });
+
+      productFeedState.observer.observe(sentinel);
     }
 
     function focusPromoProduct(productId) {
@@ -368,9 +380,8 @@ function buildPromoSlides() {
       const totalPages = syncProductPage(filtered.length);
       const currentPage = state.productPage;
       const pageSize = getProductPageSize();
-      const startIndex = (currentPage - 1) * pageSize;
-      const pageItems = filtered.slice(startIndex, startIndex + pageSize);
-      const endIndex = startIndex + pageItems.length;
+      const visibleItems = filtered.slice(0, currentPage * pageSize);
+      const endIndex = visibleItems.length;
       list.innerHTML = "";
 
       if (!filtered.length) {
@@ -379,7 +390,7 @@ function buildPromoSlides() {
         return;
       }
 
-      pageItems.forEach((product) => {
+      visibleItems.forEach((product) => {
         try {
           const card = document.createElement("div");
           card.className = "card";
@@ -464,7 +475,6 @@ function buildPromoSlides() {
         totalItems: filtered.length,
         totalPages,
         currentPage,
-        startIndex,
         endIndex,
       });
 

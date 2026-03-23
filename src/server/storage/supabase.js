@@ -39,7 +39,9 @@ function buildSupabaseStorageModule({
   bannerRowToModel,
   bannerModelToRow,
   settingsRowToModel,
-  settingsModelToRow
+  settingsModelToRow,
+  normalizeCatalogFeedOptions,
+  buildPublicCatalogFeed
 }) {
 function parseSupabaseError(payload, response) {
   if (payload && typeof payload === "object") {
@@ -240,6 +242,30 @@ function createSupabaseStorageProvider() {
     }
   }
 
+  function buildPublicProductQuery(options = {}) {
+    const normalized = normalizeCatalogFeedOptions(options);
+    const filters = [
+      "is_visible=eq.true"
+    ];
+
+    if (normalized.ids.length) {
+      filters.push(`id=in.(${normalized.ids.map((id) => Number(id)).join(",")})`);
+    } else {
+      if (normalized.category !== "all") {
+        filters.push(`category_key=eq.${encodeURIComponent(normalized.category)}`);
+      }
+
+      if (normalized.availability === "available") {
+        filters.push("is_soon=eq.false");
+      } else if (normalized.availability === "soon") {
+        filters.push("is_soon=eq.true");
+      }
+    }
+
+    filters.push("order=sort_order.asc,id.asc");
+    return filters.join("&");
+  }
+
   async function ensureSeeded() {
     const existingCategories = await supabaseRequest("GET", "categories", {
       query: "select=key&limit=1"
@@ -413,6 +439,41 @@ function createSupabaseStorageProvider() {
         banners,
         settings
       };
+    },
+    async getPublicCatalog(options = {}) {
+      const normalized = normalizeCatalogFeedOptions(options);
+      const productQuery = buildPublicProductQuery(normalized);
+      const [productRows, categories, banners, settings] = await Promise.all([
+        getProductsWithDiscountSupport(
+          `select=id,name,category_key,sort_order,is_visible,is_soon,price,old_price,image,images,description,stock,variants,badge&${productQuery}`,
+          `select=id,name,category_key,sort_order,is_visible,is_soon,price,image,images,description,stock,variants,badge&${productQuery}`
+        ),
+        normalized.includeMeta
+          ? supabaseRequest("GET", "categories", { query: "select=key,label&order=key.asc" })
+          : Promise.resolve(null),
+        normalized.includeMeta
+          ? this.getBanners()
+          : Promise.resolve(undefined),
+        normalized.includeMeta
+          ? getSettings()
+          : Promise.resolve(undefined)
+      ]);
+
+      const catalogProducts = sanitizeProducts((productRows || []).map(productRowToModel));
+      const { items, pagination } = buildPublicCatalogFeed(catalogProducts, normalized);
+      const response = {
+        products: items,
+        pagination,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (normalized.includeMeta) {
+        response.categories = sanitizeCategories((categories || []).map(categoryRowToModel));
+        response.banners = banners;
+        response.settings = settings;
+      }
+
+      return response;
     },
     async getOrders() {
       const rows = await supabaseRequest("GET", "orders", {

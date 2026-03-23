@@ -10,6 +10,8 @@ function buildLocalStorageModule({
   buildDefaultPromoBanners,
   buildDefaultAppSettings,
   buildOrderRecord,
+  normalizeCatalogFeedOptions,
+  buildPublicCatalogFeed,
   loadLegacyCatalog,
   catalogPath,
   ordersPath,
@@ -170,6 +172,24 @@ function createLocalStorageProvider() {
         banners: getBanners(),
         settings: getSettings()
       };
+    },
+    async getPublicCatalog(options = {}) {
+      const catalog = getCatalog();
+      const normalized = normalizeCatalogFeedOptions(options);
+      const { items, pagination } = buildPublicCatalogFeed(catalog.products, normalized);
+      const response = {
+        products: items,
+        pagination,
+        updatedAt: catalog.updatedAt || new Date().toISOString()
+      };
+
+      if (normalized.includeMeta) {
+        response.categories = catalog.categories;
+        response.banners = getBanners();
+        response.settings = getSettings();
+      }
+
+      return response;
     },
     async getOrders() {
       return getOrders();

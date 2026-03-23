@@ -338,10 +338,16 @@ const tg = window.Telegram?.WebApp || null;
     appSettings = BOOTSTRAP_SETTINGS;
 
     let PRODUCTS = [];
+    let PRODUCT_CACHE = new Map();
     let CATEGORIES = [];
     let PROMO_BANNERS = [];
     const PRODUCTS_PER_PAGE = 8;
     let catalogLoading = true;
+    let catalogFeedLoading = false;
+    let catalogUsesServerFeed = true;
+    let catalogPagination = null;
+    let catalogRequestToken = 0;
+    let catalogSearchDebounceId = null;
 
     let state = {
       activeCategory: "all",
@@ -585,6 +591,140 @@ const tg = window.Telegram?.WebApp || null;
         });
     }
 
+    function dedupeProductsById(products) {
+      const seen = new Set();
+      return (Array.isArray(products) ? products : []).filter((product) => {
+        const key = String(product?.id || "");
+        if (!key || seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function cacheProducts(products) {
+      const normalized = normalizeProducts(products);
+      normalized.forEach((product) => {
+        PRODUCT_CACHE.set(String(product.id), product);
+      });
+      return normalized;
+    }
+
+    function setCatalogProducts(products, { append = false } = {}) {
+      const normalized = cacheProducts(products);
+      PRODUCTS = append
+        ? dedupeProductsById([...PRODUCTS, ...normalized])
+        : normalized;
+      return PRODUCTS;
+    }
+
+    function getCachedProduct(productId) {
+      return PRODUCT_CACHE.get(String(productId)) || null;
+    }
+
+    function normalizeCatalogPaginationState(pagination, fallbackCount = 0) {
+      const pageSize = Math.max(1, Number(pagination?.pageSize) || PRODUCTS_PER_PAGE);
+      const totalItems = Math.max(0, Number(pagination?.totalItems) || fallbackCount);
+      const totalPages = Math.max(1, Number(pagination?.totalPages) || Math.ceil(totalItems / pageSize) || 1);
+      const currentPage = Math.min(Math.max(1, Number(pagination?.currentPage) || 1), totalPages);
+      const endIndex = Math.max(0, Number(pagination?.endIndex) || Math.min(totalItems, currentPage * pageSize));
+
+      return {
+        currentPage,
+        pageSize,
+        totalItems,
+        totalPages,
+        endIndex,
+        hasMorePages: Boolean(pagination?.hasMorePages || currentPage < totalPages),
+        focusProductId: Number(pagination?.focusProductId) || 0,
+        focusFound: Boolean(pagination?.focusFound)
+      };
+    }
+
+    function buildCatalogApiUrl(options = {}) {
+      const params = new URLSearchParams();
+      const ids = [...new Set((Array.isArray(options.ids) ? options.ids : [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id) && id > 0))];
+
+      if (ids.length) {
+        params.set("ids", ids.join(","));
+      } else {
+        params.set("page", String(Math.max(1, Number(options.page) || 1)));
+        params.set("pageSize", String(PRODUCTS_PER_PAGE));
+
+        const searchValue = String(state.search || "").trim();
+        if (searchValue) {
+          params.set("search", searchValue);
+        }
+
+        if (state.activeCategory && state.activeCategory !== "all") {
+          params.set("category", state.activeCategory);
+        }
+
+        if (state.availability && state.availability !== "all") {
+          params.set("availability", state.availability);
+        }
+
+        if (state.sort && state.sort !== "manual") {
+          params.set("sort", state.sort);
+        }
+
+        if (Number(options.focusProductId) > 0) {
+          params.set("focusProductId", String(Number(options.focusProductId)));
+        }
+      }
+
+      if (options.includeMeta) {
+        params.set("includeMeta", "1");
+      }
+
+      const query = params.toString();
+      return `/api/catalog/public${query ? `?${query}` : ""}`;
+    }
+
+    async function requestCatalogData(options = {}) {
+      const response = await fetch(buildCatalogApiUrl(options), {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+        },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("catalog_request_failed");
+      }
+
+      return response.json();
+    }
+
+    function applyCatalogMeta(data = {}) {
+      CATEGORIES = Array.isArray(data.categories) ? data.categories : BOOTSTRAP_CATEGORIES;
+      PROMO_BANNERS = Array.isArray(data.banners) ? data.banners : BOOTSTRAP_BANNERS;
+      applyMusicSettings(data.settings || BOOTSTRAP_SETTINGS, { autoplay: true });
+    }
+
+    async function ensureFavoriteProductsLoaded() {
+      const missingIds = [...new Set(
+        state.favorites
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id > 0 && !PRODUCT_CACHE.has(String(id)))
+      )];
+
+      if (!missingIds.length || !catalogUsesServerFeed) {
+        return;
+      }
+
+      try {
+        const data = await requestCatalogData({ ids: missingIds });
+        cacheProducts(Array.isArray(data?.products) ? data.products : []);
+      } catch (error) {
+        console.warn("Favorite products hydration failed");
+      }
+    }
+
     function getTelegramUser() {
       return tg?.initDataUnsafe?.user || null;
     }
@@ -667,32 +807,157 @@ const tg = window.Telegram?.WebApp || null;
 
     async function loadCatalogFromApi() {
       catalogLoading = true;
-      try {
-        const response = await fetch("/api/catalog/public", {
-          method: "GET",
-          headers: {
-            "Accept": "application/json",
-          },
-          cache: "no-store",
-        });
+      catalogFeedLoading = true;
+      const requestToken = ++catalogRequestToken;
 
-        if (!response.ok) {
-          throw new Error("catalog_request_failed");
+      try {
+        const data = await requestCatalogData({ page: 1, includeMeta: true });
+        if (requestToken !== catalogRequestToken) {
+          return;
         }
 
-        const data = await response.json();
-        PRODUCTS = Array.isArray(data.products) ? data.products : BOOTSTRAP_PRODUCTS;
-        CATEGORIES = Array.isArray(data.categories) ? data.categories : BOOTSTRAP_CATEGORIES;
-        PROMO_BANNERS = Array.isArray(data.banners) ? data.banners : BOOTSTRAP_BANNERS;
-        applyMusicSettings(data.settings || BOOTSTRAP_SETTINGS, { autoplay: true });
+        catalogUsesServerFeed = true;
+        PRODUCT_CACHE = new Map();
+        applyCatalogMeta(data);
+        setCatalogProducts(Array.isArray(data?.products) ? data.products : []);
+        catalogPagination = normalizeCatalogPaginationState(data?.pagination, PRODUCTS.length);
+        state.productPage = catalogPagination.currentPage;
+        await ensureFavoriteProductsLoaded();
       } catch (error) {
-        PRODUCTS = BOOTSTRAP_PRODUCTS;
+        if (requestToken !== catalogRequestToken) {
+          return;
+        }
+
+        catalogUsesServerFeed = false;
+        PRODUCT_CACHE = new Map();
         CATEGORIES = BOOTSTRAP_CATEGORIES;
         PROMO_BANNERS = BOOTSTRAP_BANNERS;
+        setCatalogProducts(BOOTSTRAP_PRODUCTS);
+        catalogPagination = null;
+        state.productPage = 1;
         applyMusicSettings(BOOTSTRAP_SETTINGS, { autoplay: true });
         console.warn("Catalog API unavailable, fallback to local data");
       } finally {
-        catalogLoading = false;
+        if (requestToken === catalogRequestToken) {
+          catalogFeedLoading = false;
+          catalogLoading = false;
+        }
+      }
+    }
+
+    async function refreshCatalogFeed(options = {}) {
+      if (catalogSearchDebounceId) {
+        clearTimeout(catalogSearchDebounceId);
+        catalogSearchDebounceId = null;
+      }
+
+      if (!catalogUsesServerFeed) {
+        resetProductPage();
+        renderProducts();
+        return false;
+      }
+
+      const append = options.append === true;
+      const nextPage = append
+        ? Math.max(1, Number(options.page) || Number(catalogPagination?.currentPage || 1) + 1)
+        : 1;
+      const previousProducts = append ? PRODUCTS : [...PRODUCTS];
+      const previousPagination = catalogPagination ? { ...catalogPagination } : null;
+      const requestToken = ++catalogRequestToken;
+
+      if (!append) {
+        catalogFeedLoading = true;
+        PRODUCTS = [];
+        catalogPagination = normalizeCatalogPaginationState({
+          currentPage: 1,
+          pageSize: PRODUCTS_PER_PAGE,
+          totalItems: 0,
+          totalPages: 1,
+          endIndex: 0,
+          hasMorePages: false
+        });
+        state.productPage = 1;
+        renderProducts();
+      }
+
+      try {
+        const data = await requestCatalogData({
+          page: nextPage,
+          includeMeta: options.includeMeta === true,
+          focusProductId: options.focusProductId || 0
+        });
+
+        if (requestToken !== catalogRequestToken) {
+          return false;
+        }
+
+        if (options.includeMeta) {
+          applyCatalogMeta(data);
+        }
+
+        setCatalogProducts(Array.isArray(data?.products) ? data.products : [], { append });
+        catalogPagination = normalizeCatalogPaginationState(data?.pagination, PRODUCTS.length);
+        state.productPage = catalogPagination.currentPage;
+        await ensureFavoriteProductsLoaded();
+        renderFavorites();
+        return true;
+      } catch (error) {
+        if (requestToken !== catalogRequestToken) {
+          return false;
+        }
+
+        if (!append) {
+          PRODUCTS = previousProducts;
+          catalogPagination = previousPagination;
+        }
+
+        console.warn("Catalog feed refresh failed");
+        showToast("\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043a\u0430\u0442\u0430\u043b\u043e\u0433", "error", { replaceKey: "catalog-feed" });
+        return false;
+      } finally {
+        if (requestToken === catalogRequestToken) {
+          catalogFeedLoading = false;
+          setToolbarState();
+          renderCategories();
+          renderProducts();
+        }
+      }
+    }
+
+    function queueCatalogSearchRefresh() {
+      if (catalogSearchDebounceId) {
+        clearTimeout(catalogSearchDebounceId);
+      }
+
+      if (!catalogUsesServerFeed) {
+        resetProductPage();
+        renderProducts();
+        return;
+      }
+
+      catalogSearchDebounceId = window.setTimeout(() => {
+        catalogSearchDebounceId = null;
+        refreshCatalogFeed();
+      }, 220);
+    }
+
+    async function ensureCatalogProduct(productId) {
+      const cached = getCachedProduct(productId);
+      if (cached) {
+        return cached;
+      }
+
+      if (!catalogUsesServerFeed) {
+        return normalizeProducts(BOOTSTRAP_PRODUCTS).find((product) => Number(product.id) === Number(productId)) || null;
+      }
+
+      try {
+        const data = await requestCatalogData({ ids: [productId] });
+        cacheProducts(Array.isArray(data?.products) ? data.products : []);
+        return getCachedProduct(productId);
+      } catch (error) {
+        console.warn("Product preload failed");
+        return null;
       }
     }
 
@@ -894,8 +1159,9 @@ const tg = window.Telegram?.WebApp || null;
     }
 
     function getFavoriteProducts() {
-      const favoriteIds = new Set(state.favorites.map(String));
-      return normalizeProducts(PRODUCTS).filter((product) => favoriteIds.has(String(product.id)));
+      return state.favorites
+        .map((id) => getCachedProduct(id))
+        .filter(Boolean);
     }
 
     function toggleFavorite(productId) {
@@ -938,9 +1204,13 @@ const tg = window.Telegram?.WebApp || null;
         btn.textContent = cat.label;
         btn.onclick = () => {
           state.activeCategory = cat.key;
-          state.productPage = 1;
+          resetProductPage();
           renderCategories();
-          renderProducts();
+          if (catalogUsesServerFeed) {
+            void refreshCatalogFeed();
+          } else {
+            renderProducts();
+          }
         };
         wrap.appendChild(btn);
       });
@@ -955,7 +1225,7 @@ const tg = window.Telegram?.WebApp || null;
         searchInput.value = state.search;
         searchInput.disabled = catalogLoading;
         searchInput.placeholder = catalogLoading ? "Подключаем каталог..." : "Поиск";
-        searchInput.setAttribute("aria-busy", catalogLoading ? "true" : "false");
+        searchInput.setAttribute("aria-busy", (catalogLoading || catalogFeedLoading) ? "true" : "false");
       }
 
       if (availabilityFilter) {

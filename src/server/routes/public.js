@@ -6,6 +6,34 @@ function createPublicRouteHandler({
   telegramBotEnabled,
   telegramManagerNotificationsEnabled
 }) {
+  function hasCatalogFeedQuery(searchParams) {
+    return [
+      "search",
+      "category",
+      "availability",
+      "sort",
+      "page",
+      "pageSize",
+      "includeMeta",
+      "ids",
+      "focusProductId"
+    ].some((key) => searchParams.has(key));
+  }
+
+  function getCatalogFeedOptions(searchParams) {
+    return {
+      search: searchParams.get("search") || "",
+      category: searchParams.get("category") || "",
+      availability: searchParams.get("availability") || "",
+      sort: searchParams.get("sort") || "",
+      page: searchParams.get("page") || "",
+      pageSize: searchParams.get("pageSize") || "",
+      includeMeta: searchParams.get("includeMeta") || "",
+      ids: searchParams.get("ids") || "",
+      focusProductId: searchParams.get("focusProductId") || ""
+    };
+  }
+
   function sendLegacyCatalogScript(res, catalog) {
     const categories = Array.isArray(catalog?.categories) ? catalog.categories : [];
     const products = Array.isArray(catalog?.products) ? catalog.products : [];
@@ -54,7 +82,11 @@ function createPublicRouteHandler({
     }
 
     if (req.method === "GET" && url.pathname === "/api/catalog/public") {
-      sendJson(res, 200, await storage.getCatalog());
+      if (hasCatalogFeedQuery(url.searchParams) && typeof storage.getPublicCatalog === "function") {
+        sendJson(res, 200, await storage.getPublicCatalog(getCatalogFeedOptions(url.searchParams)));
+      } else {
+        sendJson(res, 200, await storage.getCatalog());
+      }
       return true;
     }
 

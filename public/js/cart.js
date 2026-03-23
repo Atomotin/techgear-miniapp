@@ -20,7 +20,7 @@
     }
 
     function addToCart(productId, selectedVariant = "") {
-      const product = normalizeProducts(PRODUCTS).find((p) => p.id === productId);
+      const product = getCachedProduct(productId);
       if (!product) return;
       const cartKey = selectedVariant ? `${productId}::${selectedVariant}` : String(productId);
       const existing = state.cart.find((item) => item.cartKey === cartKey);

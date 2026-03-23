@@ -276,6 +276,18 @@ async function main() {
     const product = pickSmokeProduct(Array.isArray(catalogResponse.body && catalogResponse.body.products) ? catalogResponse.body.products : []);
     assert.ok(product, "Smoke check needs at least one visible product in catalog");
 
+    const pagedCatalogResponse = await request({ port, pathname: "/api/catalog/public?page=1&pageSize=4&includeMeta=1" });
+    assert.equal(pagedCatalogResponse.statusCode, 200, "GET /api/catalog/public paged feed should return 200");
+    assert.ok(Array.isArray(pagedCatalogResponse.body && pagedCatalogResponse.body.products), "Paged catalog feed should return products array");
+    assert.ok(Array.isArray(pagedCatalogResponse.body && pagedCatalogResponse.body.categories), "Paged catalog feed should return categories when includeMeta=1");
+    assert.equal(typeof (pagedCatalogResponse.body && pagedCatalogResponse.body.pagination), "object", "Paged catalog feed should return pagination");
+    assert.equal(Number(pagedCatalogResponse.body && pagedCatalogResponse.body.pagination && pagedCatalogResponse.body.pagination.pageSize), 4, "Paged catalog feed should respect pageSize");
+    assert.ok((pagedCatalogResponse.body && pagedCatalogResponse.body.products && pagedCatalogResponse.body.products.length || 0) <= 4, "Paged catalog feed should limit product count");
+
+    const idsCatalogResponse = await request({ port, pathname: `/api/catalog/public?ids=${encodeURIComponent(String(product.id))}` });
+    assert.equal(idsCatalogResponse.statusCode, 200, "GET /api/catalog/public by ids should return 200");
+    assert.equal(Number(idsCatalogResponse.body && idsCatalogResponse.body.products && idsCatalogResponse.body.products[0] && idsCatalogResponse.body.products[0].id), Number(product.id), "Catalog ids lookup should return requested product");
+
     const wrongLoginResponse = await request({
       port,
       method: "POST",
@@ -405,7 +417,7 @@ async function main() {
 
     console.log("Smoke checks passed");
     console.log(`Server: http://127.0.0.1:${port}`);
-    console.log("Checked: /, /admin, /api/health, /api/catalog/public, admin login, trusted order create, invalid order validation");
+    console.log("Checked: /, /admin, /api/health, /api/catalog/public, paged catalog feed, catalog ids lookup, admin login, trusted order create, invalid order validation");
   } catch (error) {
     console.error("Smoke checks failed");
     console.error(error && error.stack ? error.stack : error);

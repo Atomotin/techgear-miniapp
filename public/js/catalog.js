@@ -159,6 +159,18 @@ function buildPromoSlides() {
 
       productFeedState.autoLoading = true;
       setProductFeedLoading(true);
+
+      if (catalogUsesServerFeed) {
+        void refreshCatalogFeed({
+          append: true,
+          page: paginationState.currentPage + 1
+        }).finally(() => {
+          productFeedState.autoLoading = false;
+          setProductFeedLoading(false);
+        });
+        return true;
+      }
+
       state.productPage = paginationState.currentPage + 1;
       renderProducts();
       requestAnimationFrame(() => {
@@ -262,7 +274,33 @@ function buildPromoSlides() {
       });
     }
 
-    function applyPromoAction(action) {
+    async function openCatalogProduct(productId) {
+      const product = await ensureCatalogProduct(productId);
+      if (!product) {
+        return false;
+      }
+
+      state.search = "";
+      state.availability = "all";
+      state.sort = "manual";
+      state.activeCategory = product.category || "all";
+      resetProductPage();
+      setToolbarState();
+      renderCategories();
+
+      if (catalogUsesServerFeed) {
+        await refreshCatalogFeed({ focusProductId: productId });
+      } else {
+        goToProductPage(productId);
+        renderProducts();
+      }
+
+      switchView("shop");
+      focusPromoProduct(productId);
+      return true;
+    }
+
+    async function applyPromoAction(action) {
       if (!action) return;
 
       if (action.type === "link" && action.href) {
@@ -289,18 +327,20 @@ function buildPromoSlides() {
       }
 
       if (action.type === "product" && action.productId) {
-        goToProductPage(action.productId);
+        await openCatalogProduct(action.productId);
+        return;
       } else {
         resetProductPage();
       }
 
       setToolbarState();
       renderCategories();
-      renderProducts();
       switchView("shop");
 
-      if (action.type === "product" && action.productId) {
-        focusPromoProduct(action.productId);
+      if (catalogUsesServerFeed) {
+        await refreshCatalogFeed();
+      } else {
+        renderProducts();
       }
     }
 
@@ -452,14 +492,20 @@ function buildPromoSlides() {
       resetProductPage();
       setToolbarState();
       renderCategories();
-      renderProducts();
+      if (catalogUsesServerFeed) {
+        void refreshCatalogFeed();
+      } else {
+        renderProducts();
+      }
     }
 
     function renderCatalogEmptyState() {
       const list = document.getElementById("productList");
       if (!list) return;
 
-      const hasProductsInCatalog = normalizeProducts(PRODUCTS).length > 0;
+      const hasProductsInCatalog = catalogUsesServerFeed
+        ? Boolean(PRODUCT_CACHE.size || CATEGORIES.some((category) => category?.key && category.key !== "all"))
+        : normalizeProducts(PRODUCTS).length > 0;
       const canReset = hasProductsInCatalog && hasResettableCatalogState();
       list.innerHTML = `
         <div class="empty-text empty-text-stack">
@@ -507,21 +553,36 @@ function buildPromoSlides() {
       const list = document.getElementById("productList");
       if (!list) return;
 
-      if (catalogLoading) {
+      if (catalogLoading || (catalogFeedLoading && !PRODUCTS.length)) {
         renderCatalogLoadingState();
         return;
       }
 
-      list.setAttribute("aria-busy", "false");
-      const filtered = getFilteredProducts();
-      const totalPages = syncProductPage(filtered.length);
-      const currentPage = state.productPage;
-      const pageSize = getProductPageSize();
-      const visibleItems = filtered.slice(0, currentPage * pageSize);
-      const endIndex = visibleItems.length;
+      list.setAttribute("aria-busy", catalogFeedLoading ? "true" : "false");
+      let visibleItems = [];
+      let paginationState = null;
+
+      if (catalogUsesServerFeed) {
+        visibleItems = normalizeProducts(PRODUCTS);
+        paginationState = catalogPagination || normalizeCatalogPaginationState(null, visibleItems.length);
+      } else {
+        const filtered = getFilteredProducts();
+        const totalPages = syncProductPage(filtered.length);
+        const currentPage = state.productPage;
+        const pageSize = getProductPageSize();
+        visibleItems = filtered.slice(0, currentPage * pageSize);
+        paginationState = {
+          totalItems: filtered.length,
+          totalPages,
+          currentPage,
+          endIndex: visibleItems.length,
+          hasMorePages: currentPage < totalPages
+        };
+      }
+
       list.innerHTML = "";
 
-      if (!filtered.length) {
+      if (!visibleItems.length) {
         renderProductPagination(null);
         renderCatalogEmptyState();
         return;
@@ -608,12 +669,7 @@ function buildPromoSlides() {
         }
       });
 
-      renderProductPagination({
-        totalItems: filtered.length,
-        totalPages,
-        currentPage,
-        endIndex,
-      });
+      renderProductPagination(paginationState);
 
       if (!list.children.length) {
         renderProductPagination(null);
@@ -667,13 +723,8 @@ function buildPromoSlides() {
         const media = card.querySelector("[data-single-image]");
         media?.addEventListener("click", () => openLightbox([media.dataset.singleImage], 0));
         card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
-        card.querySelector(".btn-primary").onclick = () => {
-          state.activeCategory = product.category || "all";
-          goToProductPage(product.id);
-          renderCategories();
-          renderProducts();
-          switchView("shop");
-          focusPromoProduct(product.id);
+        card.querySelector(".btn-primary").onclick = async () => {
+          await openCatalogProduct(product.id);
           showToast(`Открыт товар: ${product.name}`);
         };
 

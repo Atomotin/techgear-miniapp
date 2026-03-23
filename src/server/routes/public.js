@@ -3,7 +3,8 @@ function createPublicRouteHandler({
   sendJson,
   supabaseEnabled,
   requirePersistentAdminStorage,
-  telegramBotEnabled
+  telegramBotEnabled,
+  telegramManagerNotificationsEnabled
 }) {
   function sendLegacyCatalogScript(res, catalog) {
     const categories = Array.isArray(catalog?.categories) ? catalog.categories : [];
@@ -45,6 +46,7 @@ function createPublicRouteHandler({
         supabaseEnabled,
         requirePersistentAdminStorage,
         telegramBotEnabled,
+        telegramManagerNotificationsEnabled,
         diagnostics,
         timestamp: new Date().toISOString()
       });

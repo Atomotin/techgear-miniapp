@@ -45,9 +45,13 @@ const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
 const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
 const TELEGRAM_CHANNEL_URL = normalizeTelegramUrl(process.env.TELEGRAM_CHANNEL_URL || "https://t.me/techgear_uz");
 const TELEGRAM_MANAGER_URL = normalizeTelegramUrl(process.env.TELEGRAM_MANAGER_URL || "https://t.me/atomotin");
+const TELEGRAM_MANAGER_CHAT_IDS = normalizeChatIdList(
+  process.env.TELEGRAM_MANAGER_CHAT_IDS || process.env.TELEGRAM_MANAGER_CHAT_ID || ""
+);
 const TELEGRAM_LOGO_URL = normalizeTelegramUrl(process.env.TELEGRAM_LOGO_URL || "");
 const TELEGRAM_BOT_NAME = normalizeString(process.env.TELEGRAM_BOT_NAME || "TechGear Store");
 const TELEGRAM_BOT_ENABLED = Boolean(TELEGRAM_BOT_TOKEN && PUBLIC_BASE_URL);
+const TELEGRAM_MANAGER_NOTIFICATIONS_ENABLED = Boolean(TELEGRAM_BOT_ENABLED && TELEGRAM_MANAGER_CHAT_IDS.length);
 const TELEGRAM_API_BASE = TELEGRAM_BOT_ENABLED ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}` : "";
 
 const MIME_TYPES = {
@@ -95,6 +99,18 @@ function normalizeString(value) {
   return String(value ?? "").trim();
 }
 
+function normalizeChatIdList(value) {
+  const source = Array.isArray(value)
+    ? value
+    : String(value || "").split(/\r?\n|,/);
+
+  return [...new Set(
+    source
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+  )];
+}
+
 function parseBooleanEnv(value, fallback = false) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized) return fallback;
@@ -111,6 +127,7 @@ const telegramService = createTelegramService({
   telegramBotName: TELEGRAM_BOT_NAME,
   telegramChannelUrl: TELEGRAM_CHANNEL_URL,
   telegramManagerUrl: TELEGRAM_MANAGER_URL,
+  telegramManagerChatIds: TELEGRAM_MANAGER_CHAT_IDS,
   telegramLogoUrl: TELEGRAM_LOGO_URL
 });
 
@@ -593,6 +610,7 @@ const handleApi = createApiHandler({
   supabaseEnabled: SUPABASE_ENABLED,
   requirePersistentAdminStorage: REQUIRE_PERSISTENT_ADMIN_STORAGE,
   telegramBotEnabled: TELEGRAM_BOT_ENABLED,
+  telegramManagerNotificationsEnabled: TELEGRAM_MANAGER_NOTIFICATIONS_ENABLED,
   telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET,
   handleTelegramUpdate: telegramService.handleTelegramUpdate,
   notifyOrderCreated: telegramService.notifyOrderCreated,

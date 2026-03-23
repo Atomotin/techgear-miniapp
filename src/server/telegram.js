@@ -6,6 +6,7 @@ function createTelegramService({
   telegramBotName,
   telegramChannelUrl,
   telegramManagerUrl,
+  telegramManagerChatIds = [],
   telegramLogoUrl
 }) {
   const ORDER_STATUS_LABELS = {
@@ -21,6 +22,23 @@ function createTelegramService({
     done: "Заказ готов. Скоро свяжемся с вами для передачи или доставки.",
     cancelled: "Заказ отменён. Если это произошло по ошибке, напишите менеджеру."
   };
+
+  const CONTACT_METHOD_LABELS = {
+    telegram: "Telegram",
+    phone: "Телефон"
+  };
+
+  const DELIVERY_TIME_LABELS = {
+    asap: "Как можно скорее",
+    today: "Сегодня",
+    tomorrow: "Завтра"
+  };
+
+  const managerRecipients = [...new Set(
+    (Array.isArray(telegramManagerChatIds) ? telegramManagerChatIds : [])
+      .map((chatId) => String(chatId || "").trim())
+      .filter(Boolean)
+  )];
 
   async function telegramApi(method, payload) {
     if (!telegramBotEnabled) {
@@ -67,8 +85,45 @@ function createTelegramService({
     }).format(date);
   }
 
+  function normalizeTelegramUsername(value) {
+    return normalizeString(value).replace(/^@/, "");
+  }
+
+  function parseOrderCoordinates(location) {
+    const match = String(location || "").trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!match) return null;
+
+    const lat = Number(match[1]);
+    const lon = Number(match[2]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+    return { lat, lon };
+  }
+
+  function buildOrderMapLink(location) {
+    const coords = parseOrderCoordinates(location);
+    if (!coords) return "";
+    return `https://yandex.uz/maps/?pt=${encodeURIComponent(coords.lon)},${encodeURIComponent(coords.lat)}&z=16&l=map`;
+  }
+
+  function formatContactMethod(value) {
+    const normalized = normalizeString(value).toLowerCase();
+    return CONTACT_METHOD_LABELS[normalized] || normalized || "";
+  }
+
+  function formatDeliveryTime(value) {
+    const normalized = normalizeString(value).toLowerCase();
+    return DELIVERY_TIME_LABELS[normalized] || normalized || "";
+  }
+
   function getOrderChatId(order = {}) {
     return normalizeString(order?.telegram?.id || order?.customer?.telegramId);
+  }
+
+  function getOrderCustomerUsername(order = {}) {
+    const username = normalizeTelegramUsername(order?.customer?.username || order?.telegram?.username);
+    return username ? `@${username}` : "";
   }
 
   function getOrderItems(order = {}) {
@@ -101,16 +156,16 @@ function createTelegramService({
 
     if (publicBaseUrl) {
       rows.push([
-        { text: "\uD83D\uDECD Открыть магазин", web_app: { url: `${publicBaseUrl}/` } }
+        { text: "🛍 Открыть магазин", web_app: { url: `${publicBaseUrl}/` } }
       ]);
     }
 
     const linksRow = [];
     if (telegramManagerUrl) {
-      linksRow.push({ text: "\uD83D\uDCAC Менеджер", url: telegramManagerUrl });
+      linksRow.push({ text: "💬 Менеджер", url: telegramManagerUrl });
     }
     if (telegramChannelUrl) {
-      linksRow.push({ text: "\uD83D\uDCE2 Канал", url: telegramChannelUrl });
+      linksRow.push({ text: "📢 Канал", url: telegramChannelUrl });
     }
 
     if (linksRow.length) {
@@ -120,35 +175,60 @@ function createTelegramService({
     return rows.length ? { inline_keyboard: rows } : null;
   }
 
+  function buildManagerOrderKeyboard(order = {}) {
+    const rows = [];
+    const customerUsername = normalizeTelegramUsername(getOrderCustomerUsername(order));
+    const mapLink = buildOrderMapLink(order?.customer?.location);
+
+    const actionRow = [];
+    if (customerUsername) {
+      actionRow.push({ text: "👤 Клиент", url: `https://t.me/${customerUsername}` });
+    }
+    if (mapLink) {
+      actionRow.push({ text: "🗺️ Карта", url: mapLink });
+    }
+    if (actionRow.length) {
+      rows.push(actionRow);
+    }
+
+    if (publicBaseUrl) {
+      rows.push([
+        { text: "⚙️ Админка", url: `${publicBaseUrl}/admin` }
+      ]);
+    }
+
+    return rows.length ? { inline_keyboard: rows } : null;
+  }
+
   function buildTelegramStartMessage() {
     return [
       `<b>${telegramBotName}</b>`,
       "",
-      "\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c.",
+      "Добро пожаловать.",
       "",
-      "TechGear \u2014 \u044d\u0442\u043e \u043c\u0430\u0433\u0430\u0437\u0438\u043d \u0430\u043a\u0441\u0435\u0441\u0441\u0443\u0430\u0440\u043e\u0432, \u0442\u043e\u0432\u0430\u0440\u043e\u0432 \u0434\u043b\u044f \u0441\u0435\u0442\u0430\u043f\u0430 \u0438 \u0441\u0442\u0438\u043b\u044c\u043d\u044b\u0445 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 \u0434\u043b\u044f \u0440\u0430\u0431\u043e\u0447\u0435\u0433\u043e \u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u0430.",
+      "TechGear — это магазин аксессуаров, товаров для сетапа и стильных деталей для рабочего пространства.",
       "",
-      "\u041e\u0442\u043a\u0440\u043e\u0439 Mini App \u043d\u0438\u0436\u0435, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043a\u0430\u0442\u0430\u043b\u043e\u0433, \u043d\u043e\u0432\u0438\u043d\u043a\u0438 \u0438 \u043e\u0444\u043e\u0440\u043c\u0438\u0442\u044c \u0437\u0430\u043a\u0430\u0437 \u0432 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043d\u0430\u0436\u0430\u0442\u0438\u0439."
+      "Открой Mini App ниже, чтобы посмотреть каталог, новинки и оформить заказ в несколько нажатий."
     ].join("\n");
   }
 
   function buildTelegramStartKeyboard() {
     const rows = [
-      [{ text: "\uD83D\uDECD \u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0430\u0433\u0430\u0437\u0438\u043d", web_app: { url: `${publicBaseUrl}/` } }]
+      [{ text: "🛍 Открыть магазин", web_app: { url: `${publicBaseUrl}/` } }]
     ];
 
     const linksRow = [];
     if (telegramChannelUrl) {
-      linksRow.push({ text: "\uD83D\uDCE2 \u041d\u0430\u0448 \u043a\u0430\u043d\u0430\u043b", url: telegramChannelUrl });
+      linksRow.push({ text: "📢 Наш канал", url: telegramChannelUrl });
     }
     if (telegramManagerUrl) {
-      linksRow.push({ text: "\uD83D\uDCAC \u041d\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0443", url: telegramManagerUrl });
+      linksRow.push({ text: "💬 Написать менеджеру", url: telegramManagerUrl });
     }
     if (linksRow.length) {
       rows.push(linksRow);
     }
 
-    rows.push([{ text: "\uD83D\uDD25 \u041d\u043e\u0432\u0438\u043d\u043a\u0438 \u0438 \u0430\u043a\u0441\u0435\u0441\u0441\u0443\u0430\u0440\u044b", web_app: { url: `${publicBaseUrl}/` } }]);
+    rows.push([{ text: "🔥 Новинки и аксессуары", web_app: { url: `${publicBaseUrl}/` } }]);
 
     return { inline_keyboard: rows };
   }
@@ -181,7 +261,7 @@ function createTelegramService({
     });
   }
 
-  async function notifyOrderCreated(order) {
+  async function notifyCustomerOrderCreated(order) {
     if (!telegramBotEnabled) {
       return { sent: false, skipped: true, reason: "bot_not_configured" };
     }
@@ -228,6 +308,133 @@ function createTelegramService({
       orderId: order?.id,
       chatId
     };
+  }
+
+  async function notifyManagerOrderCreated(order) {
+    if (!telegramBotEnabled) {
+      return { sent: false, skipped: true, reason: "bot_not_configured" };
+    }
+
+    if (!managerRecipients.length) {
+      return { sent: false, skipped: true, reason: "missing_manager_chat_id" };
+    }
+
+    const customerName = normalizeString(order?.customer?.name) || "Клиент";
+    const customerPhone = normalizeString(order?.customer?.phone) || "";
+    const customerUsername = getOrderCustomerUsername(order);
+    const customerTelegramId = normalizeString(order?.telegram?.id || order?.customer?.telegramId);
+    const contactMethod = formatContactMethod(order?.customer?.contactMethod);
+    const deliveryTime = formatDeliveryTime(order?.customer?.deliveryTime);
+    const delivery = normalizeString(order?.customer?.delivery);
+    const comment = normalizeString(order?.customer?.comment);
+    const location = normalizeString(order?.customer?.location);
+    const mapLink = buildOrderMapLink(location);
+    const totalLabel = formatPrice(order?.total);
+    const createdAtLabel = formatDateTime(order?.createdAt);
+    const itemsCount = getOrderItemsCount(order);
+    const itemLines = buildOrderItemLines(order);
+    const replyMarkup = buildManagerOrderKeyboard(order);
+    const messageLines = [
+      `<b>${escapeHtml(telegramBotName)}</b>`,
+      "",
+      `Новый заказ <b>#${escapeHtml(order?.id)}</b>`,
+      createdAtLabel ? `Время: ${escapeHtml(createdAtLabel)}` : "",
+      `Статус: <b>${escapeHtml(ORDER_STATUS_LABELS.new)}</b>`,
+      "",
+      `Клиент: <b>${escapeHtml(customerName)}</b>`,
+      customerPhone ? `Телефон: ${escapeHtml(customerPhone)}` : "",
+      customerUsername ? `Telegram: ${escapeHtml(customerUsername)}` : "",
+      customerTelegramId ? `Telegram ID: ${escapeHtml(customerTelegramId)}` : "",
+      contactMethod ? `Связь: ${escapeHtml(contactMethod)}` : "",
+      deliveryTime ? `Когда удобно: ${escapeHtml(deliveryTime)}` : "",
+      delivery ? `Адрес: ${escapeHtml(delivery)}` : "",
+      comment ? `Комментарий: ${escapeHtml(comment)}` : "",
+      location ? `Локация: ${escapeHtml(location)}` : "",
+      mapLink ? `Карта: ${escapeHtml(mapLink)}` : "",
+      itemsCount > 0 ? `Количество товаров: ${itemsCount}` : "",
+      totalLabel ? `Сумма: ${escapeHtml(totalLabel)}` : ""
+    ];
+
+    if (itemLines.length) {
+      messageLines.push("", "Состав заказа:", ...itemLines);
+    }
+
+    const recipients = [];
+    for (const chatId of managerRecipients) {
+      try {
+        await telegramApi("sendMessage", {
+          chat_id: chatId,
+          parse_mode: "HTML",
+          text: messageLines.filter(Boolean).join("\n"),
+          disable_web_page_preview: true,
+          ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+        });
+        recipients.push({
+          chatId,
+          sent: true,
+          skipped: false
+        });
+      } catch (error) {
+        recipients.push({
+          chatId,
+          sent: false,
+          skipped: false,
+          error: error?.message || "notification_failed"
+        });
+      }
+    }
+
+    return {
+      sent: recipients.some((entry) => entry.sent),
+      skipped: recipients.every((entry) => entry.skipped),
+      recipients,
+      deliveredTo: recipients.filter((entry) => entry.sent).map((entry) => entry.chatId)
+    };
+  }
+
+  function buildNotificationSummary(results = {}) {
+    const entries = Object.values(results).filter(Boolean);
+    const reasons = [...new Set(entries.map((entry) => normalizeString(entry?.reason)).filter(Boolean))];
+    const errors = [...new Set(entries.map((entry) => normalizeString(entry?.error)).filter(Boolean))];
+    const sent = entries.some((entry) => entry.sent);
+    const skipped = entries.length > 0 ? entries.every((entry) => entry.skipped) : true;
+    const partial = entries.some((entry) => entry.sent) && entries.some((entry) => !entry.sent);
+    const summary = {
+      sent,
+      skipped,
+      partial,
+      ...results
+    };
+
+    if (!sent && reasons.length === 1) {
+      summary.reason = reasons[0];
+    }
+
+    if (!sent && errors.length === 1) {
+      summary.error = errors[0];
+    } else if (!sent && errors.length > 1) {
+      summary.error = errors.join("; ");
+    }
+
+    return summary;
+  }
+
+  async function runNotificationTask(task) {
+    try {
+      return await task();
+    } catch (error) {
+      return {
+        sent: false,
+        skipped: false,
+        error: error?.message || "notification_failed"
+      };
+    }
+  }
+
+  async function notifyOrderCreated(order) {
+    const customer = await runNotificationTask(() => notifyCustomerOrderCreated(order));
+    const manager = await runNotificationTask(() => notifyManagerOrderCreated(order));
+    return buildNotificationSummary({ customer, manager });
   }
 
   async function notifyOrderStatusUpdate(order, { previousStatus = "" } = {}) {
@@ -305,7 +512,7 @@ function createTelegramService({
       await telegramApi("setChatMenuButton", {
         menu_button: {
           type: "web_app",
-          text: "\uD83D\uDECD \u041c\u0430\u0433\u0430\u0437\u0438\u043d",
+          text: "🛍 Магазин",
           web_app: {
             url: `${publicBaseUrl}/`
           }
@@ -313,11 +520,11 @@ function createTelegramService({
       });
       await telegramApi("setMyCommands", {
         commands: [
-          { command: "start", description: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0440\u0438\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0435 \u0438 \u043c\u0430\u0433\u0430\u0437\u0438\u043d" }
+          { command: "start", description: "Открыть приветствие и магазин" }
         ]
       });
       await telegramApi("setMyDescription", {
-        description: "TechGear Store: \u043c\u0430\u0433\u0430\u0437\u0438\u043d \u0430\u043a\u0441\u0435\u0441\u0441\u0443\u0430\u0440\u043e\u0432, \u0442\u043e\u0432\u0430\u0440\u043e\u0432 \u0434\u043b\u044f \u0441\u0435\u0442\u0430\u043f\u0430 \u0438 Mini App \u0437\u0430\u043a\u0430\u0437\u043e\u0432."
+        description: "TechGear Store: магазин аксессуаров, товаров для сетапа и Mini App заказов."
       });
     } catch (error) {
       console.error("Failed to configure Telegram bot:", error);

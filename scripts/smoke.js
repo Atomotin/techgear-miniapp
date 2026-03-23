@@ -235,6 +235,10 @@ async function main() {
       HOST: "127.0.0.1",
       PORT: String(port),
       ADMIN_PASSWORD: SMOKE_PASSWORD,
+      PUBLIC_BASE_URL: "",
+      TELEGRAM_BOT_TOKEN: "",
+      TELEGRAM_MANAGER_CHAT_ID: "",
+      TELEGRAM_MANAGER_CHAT_IDS: "",
       NODE_ENV: process.env.NODE_ENV || "development"
     },
     stdio: ["ignore", "pipe", "pipe"]
@@ -264,6 +268,7 @@ async function main() {
     const healthResponse = await request({ port, pathname: "/api/health" });
     assert.equal(healthResponse.statusCode, 200, "GET /api/health should return 200");
     assert.equal(healthResponse.body && healthResponse.body.ok, true, "Health check should report ok: true");
+    assert.equal(healthResponse.body && healthResponse.body.telegramManagerNotificationsEnabled, false, "Health check should report manager Telegram notifications disabled in smoke");
 
     const catalogResponse = await request({ port, pathname: "/api/catalog/public" });
     assert.equal(catalogResponse.statusCode, 200, "GET /api/catalog/public should return 200");
@@ -333,6 +338,8 @@ async function main() {
     assert.ok(Number.isFinite(Number(createOrderResponse.body && createOrderResponse.body.orderId)), "Valid order should return orderId");
     assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification), "object", "Valid order should return notification metadata");
     assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.sent), "boolean", "Notification metadata should include sent flag");
+    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.customer), "object", "Notification metadata should include customer delivery result");
+    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.manager), "object", "Notification metadata should include manager delivery result");
 
     const createdOrderId = Number(createOrderResponse.body.orderId);
     const adminOrdersAfterResponse = await request({

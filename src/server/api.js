@@ -21,6 +21,7 @@ function createApiHandler({
   supabaseEnabled,
   requirePersistentAdminStorage,
   telegramBotEnabled,
+  telegramManagerNotificationsEnabled,
   telegramWebhookSecret,
   handleTelegramUpdate,
   notifyOrderCreated,
@@ -39,7 +40,8 @@ function createApiHandler({
       sendJson,
       supabaseEnabled,
       requirePersistentAdminStorage,
-      telegramBotEnabled
+      telegramBotEnabled,
+      telegramManagerNotificationsEnabled
     }),
     createOrdersRouteHandler({
       storage,

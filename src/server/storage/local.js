@@ -12,6 +12,7 @@ function buildLocalStorageModule({
   buildOrderRecord,
   normalizeCatalogFeedOptions,
   buildPublicCatalogFeed,
+  buildCatalogImportPlan,
   loadLegacyCatalog,
   catalogPath,
   ordersPath,
@@ -317,6 +318,58 @@ function createLocalStorageProvider() {
 
       catalog.products.unshift(product);
       return saveCatalog(catalog);
+    },
+    async importCatalog(options = {}) {
+      const catalog = getCatalog();
+      const plan = buildCatalogImportPlan(catalog, options);
+
+      if (options.apply !== true) {
+        return {
+          ...plan.report,
+          storageMode: "local",
+          dryRun: true,
+          applied: false
+        };
+      }
+
+      if (!plan.report.summary.hasChanges) {
+        return {
+          ...plan.report,
+          storageMode: "local",
+          dryRun: false,
+          applied: false
+        };
+      }
+
+      const importedCategoryKeys = new Set(plan.sourceCatalog.categories.map((category) => category.key));
+      const importedProductIds = new Set(plan.sourceCatalog.products.map((product) => Number(product.id)));
+      const mergedCategories = [
+        ...plan.sourceCatalog.categories,
+        ...catalog.categories.filter((category) => !importedCategoryKeys.has(category.key))
+      ];
+      const mergedProducts = [
+        ...plan.sourceCatalog.products,
+        ...catalog.products.filter((product) => !importedProductIds.has(Number(product.id)))
+      ].sort((left, right) => {
+        return (Number(left?.sortOrder) || 0) - (Number(right?.sortOrder) || 0)
+          || (Number(left?.id) || 0) - (Number(right?.id) || 0);
+      });
+      const savedCatalog = saveCatalog({
+        ...catalog,
+        categories: mergedCategories,
+        products: mergedProducts
+      });
+
+      return {
+        ...plan.report,
+        storageMode: "local",
+        dryRun: false,
+        applied: true,
+        result: {
+          categories: Array.isArray(savedCatalog?.categories) ? savedCatalog.categories.length : 0,
+          products: Array.isArray(savedCatalog?.products) ? savedCatalog.products.length : 0
+        }
+      };
     },
     async updateProduct(productId, body) {
       const catalog = getCatalog();

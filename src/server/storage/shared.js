@@ -3,6 +3,8 @@ const fs = require("fs");
 function buildSharedStorageModule({
   createHttpError,
   normalizeString,
+  sanitizeCategories,
+  sanitizeProducts,
   sanitizeCustomerProfile,
   sanitizePromoBanner,
   sanitizePromoBanners,
@@ -53,6 +55,120 @@ function ensureDataFiles() {
   if (!fs.existsSync(settingsPath)) {
     writeJson(settingsPath, buildDefaultAppSettings());
   }
+}
+
+function normalizeImportCatalog(catalog = {}) {
+  return {
+    categories: sanitizeCategories(Array.isArray(catalog?.categories) ? catalog.categories : []),
+    products: sanitizeProducts(Array.isArray(catalog?.products) ? catalog.products : []),
+    updatedAt: catalog?.updatedAt || new Date().toISOString()
+  };
+}
+
+function getCatalogImportSource(sourceKey = "") {
+  const normalizedKey = normalizeString(sourceKey).toLowerCase();
+
+  if (normalizedKey === "legacy" || normalizedKey === "card-tovary" || normalizedKey === "card-tovary.js") {
+    return {
+      key: "legacy",
+      label: "card-tovary.js",
+      path: "card-tovary.js",
+      fallbackUsed: false,
+      catalog: normalizeImportCatalog(loadLegacyCatalog())
+    };
+  }
+
+  const fileCatalog = readJson(catalogPath, null);
+  return {
+    key: "data",
+    label: "data/catalog.json",
+    path: "data/catalog.json",
+    fallbackUsed: !fileCatalog,
+    catalog: normalizeImportCatalog(fileCatalog || loadLegacyCatalog())
+  };
+}
+
+function isSameImportEntity(left, right) {
+  return JSON.stringify(left || null) === JSON.stringify(right || null);
+}
+
+function summarizeImportActions(actions = []) {
+  return actions.reduce((summary, action) => {
+    if (action === "create") {
+      summary.create += 1;
+    } else if (action === "update") {
+      summary.update += 1;
+    } else {
+      summary.unchanged += 1;
+    }
+
+    return summary;
+  }, { create: 0, update: 0, unchanged: 0 });
+}
+
+function buildCatalogImportPlan(targetCatalog = {}, options = {}) {
+  const source = getCatalogImportSource(options.source);
+  const sourceCatalog = normalizeImportCatalog(source.catalog);
+  const currentCatalog = normalizeImportCatalog(targetCatalog);
+  const categoriesByKey = new Map(currentCatalog.categories.map((category) => [category.key, category]));
+  const productsById = new Map(currentCatalog.products.map((product) => [Number(product.id), product]));
+
+  const categoryEntries = sourceCatalog.categories.map((category) => {
+    const existing = categoriesByKey.get(category.key) || null;
+    const action = !existing
+      ? "create"
+      : (isSameImportEntity(existing, category) ? "unchanged" : "update");
+
+    return { action, item: category };
+  });
+
+  const productEntries = sourceCatalog.products.map((product) => {
+    const existing = productsById.get(Number(product.id)) || null;
+    const action = !existing
+      ? "create"
+      : (isSameImportEntity(existing, product) ? "unchanged" : "update");
+
+    return { action, item: product };
+  });
+
+  const categorySummary = summarizeImportActions(categoryEntries.map((entry) => entry.action));
+  const productSummary = summarizeImportActions(productEntries.map((entry) => entry.action));
+  const totalChanges = categorySummary.create
+    + categorySummary.update
+    + productSummary.create
+    + productSummary.update;
+
+  return {
+    source,
+    sourceCatalog,
+    currentCatalog,
+    categoriesToUpsert: categoryEntries
+      .filter((entry) => entry.action === "create" || entry.action === "update")
+      .map((entry) => entry.item),
+    productsToUpsert: productEntries
+      .filter((entry) => entry.action === "create" || entry.action === "update")
+      .map((entry) => entry.item),
+    report: {
+      source: {
+        key: source.key,
+        label: source.label,
+        path: source.path,
+        fallbackUsed: source.fallbackUsed === true,
+        categories: sourceCatalog.categories.length,
+        products: sourceCatalog.products.length
+      },
+      target: {
+        categories: currentCatalog.categories.length,
+        products: currentCatalog.products.length
+      },
+      summary: {
+        categories: categorySummary,
+        products: productSummary,
+        totalChanges,
+        hasChanges: totalChanges > 0
+      }
+    }
+  };
 }
 
 function getFallbackCustomers() {
@@ -509,6 +625,8 @@ function buildPublicCatalogFeed(products = [], options = {}) {
     bannerModelToRow,
     settingsRowToModel,
     settingsModelToRow,
+    getCatalogImportSource,
+    buildCatalogImportPlan,
     normalizeCatalogFeedOptions,
     sortPublicCatalogProducts,
     filterPublicCatalogProducts,

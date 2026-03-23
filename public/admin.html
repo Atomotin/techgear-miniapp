@@ -119,6 +119,23 @@
             </label>
           </div>
           <div id="productMessage" class="hint"></div>
+          <div class="import-panel">
+            <strong>Импорт каталога в storage</strong>
+            <p class="panel-subtitle">Переносит товары из файла в то же хранилище, куда пишет админка. Существующие записи не удаляются, совпадающие ID обновляются.</p>
+            <div class="field-grid two">
+              <label>Источник
+                <select id="catalogImportSource">
+                  <option value="data">data/catalog.json</option>
+                  <option value="legacy">card-tovary.js</option>
+                </select>
+              </label>
+            </div>
+            <div class="toolbar">
+              <button id="previewCatalogImportBtn" class="btn btn-secondary btn-small" type="button">Проверить импорт</button>
+              <button id="applyCatalogImportBtn" class="btn btn-primary btn-small" type="button">Импортировать на хост</button>
+            </div>
+            <div id="catalogImportMessage" class="hint"></div>
+          </div>
         </section>
 
         <section class="panel">

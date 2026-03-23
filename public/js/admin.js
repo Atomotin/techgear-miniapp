@@ -57,7 +57,8 @@
       customerSearch: "",
       activeSection: getInitialAdminSection(),
       productDraftSnapshot: null,
-      bannerDraftSnapshot: null
+      bannerDraftSnapshot: null,
+      catalogImportPreview: null
     };
 
     const ORDER_NOTE_TEMPLATES = [
@@ -235,6 +236,108 @@
     function showActionResult(id, value, isError = false, tone = isError ? "error" : "success") {
       showMessage(id, value, isError);
       showToast(value, tone);
+    }
+
+    function getCatalogImportSourceLabel(source = {}) {
+      const key = String(source && source.key || "").trim().toLowerCase();
+      if (key === "legacy") return "card-tovary.js";
+      return "data/catalog.json";
+    }
+
+    function getCatalogImportChangesCount(report = {}) {
+      return Number(report && report.summary && report.summary.totalChanges) || 0;
+    }
+
+    function formatCatalogImportReport(report = {}) {
+      const source = report && report.source || {};
+      const categories = report && report.summary && report.summary.categories || {};
+      const products = report && report.summary && report.summary.products || {};
+      const result = report && report.result || {};
+      const fallbackNote = source.fallbackUsed ? " Использован fallback из legacy-каталога." : "";
+      const appliedNote = report && report.applied
+        ? ` После импорта в storage: категорий ${Number(result.categories) || 0}, товаров ${Number(result.products) || 0}.`
+        : "";
+
+      return `${getCatalogImportSourceLabel(source)}${fallbackNote} Категории: новых ${Number(categories.create) || 0}, обновится ${Number(categories.update) || 0}, без изменений ${Number(categories.unchanged) || 0}. Товары: новых ${Number(products.create) || 0}, обновится ${Number(products.update) || 0}, без изменений ${Number(products.unchanged) || 0}.${appliedNote}`;
+    }
+
+    async function requestCatalogImport({ apply = false } = {}) {
+      const source = document.getElementById("catalogImportSource")?.value || "data";
+      const previewButton = document.getElementById("previewCatalogImportBtn");
+      const applyButton = document.getElementById("applyCatalogImportBtn");
+      const initialPreviewText = previewButton?.textContent || "";
+      const initialApplyText = applyButton?.textContent || "";
+
+      if (previewButton) {
+        previewButton.disabled = true;
+        previewButton.textContent = apply ? "Проверяю..." : "Проверяю...";
+      }
+
+      if (applyButton) {
+        applyButton.disabled = true;
+        applyButton.textContent = apply ? "Импортирую..." : initialApplyText;
+      }
+
+      try {
+        const response = await api("/api/admin/catalog/import", {
+          method: "POST",
+          body: JSON.stringify({ source, apply })
+        });
+        return response.report || {};
+      } finally {
+        if (previewButton) {
+          previewButton.disabled = false;
+          previewButton.textContent = initialPreviewText;
+        }
+
+        if (applyButton) {
+          applyButton.disabled = false;
+          applyButton.textContent = initialApplyText;
+        }
+      }
+    }
+
+    async function previewCatalogImport() {
+      try {
+        const report = await requestCatalogImport({ apply: false });
+        state.catalogImportPreview = report;
+        showMessage("catalogImportMessage", formatCatalogImportReport(report), false);
+      } catch (error) {
+        state.catalogImportPreview = null;
+        showActionResult("catalogImportMessage", error.message, true);
+      }
+    }
+
+    async function applyCatalogImport() {
+      try {
+        const preview = await requestCatalogImport({ apply: false });
+        state.catalogImportPreview = preview;
+
+        if (!getCatalogImportChangesCount(preview)) {
+          showActionResult("catalogImportMessage", "Импорт не нужен: различий между файлом и storage не найдено.");
+          return;
+        }
+
+        const confirmMessage = [
+          "Импортировать каталог в storage?",
+          "",
+          formatCatalogImportReport(preview),
+          "",
+          "Существующие записи не удаляются. Совпадающие ID и key будут обновлены."
+        ].join("\n");
+
+        if (!window.confirm(confirmMessage)) {
+          showMessage("catalogImportMessage", "Импорт отменён.", false);
+          return;
+        }
+
+        const report = await requestCatalogImport({ apply: true });
+        state.catalogImportPreview = report;
+        await loadAdminData();
+        showActionResult("catalogImportMessage", `Импорт завершён. ${formatCatalogImportReport(report)}`);
+      } catch (error) {
+        showActionResult("catalogImportMessage", error.message, true);
+      }
     }
 
     function getDefaultAdminSettings() {
@@ -1843,6 +1946,12 @@
       fillProductForm(null);
     });
     document.getElementById("uploadImagesBtn").addEventListener("click", uploadSelectedImages);
+    document.getElementById("previewCatalogImportBtn").addEventListener("click", previewCatalogImport);
+    document.getElementById("applyCatalogImportBtn").addEventListener("click", applyCatalogImport);
+    document.getElementById("catalogImportSource").addEventListener("change", () => {
+      state.catalogImportPreview = null;
+      showMessage("catalogImportMessage", "", false);
+    });
     document.getElementById("addCategoryBtn").addEventListener("click", addCategory);
     document.getElementById("saveBannerBtn").addEventListener("click", saveBanner);
     document.getElementById("newBannerBtn").addEventListener("click", () => {

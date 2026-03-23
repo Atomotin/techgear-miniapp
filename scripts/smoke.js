@@ -315,6 +315,23 @@ async function main() {
     });
     assert.equal(adminOrdersBeforeResponse.statusCode, 200, "Authorized GET /api/admin/orders should return 200");
 
+    const catalogImportPreviewResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/catalog/import",
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      },
+      body: {
+        source: "data",
+        apply: false
+      }
+    });
+    assert.equal(catalogImportPreviewResponse.statusCode, 200, "Admin catalog import preview should return 200");
+    assert.equal(catalogImportPreviewResponse.body && catalogImportPreviewResponse.body.ok, true, "Admin catalog import preview should return ok: true");
+    assert.equal(catalogImportPreviewResponse.body && catalogImportPreviewResponse.body.report && catalogImportPreviewResponse.body.report.dryRun, true, "Catalog import preview should be dry-run");
+    assert.equal(typeof (catalogImportPreviewResponse.body && catalogImportPreviewResponse.body.report && catalogImportPreviewResponse.body.report.summary), "object", "Catalog import preview should include summary");
+
     const validVariant = buildValidVariant(product);
     const expectedItemPrice = Number(product.price) || 0;
     const expectedTotal = expectedItemPrice * 2;
@@ -432,7 +449,7 @@ async function main() {
 
     console.log("Smoke checks passed");
     console.log(`Server: http://127.0.0.1:${port}`);
-    console.log("Checked: /, /admin, /api/health, /api/catalog/public, paged catalog feed, catalog ids lookup, admin login, trusted order create, invalid order validation");
+    console.log("Checked: /, /admin, /api/health, /api/catalog/public, paged catalog feed, catalog ids lookup, admin login, catalog import preview, trusted order create, invalid order validation");
   } catch (error) {
     console.error("Smoke checks failed");
     console.error(error && error.stack ? error.stack : error);

@@ -226,6 +226,30 @@ function createAdminRouteHandler({
       return true;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/admin/catalog/import") {
+      if (!(await ensurePersistentStorage(
+        res,
+        "catalog",
+        "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕРІРµСЂРёС‚СЊ С…СЂР°РЅРёР»РёС‰Рµ РєР°С‚Р°Р»РѕРіР°. РћС‚РєСЂРѕР№С‚Рµ /api/health Рё РїСЂРѕРІРµСЂСЊС‚Рµ storage."
+      ))) {
+        return true;
+      }
+
+      if (typeof storage.importCatalog !== "function") {
+        sendJson(res, 501, { error: "РРјРїРѕСЂС‚ РєР°С‚Р°Р»РѕРіР° РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ РІ С‚РµРєСѓС‰РµРј storage" });
+        return true;
+      }
+
+      const body = await readBody(req);
+      const report = await storage.importCatalog({
+        source: normalizeString(body.source) || "data",
+        apply: body.apply === true
+      });
+
+      sendJson(res, 200, { ok: true, report });
+      return true;
+    }
+
     if (req.method === "PUT" && url.pathname.startsWith("/api/admin/products/")) {
       if (!(await ensurePersistentStorage(
         res,

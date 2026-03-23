@@ -41,7 +41,8 @@ function buildSupabaseStorageModule({
   settingsRowToModel,
   settingsModelToRow,
   normalizeCatalogFeedOptions,
-  buildPublicCatalogFeed
+  buildPublicCatalogFeed,
+  buildCatalogImportPlan
 }) {
 function parseSupabaseError(payload, response) {
   if (payload && typeof payload === "object") {
@@ -688,6 +689,61 @@ function createSupabaseStorageProvider() {
       }
 
       return getCatalog();
+    },
+    async importCatalog(options = {}) {
+      const catalog = await getCatalog();
+      const plan = buildCatalogImportPlan(catalog, options);
+
+      if (options.apply !== true) {
+        return {
+          ...plan.report,
+          storageMode: "supabase",
+          dryRun: true,
+          applied: false
+        };
+      }
+
+      if (!plan.report.summary.hasChanges) {
+        return {
+          ...plan.report,
+          storageMode: "supabase",
+          dryRun: false,
+          applied: false
+        };
+      }
+
+      if (plan.categoriesToUpsert.length) {
+        await supabaseRequest("POST", "categories", {
+          body: plan.categoriesToUpsert.map((category) => ({
+            key: category.key,
+            label: category.label
+          })),
+          prefer: "return=representation,resolution=merge-duplicates"
+        });
+      }
+
+      if (plan.productsToUpsert.length) {
+        try {
+          await supabaseRequest("POST", "products", {
+            body: plan.productsToUpsert.map((product) => productModelToRow(product, { includeId: true })),
+            prefer: "return=representation,resolution=merge-duplicates"
+          });
+        } catch (error) {
+          wrapDiscountSchemaError(error);
+        }
+      }
+
+      const updatedCatalog = await getCatalog();
+      return {
+        ...plan.report,
+        storageMode: "supabase",
+        dryRun: false,
+        applied: true,
+        result: {
+          categories: Array.isArray(updatedCatalog?.categories) ? updatedCatalog.categories.length : 0,
+          products: Array.isArray(updatedCatalog?.products) ? updatedCatalog.products.length : 0
+        }
+      };
     },
     async updateProduct(productId, body) {
       const existingRows = await getProductsWithDiscountSupport(

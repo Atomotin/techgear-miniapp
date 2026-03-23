@@ -262,6 +262,24 @@ body::before {
   font-weight: 600;
 }
 
+.import-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: calc(var(--radius) - 10px);
+  border: 1px dashed rgba(62, 122, 115, 0.28);
+  background: linear-gradient(180deg, rgba(232, 244, 241, 0.84), rgba(248, 242, 234, 0.88));
+}
+
+.import-panel strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent-strong);
+}
+
+.import-panel .panel-subtitle {
+  margin-bottom: 14px;
+}
+
 .panel h2 {
   position: relative;
   margin-bottom: 8px;

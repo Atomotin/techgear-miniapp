@@ -13,7 +13,7 @@ function buildLocalStorageModule({
   normalizeCatalogFeedOptions,
   buildPublicCatalogFeed,
   buildCatalogImportPlan,
-  loadLegacyCatalog,
+  loadCatalogFile,
   catalogPath,
   ordersPath,
   customersPath,
@@ -27,7 +27,7 @@ function createLocalStorageProvider() {
   function getCatalog() {
     const catalog = readJson(catalogPath, null);
     if (!catalog) {
-      const seeded = loadLegacyCatalog();
+      const seeded = loadCatalogFile();
       writeJson(catalogPath, seeded);
       return seeded;
     }

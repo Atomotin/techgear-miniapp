@@ -12,6 +12,7 @@ function buildSharedStorageModule({
   sanitizeProduct,
   buildDefaultPromoBanners,
   buildDefaultAppSettings,
+  loadCatalogFile,
   loadLegacyCatalog,
   dataDir,
   catalogPath,
@@ -36,7 +37,7 @@ function ensureDataFiles() {
   fs.mkdirSync(dataDir, { recursive: true });
 
   if (!fs.existsSync(catalogPath)) {
-    writeJson(catalogPath, loadLegacyCatalog());
+    writeJson(catalogPath, loadCatalogFile());
   }
 
   if (!fs.existsSync(ordersPath)) {
@@ -48,7 +49,7 @@ function ensureDataFiles() {
   }
 
   if (!fs.existsSync(bannersPath)) {
-    const catalog = fs.existsSync(catalogPath) ? readJson(catalogPath, loadLegacyCatalog()) : loadLegacyCatalog();
+    const catalog = fs.existsSync(catalogPath) ? readJson(catalogPath, loadCatalogFile()) : loadCatalogFile();
     writeJson(bannersPath, buildDefaultPromoBanners(Array.isArray(catalog?.products) ? catalog.products : []));
   }
 
@@ -84,7 +85,7 @@ function getCatalogImportSource(sourceKey = "") {
     label: "data/catalog.json",
     path: "data/catalog.json",
     fallbackUsed: !fileCatalog,
-    catalog: normalizeImportCatalog(fileCatalog || loadLegacyCatalog())
+    catalog: normalizeImportCatalog(fileCatalog || loadCatalogFile())
   };
 }
 

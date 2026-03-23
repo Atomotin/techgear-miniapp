@@ -11,7 +11,7 @@ function buildSupabaseStorageModule({
   buildDefaultPromoBanners,
   buildDefaultAppSettings,
   buildOrderRecord,
-  loadLegacyCatalog,
+  loadCatalogFile,
   bannersPath,
   settingsPath,
   supabaseEnabled,
@@ -283,10 +283,10 @@ function createSupabaseStorageProvider() {
       return;
     }
 
-    const legacyCatalog = loadLegacyCatalog();
-    const categories = sanitizeCategories(legacyCatalog.categories)
+    const fileCatalog = loadCatalogFile();
+    const categories = sanitizeCategories(fileCatalog.categories)
       .map((category) => ({ key: category.key, label: category.label }));
-    const products = sanitizeProducts(legacyCatalog.products)
+    const products = sanitizeProducts(fileCatalog.products)
       .map((product) => productModelToRow(product, { includeId: true }));
 
     if (categories.length) {
@@ -309,7 +309,7 @@ function createSupabaseStorageProvider() {
       });
 
       if (Array.isArray(existingBanners) && existingBanners.length === 0) {
-        const banners = buildDefaultPromoBanners(legacyCatalog.products).map((banner) => bannerModelToRow(banner, { includeId: true }));
+        const banners = buildDefaultPromoBanners(fileCatalog.products).map((banner) => bannerModelToRow(banner, { includeId: true }));
         if (banners.length) {
           await supabaseRequest("POST", "promo_banners", {
             body: banners,
@@ -512,7 +512,7 @@ function createSupabaseStorageProvider() {
         return sanitizePromoBanners((rows || []).map(bannerRowToModel));
       } catch (error) {
         if (shouldUseBannerFallback(error)) {
-          return readJson(bannersPath, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          return readJson(bannersPath, buildDefaultPromoBanners(loadCatalogFile().products));
         }
         throw error;
       }
@@ -797,7 +797,7 @@ function createSupabaseStorageProvider() {
         });
       } catch (error) {
         if (shouldUseBannerFallback(error)) {
-          const banners = readJson(bannersPath, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          const banners = readJson(bannersPath, buildDefaultPromoBanners(loadCatalogFile().products));
           const nextId = banners.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
           banners.unshift(sanitizePromoBanner(body, nextId));
           writeJson(bannersPath, sanitizePromoBanners(banners));
@@ -825,7 +825,7 @@ function createSupabaseStorageProvider() {
         });
       } catch (error) {
         if (shouldUseBannerFallback(error)) {
-          const banners = readJson(bannersPath, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          const banners = readJson(bannersPath, buildDefaultPromoBanners(loadCatalogFile().products));
           const index = banners.findIndex((item) => Number(item.id) === bannerId);
           if (index === -1) {
             throw createHttpError(404, "Баннер не найден");
@@ -846,7 +846,7 @@ function createSupabaseStorageProvider() {
         });
       } catch (error) {
         if (shouldUseBannerFallback(error)) {
-          const banners = readJson(bannersPath, buildDefaultPromoBanners(loadLegacyCatalog().products));
+          const banners = readJson(bannersPath, buildDefaultPromoBanners(loadCatalogFile().products));
           const nextBanners = banners.filter((item) => Number(item.id) !== bannerId);
           if (nextBanners.length === banners.length) {
             throw createHttpError(404, "Баннер не найден");

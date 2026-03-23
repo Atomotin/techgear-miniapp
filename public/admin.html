@@ -121,12 +121,12 @@
           <div id="productMessage" class="hint"></div>
           <div class="import-panel">
             <strong>Импорт каталога в storage</strong>
-            <p class="panel-subtitle">Переносит товары из файла в то же хранилище, куда пишет админка. Существующие записи не удаляются, совпадающие ID обновляются.</p>
+            <p class="panel-subtitle">Основной рабочий источник теперь storage и data/catalog.json. card-tovary.js оставлен только для legacy-импорта. Существующие записи не удаляются, совпадающие ID обновляются.</p>
             <div class="field-grid two">
               <label>Источник
                 <select id="catalogImportSource">
-                  <option value="data">data/catalog.json</option>
-                  <option value="legacy">card-tovary.js</option>
+                  <option value="data">data/catalog.json (основной файл)</option>
+                  <option value="legacy">card-tovary.js (legacy)</option>
                 </select>
               </label>
             </div>

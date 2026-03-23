@@ -240,7 +240,7 @@
 
     function getCatalogImportSourceLabel(source = {}) {
       const key = String(source && source.key || "").trim().toLowerCase();
-      if (key === "legacy") return "card-tovary.js";
+      if (key === "legacy") return "card-tovary.js (legacy)";
       return "data/catalog.json";
     }
 
@@ -253,7 +253,7 @@
       const categories = report && report.summary && report.summary.categories || {};
       const products = report && report.summary && report.summary.products || {};
       const result = report && report.result || {};
-      const fallbackNote = source.fallbackUsed ? " Использован fallback из legacy-каталога." : "";
+      const fallbackNote = source.fallbackUsed ? " Файл не найден или повреждён, использован пустой безопасный каталог." : "";
       const appliedNote = report && report.applied
         ? ` После импорта в storage: категорий ${Number(result.categories) || 0}, товаров ${Number(result.products) || 0}.`
         : "";

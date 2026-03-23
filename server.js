@@ -269,27 +269,40 @@ function sanitizeProducts(products) {
     }));
 }
 
-function loadLegacyCatalog() {
-  const fallback = {
+function buildEmptyCatalog() {
+  return {
     categories: [{ key: "all", label: "\u0412\u0441\u0435" }],
     products: [],
     updatedAt: new Date().toISOString()
   };
+}
 
-  const normalizeCatalog = (catalog = {}) => ({
+function normalizeCatalogPayload(catalog = {}, fallback = buildEmptyCatalog()) {
+  return {
     categories: sanitizeCategories(Array.isArray(catalog.categories) ? catalog.categories : fallback.categories),
     products: sanitizeProducts(Array.isArray(catalog.products) ? catalog.products : fallback.products),
     updatedAt: catalog.updatedAt || new Date().toISOString()
-  });
+  };
+}
 
-  if (fs.existsSync(CATALOG_PATH)) {
-    try {
-      const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8"));
-      return normalizeCatalog(catalog);
-    } catch (error) {
-      console.warn("Failed to read catalog.json, fallback to legacy card-tovary.js:", error.message);
-    }
+function loadCatalogFile() {
+  const fallback = buildEmptyCatalog();
+
+  if (!fs.existsSync(CATALOG_PATH)) {
+    return fallback;
   }
+
+  try {
+    const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8"));
+    return normalizeCatalogPayload(catalog, fallback);
+  } catch (error) {
+    console.warn("Failed to read data/catalog.json, fallback to empty catalog:", error.message);
+    return fallback;
+  }
+}
+
+function loadLegacyCatalog() {
+  const fallback = buildEmptyCatalog();
 
   if (!fs.existsSync(LEGACY_CATALOG_PATH)) {
     return fallback;
@@ -305,10 +318,10 @@ function loadLegacyCatalog() {
     return fallback;
   }
 
-  return normalizeCatalog({
+  return normalizeCatalogPayload({
     categories: Array.isArray(sandbox.window.TECHGEAR_CATEGORIES) ? sandbox.window.TECHGEAR_CATEGORIES : fallback.categories,
     products: Array.isArray(sandbox.window.TECHGEAR_PRODUCTS) ? sandbox.window.TECHGEAR_PRODUCTS : fallback.products
-  });
+  }, fallback);
 }
 
 function formatOrderAmount(value) {
@@ -520,6 +533,7 @@ const storageRuntime = createStorageRuntime({
   buildDefaultPromoBanners,
   buildDefaultAppSettings,
   buildOrderRecord,
+  loadCatalogFile,
   loadLegacyCatalog,
   dataDir: DATA_DIR,
   catalogPath: CATALOG_PATH,

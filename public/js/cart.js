@@ -251,7 +251,6 @@
         .replace(/[0-9]/g, "")
         .replace(/[^\p{L}\s'-]/gu, "")
         .replace(/\s{2,}/g, " ")
-        .trim()
         .slice(0, 100);
     }
 
@@ -266,7 +265,6 @@
     function sanitizeLongText(value, maxLength) {
       return stripEmoji(String(value || ""))
         .replace(/\s{3,}/g, "  ")
-        .trim()
         .slice(0, maxLength);
     }
 

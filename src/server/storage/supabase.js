@@ -191,6 +191,13 @@ async function uploadBinaryToSupabaseStorage(fileName, buffer, contentType) {
 }
 
 function createSupabaseStorageProvider() {
+  function mergeOrderRequestMeta(baseMeta = {}, patch = {}) {
+    return {
+      ...(baseMeta || {}),
+      ...(patch || {})
+    };
+  }
+
   function wrapDiscountSchemaError(error) {
     if (String(error?.message || "").toLowerCase().includes("old_price")) {
       throw createHttpError(400, "Для скидок сначала обновите Supabase через supabase/schema.sql");
@@ -611,6 +618,24 @@ function createSupabaseStorageProvider() {
       const rows = await supabaseRequest("PATCH", "orders", {
         query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta`,
         body: patch,
+        prefer: "return=representation"
+      });
+
+      return orderRowToModel(rows[0]);
+    },
+    async updateOrderRequestMeta(orderId, patch = {}) {
+      const existingRows = await supabaseRequest("GET", "orders", {
+        query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta&limit=1`
+      });
+
+      if (!Array.isArray(existingRows) || existingRows.length === 0) {
+        throw createHttpError(404, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ");
+      }
+
+      const requestMeta = mergeOrderRequestMeta(existingRows[0]?.request_meta || {}, patch);
+      const rows = await supabaseRequest("PATCH", "orders", {
+        query: `id=eq.${encodeURIComponent(orderId)}&select=id,status,created_at,source,customer,items,total,raw_text,telegram,request_meta`,
+        body: { request_meta: requestMeta },
         prefer: "return=representation"
       });
 

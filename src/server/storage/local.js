@@ -135,6 +135,13 @@ function createLocalStorageProvider() {
     return customers.find((item) => item.key === profile.key) || profile;
   }
 
+  function mergeOrderRequestMeta(order = {}, patch = {}) {
+    return {
+      ...(order.requestMeta || {}),
+      ...(patch || {})
+    };
+  }
+
   return {
     mode: "local",
     async init() {
@@ -260,6 +267,18 @@ function createLocalStorageProvider() {
 
         order.requestMeta = requestMeta;
       }
+      saveOrders(orders);
+      return order;
+    },
+    async updateOrderRequestMeta(orderId, patch = {}) {
+      const orders = getOrders();
+      const order = orders.find((item) => item.id === orderId);
+
+      if (!order) {
+        throw createHttpError(404, "Р—Р°РєР°Р· РЅРµ РЅР°Р№РґРµРЅ");
+      }
+
+      order.requestMeta = mergeOrderRequestMeta(order, patch);
       saveOrders(orders);
       return order;
     },

@@ -607,6 +607,109 @@
       return "";
     }
 
+    function getTelegramNotificationState(notification = {}) {
+      if (!notification || typeof notification !== "object") {
+        return { label: "\u043d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445", tone: "muted" };
+      }
+
+      if (notification.sent && notification.partial) {
+        return { label: "\u0447\u0430\u0441\u0442\u0438\u0447\u043d\u043e", tone: "warning" };
+      }
+
+      if (notification.sent) {
+        return { label: "\u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e", tone: "success" };
+      }
+
+      if (notification.error) {
+        return { label: "\u043e\u0448\u0438\u0431\u043a\u0430", tone: "error" };
+      }
+
+      if (notification.reason === "missing_chat_id" || notification.reason === "missing_manager_chat_id") {
+        return { label: "\u043d\u0435\u0442 chat id", tone: "warning" };
+      }
+
+      if (notification.reason === "bot_not_configured") {
+        return { label: "\u0431\u043e\u0442 \u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d", tone: "muted" };
+      }
+
+      if (notification.skipped) {
+        return { label: "\u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d\u043e", tone: "muted" };
+      }
+
+      return { label: "\u043d\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e", tone: "warning" };
+    }
+
+    function getTelegramNotificationHint(notification = {}) {
+      const checkedAt = formatDateTime(notification?.checkedAt);
+      const reason = String(notification?.reason || "").trim();
+      const error = String(notification?.error || "").trim();
+      const nextStatus = String(notification?.nextStatus || notification?.status || "").trim();
+      const pieces = [];
+
+      if (checkedAt) {
+        pieces.push(checkedAt);
+      }
+
+      if (nextStatus) {
+        pieces.push(`\u0441\u0442\u0430\u0442\u0443\u0441 ${nextStatus}`);
+      }
+
+      if (reason === "missing_chat_id") {
+        pieces.push("\u0443 \u043a\u043b\u0438\u0435\u043d\u0442\u0430 \u043d\u0435\u0442 Telegram ID");
+      } else if (reason === "missing_manager_chat_id") {
+        pieces.push("\u043d\u0435 \u0437\u0430\u0434\u0430\u043d TELEGRAM_MANAGER_CHAT_ID");
+      } else if (reason === "bot_not_configured") {
+        pieces.push("\u0431\u043e\u0442 \u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d");
+      }
+
+      if (error) {
+        pieces.push(error);
+      }
+
+      return pieces.join(" • ");
+    }
+
+    function renderTelegramNotificationBadge(label, notification = {}) {
+      const state = getTelegramNotificationState(notification);
+      return `<span class="badge badge-${state.tone}">${escapeHtml(label)}: ${escapeHtml(state.label)}</span>`;
+    }
+
+    function buildOrderTelegramStatusMarkup(order = {}) {
+      const creationNotification = order.requestMeta?.telegramCreationNotification || null;
+      const statusNotification = order.requestMeta?.telegramStatusNotification || null;
+      const badges = [];
+      const details = [];
+
+      if (creationNotification?.customer) {
+        badges.push(renderTelegramNotificationBadge("Клиент TG", creationNotification.customer));
+        const hint = getTelegramNotificationHint({ checkedAt: creationNotification.checkedAt, ...(creationNotification.customer || {}) });
+        if (hint) {
+          details.push(`Клиент TG: ${hint}`);
+        }
+      }
+
+      if (creationNotification?.manager) {
+        badges.push(renderTelegramNotificationBadge("Менеджер TG", creationNotification.manager));
+        const hint = getTelegramNotificationHint({ checkedAt: creationNotification.checkedAt, ...(creationNotification.manager || {}) });
+        if (hint) {
+          details.push(`Менеджер TG: ${hint}`);
+        }
+      }
+
+      if (statusNotification) {
+        badges.push(renderTelegramNotificationBadge("Статус TG", statusNotification));
+        const hint = getTelegramNotificationHint(statusNotification);
+        if (hint) {
+          details.push(`Статус TG: ${hint}`);
+        }
+      }
+
+      return {
+        badges: badges.join(""),
+        details: details.length ? `<div class="muted notification-meta">${escapeHtml(details.join(" • "))}</div>` : ""
+      };
+    }
+
     function getProductPayload() {
       const images = document.getElementById("productImages").value
         .split(/\r?\n/)
@@ -1166,6 +1269,7 @@
         const noteUpdatedAt = formatDateTime(order.requestMeta?.adminNoteUpdatedAt);
         const freshOrder = isNewOrder(order);
         const unassignedOrder = !managerAssignee;
+        const telegramStatusMarkup = buildOrderTelegramStatusMarkup(order);
         const cardClasses = [
           "order-card",
           freshOrder ? "is-new" : "",
@@ -1188,6 +1292,8 @@
               <span class="badge">${formatPrice(order.total)}</span>
               <span class="badge${unassignedOrder ? " badge-attention" : ""}">${escapeHtml(managerAssignee || "\u0411\u0435\u0437 \u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e")}</span>
             </div>
+            ${telegramStatusMarkup.badges ? `<div class="badge-row">${telegramStatusMarkup.badges}</div>` : ""}
+            ${telegramStatusMarkup.details}
             <div class="muted">${escapeHtml(addressLabel)}</div>
             <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>
             <label class="stack-top-gap">

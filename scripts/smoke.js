@@ -372,6 +372,21 @@ async function main() {
     assert.equal(Number(savedOrder.items && savedOrder.items[0] && savedOrder.items[0].price), expectedItemPrice, "Server should keep catalog price");
     assert.equal(normalizeString(savedOrder.items && savedOrder.items[0] && savedOrder.items[0].variant), validVariant, "Server should store the expected variant");
     assert.match(String(savedOrder.rawText || ""), /Ali/, "Saved order should contain server-built rawText");
+    assert.equal(typeof (savedOrder.requestMeta && savedOrder.requestMeta.telegramCreationNotification), "object", "Order should persist Telegram creation notification snapshot");
+    assert.equal(savedOrder.requestMeta && savedOrder.requestMeta.telegramCreationNotification && savedOrder.requestMeta.telegramCreationNotification.kind, "created", "Creation notification snapshot should be marked as created");
+
+    const updateStatusResponse = await request({
+      port,
+      method: "PATCH",
+      pathname: `/api/admin/orders/${createdOrderId}`,
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      },
+      body: { status: "processing" }
+    });
+    assert.equal(updateStatusResponse.statusCode, 200, "Admin status update should return 200");
+    assert.equal(typeof (updateStatusResponse.body && updateStatusResponse.body.order && updateStatusResponse.body.order.requestMeta && updateStatusResponse.body.order.requestMeta.telegramStatusNotification), "object", "Status update should persist Telegram status notification snapshot");
+    assert.equal(updateStatusResponse.body && updateStatusResponse.body.order && updateStatusResponse.body.order.requestMeta && updateStatusResponse.body.order.requestMeta.telegramStatusNotification && updateStatusResponse.body.order.requestMeta.telegramStatusNotification.kind, "status_update", "Status notification snapshot should be marked as status_update");
 
     const tooManyQtyResponse = await request({
       port,

@@ -12,6 +12,22 @@ function createAdminRouteHandler({
   requirePersistentAdminStorage,
   notifyOrderStatusUpdate
 }) {
+  function buildOrderStatusNotificationSnapshot(notification = {}, { previousStatus = "", nextStatus = "" } = {}) {
+    return {
+      kind: "status_update",
+      checkedAt: new Date().toISOString(),
+      sent: notification.sent === true,
+      skipped: notification.skipped === true,
+      partial: notification.partial === true,
+      reason: String(notification.reason || "").trim(),
+      error: String(notification.error || "").trim(),
+      previousStatus: String(previousStatus || "").trim(),
+      nextStatus: String(nextStatus || "").trim(),
+      chatId: String(notification.chatId || "").trim(),
+      status: String(notification.status || "").trim()
+    };
+  }
+
   async function ensurePersistentStorage(res, areaKey, fallbackMessage) {
     if (!requirePersistentAdminStorage) {
       return true;
@@ -118,7 +134,7 @@ function createAdminRouteHandler({
       const existingOrders = await storage.getOrders();
       const existingOrder = existingOrders.find((item) => Number(item.id) === orderId) || null;
       const previousStatus = normalizeString(existingOrder?.status);
-      const order = await storage.updateOrderStatus(
+      let order = await storage.updateOrderStatus(
         orderId,
         hasStatus ? nextStatus : undefined,
         {
@@ -143,6 +159,15 @@ function createAdminRouteHandler({
         } else {
           notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
         }
+      }
+
+      if (hasStatus && previousStatus !== nextStatus && typeof storage.updateOrderRequestMeta === "function") {
+        order = await storage.updateOrderRequestMeta(orderId, {
+          telegramStatusNotification: buildOrderStatusNotificationSnapshot(notification, {
+            previousStatus,
+            nextStatus
+          })
+        });
       }
 
       sendJson(res, 200, { ok: true, order, notification });

@@ -31,6 +31,20 @@ function createOrdersRouteHandler({
     return Math.trunc(parsed);
   }
 
+  function buildOrderCreationNotificationSnapshot(notification = {}) {
+    return {
+      kind: "created",
+      checkedAt: new Date().toISOString(),
+      sent: notification.sent === true,
+      skipped: notification.skipped === true,
+      partial: notification.partial === true,
+      reason: String(notification.reason || "").trim(),
+      error: String(notification.error || "").trim(),
+      customer: notification.customer || {},
+      manager: notification.manager || {}
+    };
+  }
+
   function parseProductVariantOptions(variants = []) {
     const parsed = {
       colors: [],
@@ -175,7 +189,7 @@ function createOrdersRouteHandler({
       return true;
     }
 
-    const order = await storage.createOrder(trustedPayload, req);
+    let order = await storage.createOrder(trustedPayload, req);
     let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
 
     if (typeof notifyOrderCreated === "function") {
@@ -189,6 +203,12 @@ function createOrdersRouteHandler({
           error: notifyError?.message || "notification_failed"
         };
       }
+    }
+
+    if (typeof storage.updateOrderRequestMeta === "function") {
+      order = await storage.updateOrderRequestMeta(order.id, {
+        telegramCreationNotification: buildOrderCreationNotificationSnapshot(notification)
+      });
     }
 
     sendJson(res, 201, { ok: true, orderId: order.id, notification });

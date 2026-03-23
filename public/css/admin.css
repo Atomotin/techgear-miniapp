@@ -822,6 +822,38 @@ button:hover {
   font-weight: 700;
 }
 
+.badge-success {
+  background: linear-gradient(180deg, rgba(227, 243, 239, 0.98), rgba(214, 235, 229, 0.92));
+  border-color: rgba(62, 122, 115, 0.24);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.badge-warning {
+  background: linear-gradient(180deg, rgba(252, 245, 224, 0.98), rgba(248, 235, 198, 0.92));
+  border-color: rgba(224, 188, 103, 0.28);
+  color: #8d6924;
+  font-weight: 700;
+}
+
+.badge-error {
+  background: linear-gradient(180deg, rgba(251, 239, 236, 0.98), rgba(247, 228, 222, 0.92));
+  border-color: rgba(184, 106, 90, 0.26);
+  color: #8a4a40;
+  font-weight: 700;
+}
+
+.badge-muted {
+  background: linear-gradient(180deg, rgba(245, 246, 245, 0.98), rgba(235, 238, 236, 0.92));
+  border-color: rgba(104, 116, 111, 0.18);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.notification-meta {
+  margin-top: -4px;
+}
+
 #orderSummaryBadges .badge:nth-child(1) {
   background: linear-gradient(180deg, rgba(227, 243, 239, 0.98), rgba(214, 235, 229, 0.9));
   color: var(--accent-strong);

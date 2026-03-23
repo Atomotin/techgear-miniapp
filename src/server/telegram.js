@@ -9,6 +9,7 @@ function createTelegramService({
   telegramManagerChatIds = [],
   telegramLogoUrl
 }) {
+  const DISPLAY_TIME_ZONE = "Asia/Tashkent";
   const ORDER_STATUS_LABELS = {
     new: "Новый",
     processing: "В работе",
@@ -81,7 +82,8 @@ function createTelegramService({
     if (Number.isNaN(date.getTime())) return "";
     return new Intl.DateTimeFormat("ru-RU", {
       dateStyle: "medium",
-      timeStyle: "short"
+      timeStyle: "short",
+      timeZone: DISPLAY_TIME_ZONE
     }).format(date);
   }
 

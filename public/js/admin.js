@@ -68,6 +68,7 @@
       { key: "waiting-confirmation", label: "Ждём ответ", text: "Ожидаем подтверждение заказа от клиента." }
     ];
     const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
+    const DISPLAY_TIME_ZONE = "Asia/Tashkent";
 
     async function api(path, options = {}) {
       const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
@@ -107,7 +108,11 @@
       if (!value) return "";
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return "";
-      return date.toLocaleString("ru-RU");
+      return new Intl.DateTimeFormat("ru-RU", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: DISPLAY_TIME_ZONE
+      }).format(date);
     }
 
     function parseLocationCoordinates(value) {
@@ -1143,7 +1148,7 @@
               <span class="status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
             </div>
             <div class="badge-row">
-              <span class="badge">${new Date(order.createdAt).toLocaleString("ru-RU")}</span>
+              <span class="badge">${escapeHtml(formatDateTime(order.createdAt))}</span>
               <span class="badge">${formatPrice(order.total)}</span>
               <span class="badge">${escapeHtml(managerAssignee || "Без ответственного")}</span>
             </div>

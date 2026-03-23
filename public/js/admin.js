@@ -1061,6 +1061,33 @@
       });
     }
 
+    function getOrderCreatedAtTimestamp(order = {}) {
+      const timestamp = new Date(order.createdAt || "").getTime();
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    function isNewOrder(order = {}) {
+      return String(order.status || "").trim().toLowerCase() === "new";
+    }
+
+    function sortOrdersForDisplay(orders = []) {
+      return [...orders].sort((left, right) => {
+        const leftIsNew = isNewOrder(left);
+        const rightIsNew = isNewOrder(right);
+        if (leftIsNew !== rightIsNew) {
+          return leftIsNew ? -1 : 1;
+        }
+
+        const leftUnassigned = !getOrderManagerAssignee(left);
+        const rightUnassigned = !getOrderManagerAssignee(right);
+        if (leftIsNew && rightIsNew && leftUnassigned !== rightUnassigned) {
+          return leftUnassigned ? -1 : 1;
+        }
+
+        return getOrderCreatedAtTimestamp(right) - getOrderCreatedAtTimestamp(left);
+      });
+    }
+
     function renderOrders() {
       const list = document.getElementById("ordersList");
       const customerFilterNotice = document.getElementById("orderCustomerFilterNotice");
@@ -1113,20 +1140,21 @@
       });
 
       renderOrderSummary(filteredOrders);
+      const visibleOrders = sortOrdersForDisplay(filteredOrders);
 
       if (!state.orders.length) {
         list.innerHTML = '<div class="hint">Пока заказов нет.</div>';
         return;
       }
 
-      if (!filteredOrders.length) {
+      if (!visibleOrders.length) {
         list.innerHTML = state.orderCustomerKeyFilter
           ? '<div class="hint">По выбранному клиенту заказы не найдены.</div>'
           : '<div class="hint">По выбранным фильтрам заказы не найдены.</div>';
         return;
       }
 
-      list.innerHTML = filteredOrders.map((order) => {
+      list.innerHTML = visibleOrders.map((order) => {
         const username = String(order.customer?.username || "").replace(/^@/, "");
         const telegramLink = username ? `https://t.me/${encodeURIComponent(username)}` : "";
         const phoneLink = order.customer?.phone ? `tel:${String(order.customer.phone).replace(/[^\d+]/g, "")}` : "";
@@ -1136,9 +1164,16 @@
         const assigneeUpdatedAt = formatDateTime(order.requestMeta?.adminAssigneeUpdatedAt);
         const managerNote = String(order.requestMeta?.adminNote || "");
         const noteUpdatedAt = formatDateTime(order.requestMeta?.adminNoteUpdatedAt);
+        const freshOrder = isNewOrder(order);
+        const unassignedOrder = !managerAssignee;
+        const cardClasses = [
+          "order-card",
+          freshOrder ? "is-new" : "",
+          freshOrder && unassignedOrder ? "is-new-unassigned" : ""
+        ].filter(Boolean).join(" ");
 
         return `
-          <article class="order-card">
+          <article class="${cardClasses}">
             <div class="order-top">
               <div>
                 <h3>${escapeHtml(order.customer?.name || "Без имени")}</h3>
@@ -1148,9 +1183,10 @@
               <span class="status ${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
             </div>
             <div class="badge-row">
+              ${freshOrder ? '<span class="badge badge-fresh">\u041d\u043e\u0432\u044b\u0439</span>' : ""}
               <span class="badge">${escapeHtml(formatDateTime(order.createdAt))}</span>
               <span class="badge">${formatPrice(order.total)}</span>
-              <span class="badge">${escapeHtml(managerAssignee || "Без ответственного")}</span>
+              <span class="badge${unassignedOrder ? " badge-attention" : ""}">${escapeHtml(managerAssignee || "\u0411\u0435\u0437 \u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e")}</span>
             </div>
             <div class="muted">${escapeHtml(addressLabel)}</div>
             <div class="muted stack-top-gap">${(order.items || []).map((item) => `${escapeHtml(item.name)} x${item.qty}${item.variant ? ` (${escapeHtml(item.variant)})` : ""}`).join("<br />")}</div>

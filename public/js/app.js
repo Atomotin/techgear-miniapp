@@ -341,6 +341,7 @@ const tg = window.Telegram?.WebApp || null;
     let CATEGORIES = [];
     let PROMO_BANNERS = [];
     const PRODUCTS_PER_PAGE = 8;
+    let catalogLoading = true;
 
     let state = {
       activeCategory: "all",
@@ -665,6 +666,7 @@ const tg = window.Telegram?.WebApp || null;
     }
 
     async function loadCatalogFromApi() {
+      catalogLoading = true;
       try {
         const response = await fetch("/api/catalog/public", {
           method: "GET",
@@ -689,6 +691,8 @@ const tg = window.Telegram?.WebApp || null;
         PROMO_BANNERS = BOOTSTRAP_BANNERS;
         applyMusicSettings(BOOTSTRAP_SETTINGS, { autoplay: true });
         console.warn("Catalog API unavailable, fallback to local data");
+      } finally {
+        catalogLoading = false;
       }
     }
 
@@ -910,9 +914,23 @@ const tg = window.Telegram?.WebApp || null;
       updateFavoritesButton();
     }
 
+    function renderCategorySkeletons(wrap) {
+      const widths = [86, 118, 94, 126];
+      wrap.innerHTML = widths.map((width) => (
+        `<span class="chip chip-skeleton" style="width:${width}px" aria-hidden="true"></span>`
+      )).join("");
+    }
+
     function renderCategories() {
       const wrap = document.getElementById("categories");
+      if (!wrap) return;
       wrap.innerHTML = "";
+      wrap.setAttribute("aria-busy", catalogLoading ? "true" : "false");
+
+      if (catalogLoading) {
+        renderCategorySkeletons(wrap);
+        return;
+      }
 
       CATEGORIES.forEach((cat) => {
         const btn = document.createElement("button");
@@ -933,8 +951,21 @@ const tg = window.Telegram?.WebApp || null;
       const availabilityFilter = document.getElementById("availabilityFilter");
       const sortSelect = document.getElementById("sortSelect");
 
-      if (searchInput) searchInput.value = state.search;
-      if (availabilityFilter) availabilityFilter.value = state.availability;
-      if (sortSelect) sortSelect.value = state.sort;
+      if (searchInput) {
+        searchInput.value = state.search;
+        searchInput.disabled = catalogLoading;
+        searchInput.placeholder = catalogLoading ? "Подключаем каталог..." : "Поиск";
+        searchInput.setAttribute("aria-busy", catalogLoading ? "true" : "false");
+      }
+
+      if (availabilityFilter) {
+        availabilityFilter.value = state.availability;
+        availabilityFilter.disabled = catalogLoading;
+      }
+
+      if (sortSelect) {
+        sortSelect.value = state.sort;
+        sortSelect.disabled = catalogLoading;
+      }
     }
 

@@ -64,6 +64,30 @@ function buildPromoSlides() {
       scrollHandler: null
     };
 
+    function buildCatalogSkeletonCards(count = 4) {
+      return Array.from({ length: count }, (_, index) => `
+        <article class="card catalog-skeleton-card" aria-hidden="true">
+          <div class="catalog-skeleton-media catalog-skeleton-surface"></div>
+          <div class="catalog-skeleton-body">
+            <span class="catalog-skeleton-line catalog-skeleton-surface ${index % 2 === 0 ? "is-wide" : ""}"></span>
+            <span class="catalog-skeleton-line catalog-skeleton-surface is-muted"></span>
+            <span class="catalog-skeleton-line catalog-skeleton-surface is-short"></span>
+            <div class="catalog-skeleton-variants">
+              <span class="catalog-skeleton-pill catalog-skeleton-surface"></span>
+              <span class="catalog-skeleton-pill catalog-skeleton-surface is-small"></span>
+            </div>
+            <div class="catalog-skeleton-footer">
+              <span class="catalog-skeleton-price catalog-skeleton-surface"></span>
+              <div class="catalog-skeleton-actions">
+                <span class="catalog-skeleton-icon catalog-skeleton-surface"></span>
+                <span class="catalog-skeleton-button catalog-skeleton-surface"></span>
+              </div>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
     function getProductPageSize() {
       return PRODUCTS_PER_PAGE;
     }
@@ -151,6 +175,18 @@ function buildPromoSlides() {
 
       disconnectProductFeedObserver();
       productFeedState.autoLoading = false;
+
+      if (paginationState?.loading) {
+        pagination.hidden = false;
+        pagination.innerHTML = `
+          <div class="pagination-loading pagination-loading-static" aria-hidden="false">
+            <span class="pagination-loading-dot" aria-hidden="true"></span>
+            <span>Подключаем каталог...</span>
+          </div>
+          <div class="pagination-auto-hint">Карточки и категории появятся сразу после ответа сервера</div>
+        `;
+        return;
+      }
 
       if (!paginationState || paginationState.totalPages <= 1) {
         pagination.hidden = true;
@@ -275,6 +311,30 @@ function buildPromoSlides() {
       const prevBtn = document.getElementById("promoPrev");
       const nextBtn = document.getElementById("promoNext");
       if (!shell || !track || !dotsWrap) return;
+      shell.setAttribute("aria-busy", catalogLoading ? "true" : "false");
+
+      if (catalogLoading) {
+        shell.classList.remove("hidden");
+        shell.classList.add("is-loading");
+        track.innerHTML = `
+          <article class="promo-slide promo-slide-skeleton" aria-hidden="true">
+            <div class="promo-skeleton-surface">
+              <div class="promo-skeleton-copy">
+                <span class="promo-skeleton-pill"></span>
+                <span class="promo-skeleton-title"></span>
+              </div>
+            </div>
+          </article>
+        `;
+        dotsWrap.innerHTML = "";
+        dotsWrap.hidden = true;
+        if (prevBtn) prevBtn.hidden = true;
+        if (nextBtn) nextBtn.hidden = true;
+        stopPromoAutoplay();
+        return;
+      }
+
+      shell.classList.remove("is-loading");
 
       promoState.slides = buildPromoSlides();
       if (!promoState.slides.length) {
@@ -366,6 +426,15 @@ function buildPromoSlides() {
       startPromoAutoplay();
     }
 
+    function renderCatalogLoadingState() {
+      const list = document.getElementById("productList");
+      if (!list) return;
+
+      list.setAttribute("aria-busy", "true");
+      list.innerHTML = buildCatalogSkeletonCards(Math.min(4, getProductPageSize()));
+      renderProductPagination({ loading: true });
+    }
+
     function getFilteredProducts() {
       const query = state.search.trim().toLowerCase();
       const filtered = normalizeProducts(PRODUCTS).filter((product) => {
@@ -397,6 +466,13 @@ function buildPromoSlides() {
     function renderProducts() {
       const list = document.getElementById("productList");
       if (!list) return;
+
+      if (catalogLoading) {
+        renderCatalogLoadingState();
+        return;
+      }
+
+      list.setAttribute("aria-busy", "false");
       const filtered = getFilteredProducts();
       const totalPages = syncProductPage(filtered.length);
       const currentPage = state.productPage;
@@ -508,6 +584,14 @@ function buildPromoSlides() {
     function renderFavorites() {
       const list = document.getElementById("favoriteList");
       if (!list) return;
+
+      if (catalogLoading && state.favorites.length) {
+        list.setAttribute("aria-busy", "true");
+        list.innerHTML = buildCatalogSkeletonCards(Math.min(2, state.favorites.length));
+        return;
+      }
+
+      list.setAttribute("aria-busy", "false");
 
       const favorites = getFavoriteProducts();
       list.innerHTML = "";

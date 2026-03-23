@@ -637,6 +637,14 @@
       color: var(--text-muted-2);
     }
 
+    .search-box input:disabled,
+    .toolbar select:disabled {
+      cursor: wait;
+      opacity: 0.78;
+      border-color: rgba(199, 125, 255, 0.16);
+      box-shadow: none;
+    }
+
     .checkout input[readonly] {
       background: rgba(255, 255, 255, 0.035);
       border-style: dashed;
@@ -776,6 +784,12 @@
       box-shadow: 0 26px 60px rgba(0, 0, 0, 0.34);
     }
 
+    .promo-shell.is-loading:hover {
+      transform: none;
+      border-color: rgba(199, 125, 255, 0.16);
+      box-shadow: var(--tg-shadow-soft);
+    }
+
     .promo-track {
       display: flex;
       transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1);
@@ -794,6 +808,66 @@
 
     .promo-slide.is-clickable {
       cursor: pointer;
+    }
+
+    .promo-slide-skeleton {
+      cursor: default;
+    }
+
+    .promo-skeleton-surface,
+    .catalog-skeleton-surface,
+    .chip-skeleton {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(199, 125, 255, 0.08)),
+        rgba(17, 12, 27, 0.96);
+    }
+
+    .promo-skeleton-surface::after,
+    .catalog-skeleton-surface::after,
+    .chip-skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+      animation: catalog-skeleton-shimmer 1.35s ease-in-out infinite;
+    }
+
+    .promo-skeleton-surface {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: end;
+      padding: 16px;
+      background:
+        linear-gradient(135deg, rgba(157, 78, 221, 0.22), rgba(199, 125, 255, 0.08)),
+        rgba(11, 11, 18, 0.94);
+    }
+
+    .promo-skeleton-copy {
+      display: grid;
+      gap: 10px;
+      width: min(72%, 220px);
+    }
+
+    .promo-skeleton-pill,
+    .promo-skeleton-title {
+      display: block;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .promo-skeleton-pill {
+      width: 92px;
+      height: 28px;
+    }
+
+    .promo-skeleton-title {
+      width: 100%;
+      height: 18px;
+      border-radius: 12px;
     }
 
     .promo-slide::before {
@@ -1037,6 +1111,14 @@
       scroll-snap-align: start;
     }
 
+    .chip-skeleton {
+      flex: 0 0 auto;
+      min-height: 42px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      pointer-events: none;
+    }
+
     .chip:hover {
       transform: translateY(-1px);
       border-color: rgba(198, 255, 51, 0.28);
@@ -1109,6 +1191,10 @@
       height: 1px;
     }
 
+    .pagination-loading-static {
+      margin-top: 4px;
+    }
+
     @keyframes product-feed-pulse {
       0%,
       100% {
@@ -1120,6 +1206,12 @@
         transform: scale(1);
         opacity: 1;
         box-shadow: 0 0 0 8px rgba(157, 78, 221, 0);
+      }
+    }
+
+    @keyframes catalog-skeleton-shimmer {
+      100% {
+        transform: translateX(100%);
       }
     }
 
@@ -1162,6 +1254,111 @@
       transform: translateY(-4px);
       border-color: var(--primary);
       box-shadow: var(--shadow-lg), inset 0 0 20px rgba(157, 78, 221, 0.05);
+    }
+
+    .catalog-skeleton-card {
+      pointer-events: none;
+      min-height: 312px;
+    }
+
+    .catalog-skeleton-card::before,
+    .catalog-skeleton-card:hover::before {
+      transform: translateX(-100%) skewX(-15deg);
+      opacity: 0;
+    }
+
+    .catalog-skeleton-card:hover {
+      transform: none;
+      border-color: rgba(157, 78, 221, 0.22);
+      box-shadow: var(--tg-shadow-card);
+    }
+
+    .catalog-skeleton-media {
+      height: 150px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .catalog-skeleton-body {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .catalog-skeleton-line,
+    .catalog-skeleton-pill,
+    .catalog-skeleton-price,
+    .catalog-skeleton-icon,
+    .catalog-skeleton-button {
+      display: block;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .catalog-skeleton-line {
+      height: 14px;
+      width: 82%;
+    }
+
+    .catalog-skeleton-line.is-wide {
+      width: 94%;
+    }
+
+    .catalog-skeleton-line.is-muted {
+      width: 68%;
+      height: 12px;
+    }
+
+    .catalog-skeleton-line.is-short {
+      width: 48%;
+      height: 12px;
+    }
+
+    .catalog-skeleton-variants,
+    .catalog-skeleton-actions,
+    .catalog-skeleton-footer {
+      display: flex;
+      align-items: center;
+    }
+
+    .catalog-skeleton-variants {
+      gap: 8px;
+    }
+
+    .catalog-skeleton-pill {
+      height: 34px;
+      width: 88px;
+      border-radius: 14px;
+    }
+
+    .catalog-skeleton-pill.is-small {
+      width: 64px;
+    }
+
+    .catalog-skeleton-footer {
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .catalog-skeleton-price {
+      width: 72px;
+      height: 18px;
+      border-radius: 10px;
+    }
+
+    .catalog-skeleton-actions {
+      gap: 10px;
+    }
+
+    .catalog-skeleton-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .catalog-skeleton-button {
+      width: 92px;
+      height: 40px;
+      border-radius: 14px;
     }
 
     .product-image {

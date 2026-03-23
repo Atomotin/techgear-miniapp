@@ -307,7 +307,14 @@ function ensureProfileNavigation() {
     });
 
     async function bootstrapApp() {
-      await loadCatalogFromApi();
+      const catalogTask = loadCatalogFromApi().then(() => {
+        setToolbarState();
+        renderPromoBanner();
+        renderCategories();
+        renderProducts();
+        renderFavorites();
+      });
+
       if (!state.profile.name && !state.profile.phone && !state.profile.username && !state.profile.delivery) {
         state.profile = {
           name: state.checkout.name || "",
@@ -318,7 +325,15 @@ function ensureProfileNavigation() {
         };
         saveStorage(STORAGE_KEYS.profile, state.profile);
       }
-      await loadProfileFromServer();
+
+      const profileTask = loadProfileFromServer().then(() => {
+        applyProfileToCheckout();
+        fillCheckoutFields();
+        renderProfile();
+        updateProfileOnboardingState();
+        renderCart();
+      });
+
       ensureProfileNavigation();
       bindProfileControls();
       applyProfileToCheckout();
@@ -335,6 +350,9 @@ function ensureProfileNavigation() {
       updateFavoritesButton();
       switchView(state.activeView || "shop");
       trackMiniAppOpen();
+
+      void catalogTask;
+      void profileTask;
     }
 
     bootstrapApp()

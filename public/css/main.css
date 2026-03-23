@@ -1073,11 +1073,6 @@
       letter-spacing: 0.02em;
     }
 
-    .pagination-load-more {
-      width: min(100%, 240px);
-      justify-content: center;
-    }
-
     .pagination-auto-hint,
     .pagination-end {
       max-width: 320px;

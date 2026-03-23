@@ -2,7 +2,8 @@ function createOrdersRouteHandler({
   storage,
   sendJson,
   readBody,
-  validateOrderPayload
+  validateOrderPayload,
+  notifyOrderCreated
 }) {
   const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
   const MAX_ORDER_LINES = 24;
@@ -175,7 +176,22 @@ function createOrdersRouteHandler({
     }
 
     const order = await storage.createOrder(trustedPayload, req);
-    sendJson(res, 201, { ok: true, orderId: order.id });
+    let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+
+    if (typeof notifyOrderCreated === "function") {
+      try {
+        notification = await notifyOrderCreated(order);
+      } catch (notifyError) {
+        console.error(`Failed to send Telegram creation notification for order #${order.id}:`, notifyError);
+        notification = {
+          sent: false,
+          skipped: false,
+          error: notifyError?.message || "notification_failed"
+        };
+      }
+    }
+
+    sendJson(res, 201, { ok: true, orderId: order.id, notification });
     return true;
   };
 }

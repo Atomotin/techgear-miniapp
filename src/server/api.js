@@ -23,6 +23,7 @@ function createApiHandler({
   telegramBotEnabled,
   telegramWebhookSecret,
   handleTelegramUpdate,
+  notifyOrderCreated,
   notifyOrderStatusUpdate
 }) {
   const routeHandlers = [
@@ -44,7 +45,8 @@ function createApiHandler({
       storage,
       sendJson,
       readBody,
-      validateOrderPayload
+      validateOrderPayload,
+      notifyOrderCreated
     }),
     createProfileRouteHandler({
       storage,

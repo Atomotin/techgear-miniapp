@@ -595,6 +595,7 @@ const handleApi = createApiHandler({
   telegramBotEnabled: TELEGRAM_BOT_ENABLED,
   telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET,
   handleTelegramUpdate: telegramService.handleTelegramUpdate,
+  notifyOrderCreated: telegramService.notifyOrderCreated,
   notifyOrderStatusUpdate: telegramService.notifyOrderStatusUpdate
 });
 

@@ -331,6 +331,8 @@ async function main() {
     });
     assert.equal(createOrderResponse.statusCode, 201, "Valid order should return 201");
     assert.ok(Number.isFinite(Number(createOrderResponse.body && createOrderResponse.body.orderId)), "Valid order should return orderId");
+    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification), "object", "Valid order should return notification metadata");
+    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.sent), "boolean", "Notification metadata should include sent flag");
 
     const createdOrderId = Number(createOrderResponse.body.orderId);
     const adminOrdersAfterResponse = await request({

@@ -58,6 +58,44 @@ function createTelegramService({
     return `${new Intl.NumberFormat("ru-RU").format(amount)} сум`;
   }
 
+  function formatDateTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("ru-RU", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(date);
+  }
+
+  function getOrderChatId(order = {}) {
+    return normalizeString(order?.telegram?.id || order?.customer?.telegramId);
+  }
+
+  function getOrderItems(order = {}) {
+    return Array.isArray(order?.items) ? order.items : [];
+  }
+
+  function getOrderItemsCount(order = {}) {
+    return getOrderItems(order).reduce((sum, item) => sum + (Number(item?.qty) || 0), 0);
+  }
+
+  function buildOrderItemLines(order = {}) {
+    const items = getOrderItems(order);
+    const lines = items.slice(0, 12).map((item) => {
+      const itemName = escapeHtml(item?.name || "Товар");
+      const qty = Number(item?.qty) || 0;
+      const variant = normalizeString(item?.variant);
+      const itemTotal = formatPrice((Number(item?.price) || 0) * qty);
+      return `- ${itemName} x${qty}${variant ? ` (${escapeHtml(variant)})` : ""}${itemTotal ? ` - ${escapeHtml(itemTotal)}` : ""}`;
+    });
+
+    if (items.length > lines.length) {
+      lines.push(`- И еще ${items.length - lines.length} поз.`);
+    }
+
+    return lines;
+  }
+
   function buildTelegramSupportKeyboard() {
     const rows = [];
 
@@ -143,12 +181,61 @@ function createTelegramService({
     });
   }
 
+  async function notifyOrderCreated(order) {
+    if (!telegramBotEnabled) {
+      return { sent: false, skipped: true, reason: "bot_not_configured" };
+    }
+
+    const chatId = getOrderChatId(order);
+    if (!chatId) {
+      return { sent: false, skipped: true, reason: "missing_chat_id" };
+    }
+
+    const customerName = normalizeString(order?.customer?.name) || "клиент";
+    const totalLabel = formatPrice(order?.total);
+    const createdAtLabel = formatDateTime(order?.createdAt);
+    const itemsCount = getOrderItemsCount(order);
+    const itemLines = buildOrderItemLines(order);
+    const replyMarkup = buildTelegramSupportKeyboard();
+    const messageLines = [
+      `<b>${escapeHtml(telegramBotName)}</b>`,
+      "",
+      `Здравствуйте, <b>${escapeHtml(customerName)}</b>.`,
+      `Ваш заказ <b>#${escapeHtml(order?.id)}</b> оформлен и принят в обработку.`,
+      "",
+      `Статус: <b>${escapeHtml(ORDER_STATUS_LABELS.new)}</b>`,
+      createdAtLabel ? `Время оформления: ${escapeHtml(createdAtLabel)}` : "",
+      itemsCount > 0 ? `Количество товаров: ${itemsCount}` : "",
+      totalLabel ? `Сумма: ${escapeHtml(totalLabel)}` : ""
+    ];
+
+    if (itemLines.length) {
+      messageLines.push("", "Состав заказа:", ...itemLines);
+    }
+
+    messageLines.push("", "Мы скоро свяжемся с вами для подтверждения деталей.");
+
+    await telegramApi("sendMessage", {
+      chat_id: chatId,
+      parse_mode: "HTML",
+      text: messageLines.filter(Boolean).join("\n"),
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+    });
+
+    return {
+      sent: true,
+      skipped: false,
+      orderId: order?.id,
+      chatId
+    };
+  }
+
   async function notifyOrderStatusUpdate(order, { previousStatus = "" } = {}) {
     if (!telegramBotEnabled) {
       return { sent: false, skipped: true, reason: "bot_not_configured" };
     }
 
-    const chatId = normalizeString(order?.telegram?.id || order?.customer?.telegramId);
+    const chatId = getOrderChatId(order);
     if (!chatId) {
       return { sent: false, skipped: true, reason: "missing_chat_id" };
     }
@@ -157,9 +244,7 @@ function createTelegramService({
     const statusLabel = ORDER_STATUS_LABELS[nextStatus] || nextStatus || "Обновлён";
     const previousStatusLabel = ORDER_STATUS_LABELS[normalizeString(previousStatus).toLowerCase()] || "";
     const customerName = normalizeString(order?.customer?.name) || "клиент";
-    const itemsCount = Array.isArray(order?.items)
-      ? order.items.reduce((sum, item) => sum + (Number(item.qty) || 0), 0)
-      : 0;
+    const itemsCount = getOrderItemsCount(order);
     const totalLabel = formatPrice(order?.total);
     const messageLines = [
       `<b>${escapeHtml(telegramBotName)}</b>`,
@@ -244,6 +329,7 @@ function createTelegramService({
     buildTelegramStartMessage,
     buildTelegramStartKeyboard,
     handleTelegramUpdate,
+    notifyOrderCreated,
     notifyOrderStatusUpdate,
     configureTelegramBot
   };

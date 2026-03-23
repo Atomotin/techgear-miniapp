@@ -58,6 +58,132 @@ function buildPromoSlides() {
       }, 4600);
     }
 
+    function getProductPageSize() {
+      return PRODUCTS_PER_PAGE;
+    }
+
+    function resetProductPage() {
+      state.productPage = 1;
+    }
+
+    function getProductPageCount(totalItems) {
+      return Math.max(1, Math.ceil(totalItems / getProductPageSize()));
+    }
+
+    function syncProductPage(totalItems) {
+      const totalPages = getProductPageCount(totalItems);
+      const nextPage = Math.min(Math.max(Number(state.productPage) || 1, 1), totalPages);
+      state.productPage = nextPage;
+      return totalPages;
+    }
+
+    function goToProductPage(productId) {
+      const filtered = getFilteredProducts();
+      const productIndex = filtered.findIndex((product) => Number(product.id) === Number(productId));
+      if (productIndex === -1) {
+        resetProductPage();
+        return false;
+      }
+
+      state.productPage = Math.floor(productIndex / getProductPageSize()) + 1;
+      return true;
+    }
+
+    function scrollToProductList() {
+      const list = document.getElementById("productList");
+      if (!list) return;
+      list.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function buildProductPaginationItems(totalPages, currentPage) {
+      if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, index) => index + 1);
+      }
+
+      const items = [1];
+      const startPage = Math.max(2, currentPage - 1);
+      const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+      if (startPage > 2) {
+        items.push("ellipsis-start");
+      }
+
+      for (let page = startPage; page <= endPage; page += 1) {
+        items.push(page);
+      }
+
+      if (endPage < totalPages - 1) {
+        items.push("ellipsis-end");
+      }
+
+      items.push(totalPages);
+      return items;
+    }
+
+    function renderProductPagination(paginationState) {
+      const pagination = document.getElementById("productPagination");
+      if (!pagination) return;
+
+      if (!paginationState || paginationState.totalPages <= 1) {
+        pagination.hidden = true;
+        pagination.innerHTML = "";
+        return;
+      }
+
+      const { totalItems, totalPages, currentPage, startIndex, endIndex } = paginationState;
+      const pageItems = buildProductPaginationItems(totalPages, currentPage);
+
+      pagination.hidden = false;
+      pagination.innerHTML = `
+        <div class="pagination-summary">${startIndex + 1}-${endIndex} \u0438\u0437 ${totalItems}</div>
+        <div class="pagination-controls" aria-label="\u0421\u0442\u0440\u0430\u043d\u0438\u0446\u044b \u0442\u043e\u0432\u0430\u0440\u043e\u0432">
+          <button
+            class="pagination-btn pagination-nav"
+            type="button"
+            data-page="${currentPage - 1}"
+            ${currentPage === 1 ? "disabled" : ""}
+            aria-label="\u041f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0430\u044f \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430"
+          >\u2039</button>
+          <div class="pagination-pages">
+            ${pageItems.map((item) => {
+              if (typeof item !== "number") {
+                return '<span class="pagination-ellipsis" aria-hidden="true">...</span>';
+              }
+
+              return `
+                <button
+                  class="pagination-btn${item === currentPage ? " active" : ""}"
+                  type="button"
+                  data-page="${item}"
+                  ${item === currentPage ? 'aria-current="page"' : ""}
+                >${item}</button>
+              `;
+            }).join("")}
+          </div>
+          <button
+            class="pagination-btn pagination-nav"
+            type="button"
+            data-page="${currentPage + 1}"
+            ${currentPage === totalPages ? "disabled" : ""}
+            aria-label="\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0430\u044f \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430"
+          >\u203a</button>
+        </div>
+      `;
+
+      pagination.querySelectorAll("[data-page]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextPage = Number(button.dataset.page);
+          if (!Number.isFinite(nextPage) || nextPage === state.productPage) {
+            return;
+          }
+
+          state.productPage = nextPage;
+          renderProducts();
+          requestAnimationFrame(scrollToProductList);
+        });
+      });
+    }
+
     function focusPromoProduct(productId) {
       requestAnimationFrame(() => {
         const card = document.querySelector(`[data-product-id="${productId}"]`);
@@ -91,6 +217,12 @@ function buildPromoSlides() {
       if (action.type === "product") {
         state.activeCategory = action.category || "all";
         state.sort = action.sort || "manual";
+      }
+
+      if (action.type === "product" && action.productId) {
+        goToProductPage(action.productId);
+      } else {
+        resetProductPage();
       }
 
       setToolbarState();
@@ -231,15 +363,23 @@ function buildPromoSlides() {
 
     function renderProducts() {
       const list = document.getElementById("productList");
+      if (!list) return;
       const filtered = getFilteredProducts();
+      const totalPages = syncProductPage(filtered.length);
+      const currentPage = state.productPage;
+      const pageSize = getProductPageSize();
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageItems = filtered.slice(startIndex, startIndex + pageSize);
+      const endIndex = startIndex + pageItems.length;
       list.innerHTML = "";
 
       if (!filtered.length) {
+        renderProductPagination(null);
         list.innerHTML = '<div class="empty-text">Ничего не найдено.</div>';
         return;
       }
 
-      filtered.forEach((product) => {
+      pageItems.forEach((product) => {
         try {
           const card = document.createElement("div");
           card.className = "card";
@@ -320,7 +460,16 @@ function buildPromoSlides() {
         }
       });
 
+      renderProductPagination({
+        totalItems: filtered.length,
+        totalPages,
+        currentPage,
+        startIndex,
+        endIndex,
+      });
+
       if (!list.children.length) {
+        renderProductPagination(null);
         list.innerHTML = '<div class="empty-text">Не удалось отрисовать товары. Обновите Mini App.</div>';
       }
     }
@@ -365,9 +514,11 @@ function buildPromoSlides() {
         card.querySelector(".favorite-btn").onclick = () => toggleFavorite(product.id);
         card.querySelector(".btn-primary").onclick = () => {
           state.activeCategory = product.category || "all";
+          goToProductPage(product.id);
           renderCategories();
           renderProducts();
           switchView("shop");
+          focusPromoProduct(product.id);
           showToast(`Открыт товар: ${product.name}`);
         };
 

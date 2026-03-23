@@ -262,16 +262,19 @@ function ensureProfileNavigation() {
 
     document.getElementById("searchInput").addEventListener("input", function (e) {
       state.search = e.target.value;
+      state.productPage = 1;
       renderProducts();
     });
 
     document.getElementById("availabilityFilter").addEventListener("change", function (e) {
       state.availability = e.target.value;
+      state.productPage = 1;
       renderProducts();
     });
 
     document.getElementById("sortSelect").addEventListener("change", function (e) {
       state.sort = e.target.value;
+      state.productPage = 1;
       renderProducts();
     });
 

@@ -340,12 +340,14 @@ const tg = window.Telegram?.WebApp || null;
     let PRODUCTS = [];
     let CATEGORIES = [];
     let PROMO_BANNERS = [];
+    const PRODUCTS_PER_PAGE = 8;
 
     let state = {
       activeCategory: "all",
       search: "",
       availability: "all",
       sort: "manual",
+      productPage: 1,
       cart: loadStorage(STORAGE_KEYS.cart, []),
       favorites: loadStorage(STORAGE_KEYS.favorites, []),
       profile: loadStorage(STORAGE_KEYS.profile, {
@@ -918,6 +920,7 @@ const tg = window.Telegram?.WebApp || null;
         btn.textContent = cat.label;
         btn.onclick = () => {
           state.activeCategory = cat.key;
+          state.productPage = 1;
           renderCategories();
           renderProducts();
         };

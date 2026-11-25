@@ -11,3 +11,4 @@ data/customers.json
 data/*.bak
 data/*.tmp
 data/*.corrupt-*
+local.env

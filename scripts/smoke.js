@@ -254,6 +254,7 @@ async function main() {
       HOST: "127.0.0.1",
       PORT: String(port),
       ADMIN_PASSWORD: SMOKE_PASSWORD,
+      ADMIN_SECRET: "smoke-admin-token-secret",
       PUBLIC_BASE_URL: "",
       TRUST_PROXY: "true",
       TELEGRAM_BOT_TOKEN: SMOKE_BOT_TOKEN,
@@ -326,6 +327,56 @@ async function main() {
     assert.ok(normalizeString(loginResponse.body && loginResponse.body.token), "Admin login should return a token");
 
     const adminToken = String(loginResponse.body.token);
+
+    // --- Admin login brute-force protection and logout ---
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const response = await request({
+        port,
+        method: "POST",
+        pathname: "/api/admin/login",
+        headers: { "X-Forwarded-For": "10.0.3.1" },
+        body: { password: `wrong-${attempt}` }
+      });
+      assert.equal(response.statusCode, 401, `Wrong admin password attempt ${attempt} should return 401`);
+    }
+    const blockedLoginResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/login",
+      headers: { "X-Forwarded-For": "10.0.3.1" },
+      body: { password: "wrong-6" }
+    });
+    assert.equal(blockedLoginResponse.statusCode, 429, "6th wrong admin password from one IP should return 429");
+    const blockedCorrectLoginResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/login",
+      headers: { "X-Forwarded-For": "10.0.3.1" },
+      body: { password: SMOKE_PASSWORD }
+    });
+    assert.equal(blockedCorrectLoginResponse.statusCode, 429, "Correct password from a blocked IP should still return 429");
+
+    const throwawayLoginResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/login",
+      headers: { "X-Forwarded-For": "10.0.3.2" },
+      body: { password: SMOKE_PASSWORD }
+    });
+    const throwawayToken = String(throwawayLoginResponse.body && throwawayLoginResponse.body.token);
+    const logoutResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/logout",
+      headers: { Authorization: `Bearer ${throwawayToken}` }
+    });
+    assert.equal(logoutResponse.statusCode, 200, "Admin logout should return 200");
+    const afterLogoutResponse = await request({
+      port,
+      pathname: "/api/admin/orders",
+      headers: { Authorization: `Bearer ${throwawayToken}` }
+    });
+    assert.equal(afterLogoutResponse.statusCode, 401, "Token should stop working after logout");
     const adminOrdersBeforeResponse = await request({
       port,
       pathname: "/api/admin/orders",

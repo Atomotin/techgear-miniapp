@@ -4,9 +4,10 @@ function createAdminRouteHandler({
   readBody,
   normalizeString,
   sanitizeLongText,
-  adminPassword,
   adminAuthEnabled,
-  createToken,
+  adminAuth,
+  getAuthToken,
+  resolveClientIp,
   ensureAdmin,
   saveAdminUpload,
   requirePersistentAdminStorage,
@@ -56,19 +57,33 @@ function createAdminRouteHandler({
     if (req.method === "POST" && url.pathname === "/api/admin/login") {
       if (!adminAuthEnabled) {
         sendJson(res, 503, {
-          error: "Админка отключена: задайте ADMIN_PASSWORD в переменных окружения и перезапустите сервер"
+          error: "Админка отключена: задайте надёжный ADMIN_PASSWORD (не значение из .env.example) и перезапустите сервер"
         });
         return true;
       }
 
-      const body = await readBody(req);
+      const body = await readBody(req, { maxSize: 4 * 1024 });
+      const clientIp = typeof resolveClientIp === "function" ? resolveClientIp(req) : "";
+      const result = adminAuth.attemptLogin(body?.password, clientIp);
 
-      if (normalizeString(body.password) !== adminPassword) {
+      if (result.status === 429) {
+        res.setHeader("Retry-After", String(result.retryAfterSeconds));
+        sendJson(res, 429, { error: "\u0421\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043f\u043e\u043f\u044b\u0442\u043e\u043a \u0432\u0445\u043e\u0434\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043f\u043e\u0437\u0436\u0435." });
+        return true;
+      }
+
+      if (!result.ok) {
         sendJson(res, 401, { error: "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c" });
         return true;
       }
 
-      sendJson(res, 200, { token: createToken() });
+      sendJson(res, 200, { token: result.token });
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/admin/logout") {
+      adminAuth.revokeToken(getAuthToken(req));
+      sendJson(res, 200, { ok: true });
       return true;
     }
 

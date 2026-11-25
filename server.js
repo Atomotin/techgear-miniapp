@@ -8,6 +8,7 @@ const { createStaticHandler } = require("./src/server/static");
 const { createTelegramService } = require("./src/server/telegram");
 const { createTelegramAuth } = require("./src/server/telegram-auth");
 const { createRateLimiter, getClientIp } = require("./src/server/rate-limit");
+const { createAdminAuth } = require("./src/server/admin-auth");
 const { createUploadService } = require("./src/server/uploads");
 const { createApiHandler } = require("./src/server/api");
 const { createStorageRuntime } = require("./src/server/storage");
@@ -25,11 +26,12 @@ const BANNERS_PATH = path.join(DATA_DIR, "banners.json");
 const SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
 
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
-const ADMIN_AUTH_ENABLED = Boolean(ADMIN_PASSWORD);
-const TOKEN_SECRET_SOURCE = String(process.env.ADMIN_SECRET || ADMIN_PASSWORD || crypto.randomBytes(32).toString("hex"));
-const TOKEN_SECRET = crypto.createHash("sha256").update(TOKEN_SECRET_SOURCE).digest("hex");
-const TOKEN_TTL_MS = 1000 * 60 * 60 * 12;
+const adminAuth = createAdminAuth({
+  password: process.env.ADMIN_PASSWORD,
+  secret: process.env.ADMIN_SECRET,
+  tokenTtlMs: 1000 * 60 * 60 * 12
+});
+const ADMIN_AUTH_ENABLED = adminAuth.enabled;
 
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
@@ -565,32 +567,8 @@ const saveAdminUpload = createUploadService({
   uploadBinaryToSupabaseStorage
 });
 
-function signTokenPayload(payload) {
-  return crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("base64url");
-}
-
-function createToken() {
-  const payload = Buffer.from(JSON.stringify({
-    role: "admin",
-    exp: Date.now() + TOKEN_TTL_MS
-  })).toString("base64url");
-
-  return `${payload}.${signTokenPayload(payload)}`;
-}
-
 function verifyToken(token) {
-  if (!token || typeof token !== "string" || !token.includes(".")) return false;
-
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
-  if (signTokenPayload(payload) !== signature) return false;
-
-  try {
-    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return decoded.role === "admin" && Number(decoded.exp) > Date.now();
-  } catch (error) {
-    return false;
-  }
+  return adminAuth.verifyToken(token);
 }
 
 function getAuthToken(req) {
@@ -632,9 +610,9 @@ const handleApi = createApiHandler({
   sanitizeCustomerProfile,
   validateCustomerProfile,
   validateOrderPayload,
-  adminPassword: ADMIN_PASSWORD,
   adminAuthEnabled: ADMIN_AUTH_ENABLED,
-  createToken,
+  adminAuth,
+  getAuthToken,
   ensureAdmin,
   saveAdminUpload,
   supabaseEnabled: SUPABASE_ENABLED,
@@ -681,9 +659,7 @@ async function main() {
     console.log(`TechGear server running at http://localhost:${PORT}`);
     console.log(`Admin panel: http://localhost:${PORT}/admin`);
     console.log(`Storage mode: ${storage.mode}`);
-    if (!ADMIN_AUTH_ENABLED) {
-      console.warn("Admin login is disabled: set ADMIN_PASSWORD to enable /admin access");
-    }
+    adminAuth.logStartupWarnings();
   });
 }
 

@@ -31,11 +31,18 @@ function createRateLimiter({ windowMs, max, maxKeys = 10000 }) {
     return { allowed: true, retryAfterSeconds: 0 };
   }
 
+  // Checks the limit without counting a hit.
+  function isBlocked(key, now = Date.now()) {
+    const timestamps = (hits.get(String(key || "unknown")) || []).filter((time) => now - time < windowMs);
+    if (timestamps.length < max) return { blocked: false, retryAfterSeconds: 0 };
+    return { blocked: true, retryAfterSeconds: Math.max(1, Math.ceil((windowMs - (now - timestamps[0])) / 1000)) };
+  }
+
   function reset(key) {
     hits.delete(String(key || "unknown"));
   }
 
-  return { consume, reset };
+  return { consume, isBlocked, reset };
 }
 
 // Client IP. Behind a reverse proxy (Railway) the socket address is the

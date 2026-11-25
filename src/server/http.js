@@ -43,7 +43,18 @@ function createHttpHelpers({ createHttpError }) {
     });
   }
 
-  function readBody(req) {
+  // JSON bodies must be sent as application/json. Browsers cannot send that
+  // cross-origin without a CORS preflight (which this server never approves),
+  // so other websites cannot submit orders or admin actions from a visitor's browser.
+  function readBody(req, { maxSize = 1024 * 1024 * 2 } = {}) {
+    const contentType = String(req.headers["content-type"] || "").toLowerCase();
+    const hasBody = Number(req.headers["content-length"] || 0) > 0 || Boolean(req.headers["transfer-encoding"]);
+
+    if (hasBody && !contentType.startsWith("application/json")) {
+      req.resume();
+      return Promise.reject(createHttpError(415, "Content-Type must be application/json"));
+    }
+
     return new Promise((resolve, reject) => {
       let raw = "";
       let total = 0;
@@ -65,7 +76,7 @@ function createHttpHelpers({ createHttpError }) {
         total += chunk.length;
         if (settled) return;
 
-        if (total > 1024 * 1024 * 2) {
+        if (total > maxSize) {
           fail(createHttpError(413, "Payload too large"));
           req.destroy();
           return;

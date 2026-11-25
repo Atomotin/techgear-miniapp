@@ -7,6 +7,7 @@ const { createHttpHelpers } = require("./src/server/http");
 const { createStaticHandler } = require("./src/server/static");
 const { createTelegramService } = require("./src/server/telegram");
 const { createTelegramAuth } = require("./src/server/telegram-auth");
+const { createRateLimiter, getClientIp } = require("./src/server/rate-limit");
 const { createUploadService } = require("./src/server/uploads");
 const { createApiHandler } = require("./src/server/api");
 const { createStorageRuntime } = require("./src/server/storage");
@@ -38,6 +39,7 @@ const SUPABASE_STORAGE_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/storage/v1` : "
 const SUPABASE_UPLOAD_BUCKET = normalizeString(process.env.SUPABASE_STORAGE_BUCKET || "techgear-assets") || "techgear-assets";
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
 const RAILWAY_DEPLOYMENT = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID);
+const TRUST_PROXY = parseBooleanEnv(process.env.TRUST_PROXY, RAILWAY_DEPLOYMENT);
 const REQUIRE_PERSISTENT_ADMIN_STORAGE = parseBooleanEnv(
   process.env.REQUIRE_PERSISTENT_ADMIN_STORAGE,
   RAILWAY_DEPLOYMENT || process.env.NODE_ENV === "production"
@@ -389,17 +391,17 @@ function buildOrderRecord(payload, req) {
     name: sanitizePersonName(payload.name),
     phone: limitString(payload.phone, 32),
     username: sanitizeTelegramUsername(payload.username),
-    contactMethod: normalizeString(payload.contactMethod),
-    deliveryTime: normalizeString(payload.deliveryTime),
+    contactMethod: limitString(payload.contactMethod, 32),
+    deliveryTime: limitString(payload.deliveryTime, 32),
     delivery: sanitizeLongText(payload.delivery, 300),
     comment: sanitizeLongText(payload.comment, 500),
     location: sanitizeLongText(payload.location, 300)
   };
-  const normalizedItems = items.map((item) => ({
+  const normalizedItems = items.slice(0, 24).map((item) => ({
     id: Number(item.id) || 0,
-    name: normalizeString(item.name),
+    name: limitString(item.name, 200),
     qty: Number(item.qty) || 0,
-    variant: normalizeString(item.variant),
+    variant: limitString(item.variant, 160),
     price: Number(item.price) || 0
   }));
   const total = Number(payload.total) || 0;
@@ -417,7 +419,7 @@ function buildOrderRecord(payload, req) {
     telegram,
     requestMeta: {
       userAgent: req.headers["user-agent"] || "",
-      ip: req.socket.remoteAddress || ""
+      ip: getClientIp(req, { trustProxy: TRUST_PROXY })
     }
   };
 }
@@ -609,10 +611,20 @@ function ensureAdmin(req, res) {
 }
 
 const getVerifiedTelegramUser = createTelegramAuth({ botToken: TELEGRAM_BOT_TOKEN });
+const resolveClientIp = (req) => getClientIp(req, { trustProxy: TRUST_PROXY });
+const rateLimiters = {
+  // Orders: per client IP and per verified Telegram user.
+  ordersPerIp: createRateLimiter({ windowMs: 10 * 60 * 1000, max: 5 }),
+  ordersPerIpDaily: createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 30 }),
+  ordersPerTelegramUser: createRateLimiter({ windowMs: 10 * 60 * 1000, max: 5 }),
+  profileWrites: createRateLimiter({ windowMs: 10 * 60 * 1000, max: 20 })
+};
 
 const handleApi = createApiHandler({
   storage,
   getVerifiedTelegramUser,
+  resolveClientIp,
+  rateLimiters,
   sendJson,
   readBody,
   normalizeString,

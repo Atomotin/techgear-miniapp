@@ -255,6 +255,7 @@ async function main() {
       PORT: String(port),
       ADMIN_PASSWORD: SMOKE_PASSWORD,
       PUBLIC_BASE_URL: "",
+      TRUST_PROXY: "true",
       TELEGRAM_BOT_TOKEN: SMOKE_BOT_TOKEN,
       TELEGRAM_MANAGER_CHAT_ID: "",
       TELEGRAM_MANAGER_CHAT_IDS: "",
@@ -577,6 +578,43 @@ async function main() {
       assert.equal(invalidVariantResponse.statusCode, 400, "Order with invalid variant should return 400");
     }
 
+    // --- Order spam protection ---
+    const crossSiteFormResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "Content-Type": "text/plain", "X-Forwarded-For": "10.0.2.1" },
+      body: { name: "Ali", phone: "+998900001122", delivery: "x", items: [{ id: product.id, qty: 1, variant: validVariant }] }
+    });
+    assert.equal(crossSiteFormResponse.statusCode, 415, "Order sent as text/plain (cross-site form) should return 415");
+
+    const oversizedOrderResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.2.2" },
+      body: { name: "Ali", phone: "+998900001122", delivery: "x", comment: "a".repeat(70 * 1024), items: [{ id: product.id, qty: 1, variant: validVariant }] }
+    }).catch((error) => ({ statusCode: 413, error }));
+    assert.equal(oversizedOrderResponse.statusCode, 413, "Order body over 64 KB should return 413");
+
+    let rateLimitedResponse = null;
+    for (let attempt = 1; attempt <= 6; attempt += 1) {
+      const response = await request({
+        port,
+        method: "POST",
+        pathname: "/api/orders",
+        headers: { "X-Forwarded-For": "10.0.2.3" },
+        body: { name: "Ali", phone: "+998900001122", delivery: "Rate limit street", items: [{ id: product.id, qty: 1, variant: validVariant }], total: 0 }
+      });
+      if (attempt <= 5) {
+        assert.equal(response.statusCode, 201, `Order ${attempt} from one IP should be accepted`);
+      } else {
+        rateLimitedResponse = response;
+      }
+    }
+    assert.equal(rateLimitedResponse.statusCode, 429, "6th order from one IP within 10 minutes should return 429");
+    assert.ok(Number(rateLimitedResponse.headers["retry-after"]) > 0, "429 should include Retry-After");
+
     // --- Corrupt data file must not wipe order history ---
     const ordersBeforeCorruption = JSON.parse(fs.readFileSync(ORDERS_PATH, "utf8"));
     assert.ok(ordersBeforeCorruption.length >= 2, "Smoke should have created orders before the corruption check");
@@ -585,6 +623,7 @@ async function main() {
       port,
       method: "POST",
       pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.1.1" },
       body: {
         name: "Ali",
         phone: "+998900001122",
@@ -607,6 +646,7 @@ async function main() {
       port,
       method: "POST",
       pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.1.2" },
       body: {
         name: "Ali",
         phone: "+998900001122",

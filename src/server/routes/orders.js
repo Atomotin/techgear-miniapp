@@ -4,8 +4,27 @@ function createOrdersRouteHandler({
   readBody,
   validateOrderPayload,
   notifyOrderCreated,
-  getVerifiedTelegramUser
+  getVerifiedTelegramUser,
+  resolveClientIp,
+  rateLimiters = {}
 }) {
+  const MAX_ORDER_BODY_BYTES = 64 * 1024;
+
+  function checkOrderRateLimit(req, telegramUser) {
+    const ip = typeof resolveClientIp === "function" ? resolveClientIp(req) : "";
+    const checks = [
+      [rateLimiters.ordersPerIp, `ip:${ip}`],
+      [rateLimiters.ordersPerIpDaily, `ip:${ip}`],
+      telegramUser ? [rateLimiters.ordersPerTelegramUser, `tg:${telegramUser.id}`] : null
+    ].filter((check) => check && check[0]);
+
+    for (const [limiter, key] of checks) {
+      const result = limiter.consume(key);
+      if (!result.allowed) return result;
+    }
+
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
   const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
   const MAX_ORDER_LINES = 24;
   const MAX_ITEM_QTY = 20;
@@ -176,7 +195,11 @@ function createOrdersRouteHandler({
       return false;
     }
 
-    const body = await readBody(req);
+    const body = await readBody(req, { maxSize: MAX_ORDER_BODY_BYTES });
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      sendJson(res, 400, { error: "Некорректный заказ" });
+      return true;
+    }
     const error = validateOrderPayload(body);
 
     if (error) {
@@ -195,6 +218,13 @@ function createOrdersRouteHandler({
     const telegramUser = typeof getVerifiedTelegramUser === "function" ? getVerifiedTelegramUser(req) : null;
     trustedPayload.telegram = telegramUser || {};
     delete trustedPayload.telegramId;
+
+    const rateLimit = checkOrderRateLimit(req, telegramUser);
+    if (!rateLimit.allowed) {
+      res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds));
+      sendJson(res, 429, { error: "Слишком много заказов подряд. Попробуйте позже или напишите менеджеру." });
+      return true;
+    }
 
     let order = await storage.createOrder(trustedPayload, req, {
       telegramVerified: Boolean(telegramUser)

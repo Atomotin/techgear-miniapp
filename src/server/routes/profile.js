@@ -4,7 +4,8 @@ function createProfileRouteHandler({
   readBody,
   sanitizeCustomerProfile,
   validateCustomerProfile,
-  getVerifiedTelegramUser
+  getVerifiedTelegramUser,
+  rateLimiters = {}
 }) {
   // Profiles are only reachable through a verified Telegram identity.
   // Lookups by phone, username or a client-supplied telegramId are not allowed,
@@ -34,7 +35,14 @@ function createProfileRouteHandler({
       const telegramUser = requireTelegramUser(req, res);
       if (!telegramUser) return true;
 
-      const body = await readBody(req);
+      const limit = rateLimiters.profileWrites?.consume(`tg:${telegramUser.id}`);
+      if (limit && !limit.allowed) {
+        res.setHeader("Retry-After", String(limit.retryAfterSeconds));
+        sendJson(res, 429, { error: "Слишком много сохранений. Попробуйте позже." });
+        return true;
+      }
+
+      const body = await readBody(req, { maxSize: 16 * 1024 });
       const profilePayload = {
         ...(body && typeof body === "object" ? body : {}),
         telegramId: telegramUser.id,

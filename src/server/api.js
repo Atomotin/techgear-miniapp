@@ -7,6 +7,8 @@ const { createAdminRouteHandler } = require("./routes/admin");
 function createApiHandler({
   storage,
   getVerifiedTelegramUser,
+  resolveClientIp,
+  rateLimiters,
   sendJson,
   readBody,
   normalizeString,
@@ -50,7 +52,9 @@ function createApiHandler({
       readBody,
       validateOrderPayload,
       notifyOrderCreated,
-      getVerifiedTelegramUser
+      getVerifiedTelegramUser,
+      resolveClientIp,
+      rateLimiters
     }),
     createProfileRouteHandler({
       storage,
@@ -58,7 +62,9 @@ function createApiHandler({
       readBody,
       sanitizeCustomerProfile,
       validateCustomerProfile,
-      getVerifiedTelegramUser
+      getVerifiedTelegramUser,
+      resolveClientIp,
+      rateLimiters
     }),
     createAdminRouteHandler({
       storage,

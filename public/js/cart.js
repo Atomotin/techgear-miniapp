@@ -569,6 +569,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getTelegramAuthHeaders(),
         },
         body: JSON.stringify({
           ...payload,

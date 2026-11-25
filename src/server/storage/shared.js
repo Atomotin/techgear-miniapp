@@ -185,7 +185,7 @@ function saveFallbackCustomers(customers) {
   writeJson(customersPath, customers);
 }
 
-function upsertFallbackCustomerProfile(payload) {
+function upsertFallbackCustomerProfile(payload, { overwrite = true } = {}) {
   const profile = sanitizeCustomerProfile(payload);
   if (!profile.key) {
     throw createHttpError(400, "Некорректный профиль клиента");
@@ -193,6 +193,10 @@ function upsertFallbackCustomerProfile(payload) {
 
   const customers = getFallbackCustomers();
   const existingIndex = customers.findIndex((item) => item.key === profile.key);
+
+  if (existingIndex >= 0 && !overwrite) {
+    return customers[existingIndex];
+  }
 
   if (existingIndex >= 0) {
     const existing = customers[existingIndex];

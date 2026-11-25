@@ -111,7 +111,7 @@ function createLocalStorageProvider() {
     return normalized;
   }
 
-  function upsertCustomerProfile(payload) {
+  function upsertCustomerProfile(payload, { overwrite = true } = {}) {
     const profile = sanitizeCustomerProfile(payload);
     if (!profile.key) {
       throw createHttpError(400, "Некорректный профиль клиента");
@@ -119,6 +119,10 @@ function createLocalStorageProvider() {
 
     const customers = getCustomers();
     const existingIndex = customers.findIndex((item) => item.key === profile.key);
+
+    if (existingIndex >= 0 && !overwrite) {
+      return customers[existingIndex];
+    }
 
     if (existingIndex >= 0) {
       const existing = customers[existingIndex];
@@ -217,16 +221,18 @@ function createLocalStorageProvider() {
     async upsertCustomerProfile(payload) {
       return upsertCustomerProfile(payload);
     },
-    async createOrder(payload, req) {
+    async createOrder(payload, req, { telegramVerified = false } = {}) {
       const orders = getOrders();
       const order = buildOrderRecord(payload, req);
       orders.unshift(order);
       saveOrders(orders);
+      // Without a verified Telegram identity the profile key falls back to the
+      // phone number, so only create a new profile and never overwrite one.
       upsertCustomerProfile({
         ...order.customer,
         telegramId: order.telegram?.id,
         telegram: order.telegram
-      });
+      }, { overwrite: telegramVerified });
       return order;
     },
     async updateOrderStatus(orderId, status, options = {}) {

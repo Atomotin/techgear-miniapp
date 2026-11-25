@@ -729,6 +729,17 @@ const tg = window.Telegram?.WebApp || null;
       return tg?.initDataUnsafe?.user || null;
     }
 
+    // Signed Telegram launch data. The server verifies it and takes the
+    // user identity only from it; initDataUnsafe is for display only.
+    function getTelegramInitData() {
+      return typeof tg?.initData === "string" ? tg.initData : "";
+    }
+
+    function getTelegramAuthHeaders() {
+      const initData = getTelegramInitData();
+      return initData ? { "X-Telegram-Init-Data": initData } : {};
+    }
+
     function getPlatformLabel() {
       if (tg?.platform) return tg.platform;
       const ua = navigator.userAgent || "";

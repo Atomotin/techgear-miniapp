@@ -538,7 +538,7 @@ function createSupabaseStorageProvider() {
         throw error;
       }
     },
-    async upsertCustomerProfile(payload) {
+    async upsertCustomerProfile(payload, { overwrite = true } = {}) {
       const profile = sanitizeCustomerProfile(payload);
       if (!profile.key) {
         throw createHttpError(400, "Некорректный профиль клиента");
@@ -547,29 +547,33 @@ function createSupabaseStorageProvider() {
       try {
         const rows = await supabaseRequest("POST", "customers", {
           body: [customerModelToRow(profile, { includeKey: true })],
-          prefer: "return=representation,resolution=merge-duplicates"
+          prefer: `return=representation,resolution=${overwrite ? "merge-duplicates" : "ignore-duplicates"}`
         });
 
-        return customerRowToModel(Array.isArray(rows) ? rows[0] : rows);
+        const row = Array.isArray(rows) ? rows[0] : rows;
+        // ignore-duplicates returns no row when the profile already exists.
+        return row ? customerRowToModel(row) : null;
       } catch (error) {
         if (shouldUseCustomerFallback(error)) {
-          return upsertFallbackCustomerProfile(profile);
+          return upsertFallbackCustomerProfile(profile, { overwrite });
         }
         throw error;
       }
     },
-    async createOrder(payload, req) {
+    async createOrder(payload, req, { telegramVerified = false } = {}) {
       const order = buildOrderRecord(payload, req);
       const rows = await supabaseRequest("POST", "orders", {
         body: [orderModelToRow(order, { includeId: true })],
         prefer: "return=representation"
       });
 
+      // Without a verified Telegram identity the profile key falls back to the
+      // phone number, so only create a new profile and never overwrite one.
       await this.upsertCustomerProfile({
         ...order.customer,
         telegramId: order.telegram?.id,
         telegram: order.telegram
-      });
+      }, { overwrite: telegramVerified });
 
       return orderRowToModel(Array.isArray(rows) ? rows[0] : rows);
     },

@@ -4,6 +4,7 @@ const http = require("http");
 const net = require("net");
 const path = require("path");
 const { spawn } = require("child_process");
+const crypto = require("crypto");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const SERVER_PATH = path.join(ROOT_DIR, "server.js");
@@ -12,6 +13,18 @@ const CUSTOMERS_PATH = path.join(ROOT_DIR, "data", "customers.json");
 const BANNERS_PATH = path.join(ROOT_DIR, "data", "banners.json");
 const SETTINGS_PATH = path.join(ROOT_DIR, "data", "settings.json");
 const SMOKE_PASSWORD = "smoke-admin-password";
+const SMOKE_BOT_TOKEN = "123456:smoke-test-bot-token";
+
+function buildSignedInitData(user, botToken = SMOKE_BOT_TOKEN, authDate = Math.floor(Date.now() / 1000)) {
+  const params = new URLSearchParams();
+  params.set("auth_date", String(authDate));
+  params.set("query_id", "smoke-query");
+  params.set("user", JSON.stringify(user));
+  const dataCheckString = [...params.entries()].map(([key, value]) => `${key}=${value}`).sort().join("\n");
+  const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+  params.set("hash", crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex"));
+  return params.toString();
+}
 const BULLET_SEPARATOR = " \u2022 ";
 
 function delay(ms) {
@@ -236,7 +249,7 @@ async function main() {
       PORT: String(port),
       ADMIN_PASSWORD: SMOKE_PASSWORD,
       PUBLIC_BASE_URL: "",
-      TELEGRAM_BOT_TOKEN: "",
+      TELEGRAM_BOT_TOKEN: SMOKE_BOT_TOKEN,
       TELEGRAM_MANAGER_CHAT_ID: "",
       TELEGRAM_MANAGER_CHAT_IDS: "",
       NODE_ENV: process.env.NODE_ENV || "development"
@@ -371,6 +384,117 @@ async function main() {
     assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.manager), "object", "Notification metadata should include manager delivery result");
 
     const createdOrderId = Number(createOrderResponse.body.orderId);
+
+    // --- Telegram identity checks ---
+    const smokeTelegramUser = { id: 777000111, username: "smoke_user", first_name: "Smoke" };
+    const signedInitData = buildSignedInitData(smokeTelegramUser);
+
+    const profileNoAuthResponse = await request({ port, pathname: "/api/profile?telegramId=123456" });
+    assert.equal(profileNoAuthResponse.statusCode, 401, "GET /api/profile without initData should return 401");
+
+    const profileByPhoneResponse = await request({ port, pathname: "/api/profile?phone=%2B998900001122" });
+    assert.equal(profileByPhoneResponse.statusCode, 401, "GET /api/profile by phone should return 401");
+
+    const forgedProfileResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/profile",
+      body: { telegramId: "123456", name: "Attacker", phone: "+998901111111" }
+    });
+    assert.equal(forgedProfileResponse.statusCode, 401, "POST /api/profile without initData should return 401");
+
+    const tamperedInitData = signedInitData.replace(encodeURIComponent('"id":777000111'), encodeURIComponent('"id":123456'));
+    assert.notEqual(tamperedInitData, signedInitData, "Tampered initData should differ from the signed one");
+    const tamperedProfileResponse = await request({
+      port,
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": tamperedInitData }
+    });
+    assert.equal(tamperedProfileResponse.statusCode, 401, "Tampered initData should return 401");
+
+    const expiredProfileResponse = await request({
+      port,
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": buildSignedInitData(smokeTelegramUser, SMOKE_BOT_TOKEN, Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60) }
+    });
+    assert.equal(expiredProfileResponse.statusCode, 401, "Expired initData should return 401");
+
+    const signedProfileSaveResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": signedInitData },
+      body: { telegramId: "123456", name: "Smoke", phone: "+998902222222", delivery: "Smoke street" }
+    });
+    assert.equal(signedProfileSaveResponse.statusCode, 200, "POST /api/profile with valid initData should return 200");
+    assert.equal(
+      String(signedProfileSaveResponse.body && signedProfileSaveResponse.body.customer && signedProfileSaveResponse.body.customer.telegramId),
+      String(smokeTelegramUser.id),
+      "Profile should be saved under the verified Telegram ID, not the one in the body"
+    );
+
+    const signedProfileLoadResponse = await request({
+      port,
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": signedInitData }
+    });
+    assert.equal(signedProfileLoadResponse.statusCode, 200, "GET /api/profile with valid initData should return 200");
+    assert.equal(
+      signedProfileLoadResponse.body && signedProfileLoadResponse.body.customer && signedProfileLoadResponse.body.customer.phone,
+      "+998902222222",
+      "GET /api/profile should return the verified user's own profile"
+    );
+
+    const signedOrderResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Telegram-Init-Data": signedInitData },
+      body: {
+        name: "Smoke",
+        phone: "+998902222222",
+        delivery: "Smoke street",
+        telegram: { id: "123456" },
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(signedOrderResponse.statusCode, 201, "Order with valid initData should return 201");
+
+    const overwriteAttemptResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      body: {
+        name: "Attacker",
+        phone: "+998900001122",
+        delivery: "Attacker address",
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(overwriteAttemptResponse.statusCode, 201, "Order without Telegram should still be accepted");
+
+    const identityOrdersResponse = await request({
+      port,
+      pathname: "/api/admin/orders",
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const identityOrders = (identityOrdersResponse.body && identityOrdersResponse.body.orders) || [];
+    const forgedTelegramOrder = identityOrders.find((item) => Number(item && item.id) === createdOrderId);
+    assert.equal(normalizeString(forgedTelegramOrder && forgedTelegramOrder.telegram && forgedTelegramOrder.telegram.id), "", "Telegram ID from the request body must be ignored");
+    const signedOrder = identityOrders.find((item) => Number(item && item.id) === Number(signedOrderResponse.body.orderId));
+    assert.equal(String(signedOrder && signedOrder.telegram && signedOrder.telegram.id), String(smokeTelegramUser.id), "Order should use the verified Telegram ID");
+
+    const identityCustomersResponse = await request({
+      port,
+      pathname: "/api/admin/customers",
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const identityCustomers = (identityCustomersResponse.body && identityCustomersResponse.body.customers) || [];
+    const phoneCustomer = identityCustomers.find((item) => item && item.key === "phone:+998900001122");
+    assert.ok(phoneCustomer, "Order without Telegram should create a phone-keyed customer");
+    assert.equal(phoneCustomer.name, "Ali", "Order without Telegram must not overwrite an existing customer profile");
     const adminOrdersAfterResponse = await request({
       port,
       pathname: "/api/admin/orders",

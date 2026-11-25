@@ -6,6 +6,7 @@ const { createAdminRouteHandler } = require("./routes/admin");
 
 function createApiHandler({
   storage,
+  getVerifiedTelegramUser,
   sendJson,
   readBody,
   normalizeString,
@@ -48,15 +49,16 @@ function createApiHandler({
       sendJson,
       readBody,
       validateOrderPayload,
-      notifyOrderCreated
+      notifyOrderCreated,
+      getVerifiedTelegramUser
     }),
     createProfileRouteHandler({
       storage,
       sendJson,
       readBody,
-      normalizeString,
       sanitizeCustomerProfile,
-      validateCustomerProfile
+      validateCustomerProfile,
+      getVerifiedTelegramUser
     }),
     createAdminRouteHandler({
       storage,

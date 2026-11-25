@@ -6,6 +6,7 @@ const vm = require("vm");
 const { createHttpHelpers } = require("./src/server/http");
 const { createStaticHandler } = require("./src/server/static");
 const { createTelegramService } = require("./src/server/telegram");
+const { createTelegramAuth } = require("./src/server/telegram-auth");
 const { createUploadService } = require("./src/server/uploads");
 const { createApiHandler } = require("./src/server/api");
 const { createStorageRuntime } = require("./src/server/storage");
@@ -607,8 +608,11 @@ function ensureAdmin(req, res) {
   return false;
 }
 
+const getVerifiedTelegramUser = createTelegramAuth({ botToken: TELEGRAM_BOT_TOKEN });
+
 const handleApi = createApiHandler({
   storage,
+  getVerifiedTelegramUser,
   sendJson,
   readBody,
   normalizeString,

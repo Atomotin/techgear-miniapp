@@ -3,7 +3,8 @@ function createOrdersRouteHandler({
   sendJson,
   readBody,
   validateOrderPayload,
-  notifyOrderCreated
+  notifyOrderCreated,
+  getVerifiedTelegramUser
 }) {
   const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
   const MAX_ORDER_LINES = 24;
@@ -189,7 +190,15 @@ function createOrdersRouteHandler({
       return true;
     }
 
-    let order = await storage.createOrder(trustedPayload, req);
+    // Never trust a Telegram identity sent in the body: it decides which chat
+    // the bot messages and which customer profile the order is linked to.
+    const telegramUser = typeof getVerifiedTelegramUser === "function" ? getVerifiedTelegramUser(req) : null;
+    trustedPayload.telegram = telegramUser || {};
+    delete trustedPayload.telegramId;
+
+    let order = await storage.createOrder(trustedPayload, req, {
+      telegramVerified: Boolean(telegramUser)
+    });
     let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
 
     if (typeof notifyOrderCreated === "function") {

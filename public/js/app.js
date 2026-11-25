@@ -345,6 +345,9 @@ const tg = window.Telegram?.WebApp || null;
     let catalogLoading = true;
     let catalogFeedLoading = false;
     let catalogUsesServerFeed = true;
+    let catalogLoadFailed = false;
+    let catalogRetryTimerId = null;
+    let catalogRetryAttempt = 0;
     let catalogPagination = null;
     let catalogRequestToken = 0;
     let catalogSearchDebounceId = null;
@@ -355,7 +358,7 @@ const tg = window.Telegram?.WebApp || null;
       availability: "all",
       sort: "manual",
       productPage: 1,
-      cart: loadStorage(STORAGE_KEYS.cart, []),
+      cart: loadStorage(STORAGE_KEYS.cart, []).filter((item) => item && typeof item === "object" && Number(item.qty) > 0),
       favorites: loadStorage(STORAGE_KEYS.favorites, []),
       profile: loadStorage(STORAGE_KEYS.profile, {
         name: "",
@@ -460,10 +463,20 @@ const tg = window.Telegram?.WebApp || null;
       return sessionId;
     }
 
+    // Returns the fallback when the stored value is missing, unparsable or of
+    // a different type (for example a cart saved as null or {}), so a broken
+    // value can never crash startup.
     function loadStorage(key, fallback) {
       try {
         const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : fallback;
+        if (!value) return fallback;
+        const parsed = JSON.parse(value);
+        if (Array.isArray(fallback)) return Array.isArray(parsed) ? parsed : fallback;
+        if (fallback && typeof fallback === "object") {
+          return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { ...fallback, ...parsed } : fallback;
+        }
+        if (typeof fallback === "string") return typeof parsed === "string" ? parsed : fallback;
+        return parsed ?? fallback;
       } catch (e) {
         return fallback;
       }
@@ -816,18 +829,73 @@ const tg = window.Telegram?.WebApp || null;
       });
     }
 
+    function waitMs(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    // One network blip at launch should not leave an empty shop: retry a
+    // couple of times before falling back.
+    async function requestInitialCatalogData() {
+      const delays = [0, 1000, 3000];
+      let lastError = null;
+      for (const delay of delays) {
+        if (delay) await waitMs(delay);
+        try {
+          return await requestCatalogData({ page: 1, includeMeta: true });
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError;
+    }
+
+    function renderCatalogViews() {
+      setToolbarState();
+      renderPromoBanner();
+      renderCategories();
+      renderProducts();
+      renderFavorites();
+    }
+
+    function scheduleCatalogRetry() {
+      if (catalogRetryTimerId || !catalogLoadFailed) return;
+      const delay = Math.min(60000, 10000 * 2 ** Math.min(catalogRetryAttempt, 3));
+      catalogRetryAttempt += 1;
+      catalogRetryTimerId = setTimeout(() => {
+        catalogRetryTimerId = null;
+        retryCatalogLoad();
+      }, delay);
+    }
+
+    async function retryCatalogLoad() {
+      if (catalogRetryTimerId) {
+        clearTimeout(catalogRetryTimerId);
+        catalogRetryTimerId = null;
+      }
+      catalogLoading = true;
+      renderProducts();
+      await loadCatalogFromApi();
+      renderCatalogViews();
+    }
+
+    window.addEventListener("online", () => {
+      if (catalogLoadFailed) retryCatalogLoad();
+    });
+
     async function loadCatalogFromApi() {
       catalogLoading = true;
       catalogFeedLoading = true;
       const requestToken = ++catalogRequestToken;
 
       try {
-        const data = await requestCatalogData({ page: 1, includeMeta: true });
+        const data = await requestInitialCatalogData();
         if (requestToken !== catalogRequestToken) {
           return;
         }
 
         catalogUsesServerFeed = true;
+        catalogLoadFailed = false;
+        catalogRetryAttempt = 0;
         PRODUCT_CACHE = new Map();
         applyCatalogMeta(data);
         setCatalogProducts(Array.isArray(data?.products) ? data.products : []);
@@ -847,7 +915,9 @@ const tg = window.Telegram?.WebApp || null;
         catalogPagination = null;
         state.productPage = 1;
         applyMusicSettings(BOOTSTRAP_SETTINGS, { autoplay: true });
-        console.warn("Catalog API unavailable, fallback to local data");
+        catalogLoadFailed = true;
+        scheduleCatalogRetry();
+        console.warn("Catalog API unavailable, fallback to local data; retrying in background");
       } finally {
         if (requestToken === catalogRequestToken) {
           catalogFeedLoading = false;

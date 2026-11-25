@@ -113,6 +113,63 @@
       saveStorage(STORAGE_KEYS.cart, state.cart);
     }
 
+    // The cart keeps a copy of each product from when it was added. Refresh
+    // prices and availability from the server so the customer sees what
+    // they will actually pay. Returns { priceChanged, removed, failed }.
+    async function refreshCartFromServer() {
+      const result = { priceChanged: 0, removed: 0, failed: false };
+      if (!state.cart.length || !catalogUsesServerFeed) return result;
+
+      const ids = [...new Set(state.cart.map((item) => Number(item.id)).filter((id) => Number.isFinite(id) && id > 0))];
+      let products;
+      try {
+        const data = await requestCatalogData({ ids });
+        products = Array.isArray(data?.products) ? data.products : [];
+      } catch (error) {
+        result.failed = true;
+        return result;
+      }
+
+      cacheProducts(products);
+      const productsById = new Map(products.map((product) => [Number(product.id), product]));
+      state.cart = state.cart.filter((item) => {
+        const product = productsById.get(Number(item.id));
+        if (!product) {
+          result.removed += 1;
+          return false;
+        }
+        const freshPrice = Number(product.price) || 0;
+        if (freshPrice !== (Number(item.price) || 0)) {
+          result.priceChanged += 1;
+        }
+        item.price = freshPrice;
+        item.oldPrice = Number(product.oldPrice) || 0;
+        item.name = product.name || item.name;
+        return true;
+      });
+
+      if (result.priceChanged || result.removed) {
+        persistCart();
+        renderCart();
+        updateCartButton();
+      }
+      return result;
+    }
+
+    function describeCartRefresh(result) {
+      const parts = [];
+      if (result.priceChanged) parts.push("цены обновились");
+      if (result.removed) parts.push("недоступные товары убраны");
+      return parts.length ? `В корзине ${parts.join(", ")}. Проверьте итог.` : "";
+    }
+
+    async function syncCartWithServer() {
+      const result = await refreshCartFromServer();
+      const message = describeCartRefresh(result);
+      if (message) showToast(message, "info", { replaceKey: "cart-refresh" });
+      return result;
+    }
+
     function setSubmitOrderState(isSubmitting) {
       isSubmittingOrder = Boolean(isSubmitting);
       const submitBtn = document.getElementById("submitOrderBtn");
@@ -685,6 +742,19 @@
         return;
       }
 
+      // Make sure the customer confirms the current prices before ordering.
+      setSubmitOrderState(true);
+      const cartRefresh = await refreshCartFromServer();
+      setSubmitOrderState(false);
+      if (cartRefresh.priceChanged || cartRefresh.removed) {
+        showToast(describeCartRefresh(cartRefresh) + " Нажмите «Оформить» ещё раз.", "error", { replaceKey: "cart-refresh" });
+        return;
+      }
+      if (!state.cart.length) {
+        showToast("Корзина пустая", "error");
+        return;
+      }
+
       const total = state.cart.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0);
       const payload = { name, phone, username, contactMethod, deliveryTime, delivery, comment, location, total };
 
@@ -703,7 +773,7 @@
 
         if (tg) {
           try {
-            tg.showAlert?.(`Заказ отправлен${result?.orderId ? ` #${result.orderId}` : ""}. Скоро мы свяжемся с вами.`);
+            tg.showAlert?.(`Заказ отправлен${result?.orderId ? ` #${result.orderId}` : ""}${result?.total ? ` на сумму ${formatPrice(result.total)}` : ""}. Скоро мы свяжемся с вами.`);
           } catch (error) {
             console.warn("Telegram showAlert failed:", error);
           }

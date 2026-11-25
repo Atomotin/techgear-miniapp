@@ -238,6 +238,7 @@ function ensureProfileNavigation() {
       } else if (view === "cart") {
         cartView?.classList.remove("hidden");
         cartBtn?.classList.add("active");
+        void syncCartWithServer();
       } else if (view === "profile") {
         profileView?.classList.remove("hidden");
         profileBtn?.classList.add("active");
@@ -318,6 +319,7 @@ function ensureProfileNavigation() {
         renderCategories();
         renderProducts();
         renderFavorites();
+        void syncCartWithServer();
       });
 
       if (!state.profile.name && !state.profile.phone && !state.profile.username && !state.profile.delivery) {

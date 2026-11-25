@@ -34,9 +34,15 @@ function createPublicRouteHandler({
     };
   }
 
+  // Public responses never include hidden products.
+  function withVisibleProductsOnly(catalog = {}) {
+    const products = Array.isArray(catalog?.products) ? catalog.products : [];
+    return { ...catalog, products: products.filter((product) => product && product.isVisible !== false) };
+  }
+
   function sendLegacyCatalogScript(res, catalog) {
     const categories = Array.isArray(catalog?.categories) ? catalog.categories : [];
-    const products = Array.isArray(catalog?.products) ? catalog.products : [];
+    const products = Array.isArray(catalog?.products) ? catalog.products.filter((product) => product && product.isVisible !== false) : [];
     const banners = Array.isArray(catalog?.banners) ? catalog.banners : [];
     const settings = catalog?.settings || {};
     const script = [
@@ -85,7 +91,7 @@ function createPublicRouteHandler({
       if (hasCatalogFeedQuery(url.searchParams) && typeof storage.getPublicCatalog === "function") {
         sendJson(res, 200, await storage.getPublicCatalog(getCatalogFeedOptions(url.searchParams)));
       } else {
-        sendJson(res, 200, await storage.getCatalog());
+        sendJson(res, 200, withVisibleProductsOnly(await storage.getCatalog()));
       }
       return true;
     }

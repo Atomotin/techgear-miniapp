@@ -333,7 +333,7 @@ function createOrdersRouteHandler({
     // failing Telegram API can no longer turn a saved order into an error
     // that makes the customer submit it again. The response carries no
     // notification details (they included private manager chat IDs).
-    sendJson(res, 201, { ok: true, orderId: order.id });
+    sendJson(res, 201, { ok: true, orderId: order.id, total: order.total });
     sendCreationNotificationInBackground(order);
     return true;
   };

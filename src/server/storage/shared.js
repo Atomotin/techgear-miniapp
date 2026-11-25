@@ -577,7 +577,7 @@ function filterPublicCatalogProducts(products = [], options = {}) {
 
   if (normalized.ids.length) {
     return sortPublicCatalogProducts(
-      products.filter((product) => normalized.ids.includes(Number(product?.id))),
+      products.filter((product) => product && product.isVisible !== false && normalized.ids.includes(Number(product.id))),
       normalized
     );
   }

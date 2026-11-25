@@ -113,6 +113,63 @@
       saveStorage(STORAGE_KEYS.cart, state.cart);
     }
 
+    // The cart keeps a copy of each product from when it was added. Refresh
+    // prices and availability from the server so the customer sees what
+    // they will actually pay. Returns { priceChanged, removed, failed }.
+    async function refreshCartFromServer() {
+      const result = { priceChanged: 0, removed: 0, failed: false };
+      if (!state.cart.length || !catalogUsesServerFeed) return result;
+
+      const ids = [...new Set(state.cart.map((item) => Number(item.id)).filter((id) => Number.isFinite(id) && id > 0))];
+      let products;
+      try {
+        const data = await requestCatalogData({ ids });
+        products = Array.isArray(data?.products) ? data.products : [];
+      } catch (error) {
+        result.failed = true;
+        return result;
+      }
+
+      cacheProducts(products);
+      const productsById = new Map(products.map((product) => [Number(product.id), product]));
+      state.cart = state.cart.filter((item) => {
+        const product = productsById.get(Number(item.id));
+        if (!product) {
+          result.removed += 1;
+          return false;
+        }
+        const freshPrice = Number(product.price) || 0;
+        if (freshPrice !== (Number(item.price) || 0)) {
+          result.priceChanged += 1;
+        }
+        item.price = freshPrice;
+        item.oldPrice = Number(product.oldPrice) || 0;
+        item.name = product.name || item.name;
+        return true;
+      });
+
+      if (result.priceChanged || result.removed) {
+        persistCart();
+        renderCart();
+        updateCartButton();
+      }
+      return result;
+    }
+
+    function describeCartRefresh(result) {
+      const parts = [];
+      if (result.priceChanged) parts.push("цены обновились");
+      if (result.removed) parts.push("недоступные товары убраны");
+      return parts.length ? `В корзине ${parts.join(", ")}. Проверьте итог.` : "";
+    }
+
+    async function syncCartWithServer() {
+      const result = await refreshCartFromServer();
+      const message = describeCartRefresh(result);
+      if (message) showToast(message, "info", { replaceKey: "cart-refresh" });
+      return result;
+    }
+
     function setSubmitOrderState(isSubmitting) {
       isSubmittingOrder = Boolean(isSubmitting);
       const submitBtn = document.getElementById("submitOrderBtn");
@@ -160,17 +217,24 @@
               ${item.selectedVariant ? `<div class="hint">${escapeHtml(item.selectedVariant)}</div>` : ""}
               <div class="cart-price">${formatPrice(item.price)}</div>
             </div>
-            <button class="btn btn-danger cart-remove-btn" type="button" onclick="removeItem('${escapeHtml(itemKey)}')">✕</button>
+            <button class="btn btn-danger cart-remove-btn" type="button" data-cart-action="remove">✕</button>
           </div>
           <div class="cart-actions">
             <div class="qty-controls">
-              <button type="button" onclick="decreaseQty('${escapeHtml(itemKey)}')">-</button>
+              <button type="button" data-cart-action="decrease">-</button>
               <span>${item.qty}</span>
-              <button type="button" onclick="increaseQty('${escapeHtml(itemKey)}')">+</button>
+              <button type="button" data-cart-action="increase">+</button>
             </div>
             <div><strong>${formatPrice((item.price || 0) * item.qty)}</strong></div>
           </div>
         `;
+        // Bind handlers with the key in a closure instead of inline onclick:
+        // HTML-escaping does not protect a value inside a JS string in an attribute.
+        const cartActions = { remove: removeItem, decrease: decreaseQty, increase: increaseQty };
+        div.querySelectorAll("[data-cart-action]").forEach((button) => {
+          const action = cartActions[button.dataset.cartAction];
+          button.addEventListener("click", () => action(itemKey));
+        });
         wrap.appendChild(div);
       });
     }
@@ -563,30 +627,56 @@
       return lines.filter(Boolean).join("\n");
     }
 
-    async function submitOrderToBackend(payload) {
-      const user = getTelegramUser();
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...payload,
-          items: state.cart.map((item) => ({
-            id: item.id,
-            name: item.name,
-            qty: item.qty,
-            variant: item.selectedVariant || "",
-            price: item.price || 0,
-          })),
-          telegram: {
-            id: user?.id || "",
-            username: user?.username || "",
-            first_name: user?.first_name || "",
-            last_name: user?.last_name || "",
+    const ORDER_REQUEST_TIMEOUT_MS = 25000;
+    let pendingOrderAttempt = null;
+
+    function createIdempotencyKey() {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID().replace(/-/g, "");
+      return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+    }
+
+    // Reuse the same key while the customer retries the same order, so the
+    // server returns the already created order instead of a duplicate.
+    function getOrderIdempotencyKey(fingerprint) {
+      if (!pendingOrderAttempt || pendingOrderAttempt.fingerprint !== fingerprint) {
+        pendingOrderAttempt = { fingerprint, key: createIdempotencyKey() };
+      }
+      return pendingOrderAttempt.key;
+    }
+
+    async function submitOrderToBackend(payload, cartItems = state.cart) {
+      const items = cartItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        qty: item.qty,
+        variant: item.selectedVariant || "",
+        price: item.price || 0,
+      }));
+      // The server takes the Telegram identity only from the signed initData header.
+      const body = JSON.stringify({ ...payload, items });
+      const idempotencyKey = getOrderIdempotencyKey(body);
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), ORDER_REQUEST_TIMEOUT_MS) : null;
+
+      let response;
+      try {
+        response = await fetch("/api/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": idempotencyKey,
+            ...getTelegramAuthHeaders(),
           },
-        }),
-      });
+          body,
+          ...(controller ? { signal: controller.signal } : {}),
+        });
+      } catch (error) {
+        throw new Error(error?.name === "AbortError"
+          ? "Сервер долго не отвечает. Нажмите «Оформить» ещё раз — повторный заказ не создастся."
+          : "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.");
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data?.ok === false) {
@@ -652,6 +742,19 @@
         return;
       }
 
+      // Make sure the customer confirms the current prices before ordering.
+      setSubmitOrderState(true);
+      const cartRefresh = await refreshCartFromServer();
+      setSubmitOrderState(false);
+      if (cartRefresh.priceChanged || cartRefresh.removed) {
+        showToast(describeCartRefresh(cartRefresh) + " Нажмите «Оформить» ещё раз.", "error", { replaceKey: "cart-refresh" });
+        return;
+      }
+      if (!state.cart.length) {
+        showToast("Корзина пустая", "error");
+        return;
+      }
+
       const total = state.cart.reduce((sum, item) => sum + (item.price || 0) * item.qty, 0);
       const payload = { name, phone, username, contactMethod, deliveryTime, delivery, comment, location, total };
 
@@ -659,14 +762,18 @@
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
 
       const orderText = buildOrderText(payload);
+      // Snapshot the cart: items added while the request is in flight must not
+      // be sent with this order or wiped when it succeeds.
+      const submittedCart = state.cart.map((item) => ({ ...item }));
       setSubmitOrderState(true);
 
       try {
-        const result = await submitOrderToBackend(payload);
+        const result = await submitOrderToBackend(payload, submittedCart);
+        pendingOrderAttempt = null;
 
         if (tg) {
           try {
-            tg.showAlert?.(`Заказ отправлен${result?.orderId ? ` #${result.orderId}` : ""}. Скоро мы свяжемся с вами.`);
+            tg.showAlert?.(`Заказ отправлен${result?.orderId ? ` #${result.orderId}` : ""}${result?.total ? ` на сумму ${formatPrice(result.total)}` : ""}. Скоро мы свяжемся с вами.`);
           } catch (error) {
             console.warn("Telegram showAlert failed:", error);
           }
@@ -674,7 +781,7 @@
           trackEvent("order_submitted", {
             order_id: result?.orderId || "",
             total,
-            items: state.cart.map((item) => ({
+            items: submittedCart.map((item) => ({
               id: item.id,
               name: item.name,
               qty: item.qty,
@@ -686,7 +793,14 @@
           console.log(orderText);
         }
 
-        state.cart = [];
+        const submittedQty = new Map(submittedCart.map((item) => [item.cartKey || String(item.id), item.qty]));
+        state.cart = state.cart
+          .map((item) => {
+            const key = item.cartKey || String(item.id);
+            const remainingQty = item.qty - (submittedQty.get(key) || 0);
+            return remainingQty > 0 ? { ...item, qty: remainingQty } : null;
+          })
+          .filter(Boolean);
         persistCart();
         renderCart();
         updateCartButton();

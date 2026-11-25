@@ -6,6 +6,9 @@ const vm = require("vm");
 const { createHttpHelpers } = require("./src/server/http");
 const { createStaticHandler } = require("./src/server/static");
 const { createTelegramService } = require("./src/server/telegram");
+const { createTelegramAuth } = require("./src/server/telegram-auth");
+const { createRateLimiter, getClientIp } = require("./src/server/rate-limit");
+const { createAdminAuth } = require("./src/server/admin-auth");
 const { createUploadService } = require("./src/server/uploads");
 const { createApiHandler } = require("./src/server/api");
 const { createStorageRuntime } = require("./src/server/storage");
@@ -23,11 +26,12 @@ const BANNERS_PATH = path.join(DATA_DIR, "banners.json");
 const SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
 const LEGACY_CATALOG_PATH = path.join(ROOT_DIR, "card-tovary.js");
 
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
-const ADMIN_AUTH_ENABLED = Boolean(ADMIN_PASSWORD);
-const TOKEN_SECRET_SOURCE = String(process.env.ADMIN_SECRET || ADMIN_PASSWORD || crypto.randomBytes(32).toString("hex"));
-const TOKEN_SECRET = crypto.createHash("sha256").update(TOKEN_SECRET_SOURCE).digest("hex");
-const TOKEN_TTL_MS = 1000 * 60 * 60 * 12;
+const adminAuth = createAdminAuth({
+  password: process.env.ADMIN_PASSWORD,
+  secret: process.env.ADMIN_SECRET,
+  tokenTtlMs: 1000 * 60 * 60 * 12
+});
+const ADMIN_AUTH_ENABLED = adminAuth.enabled;
 
 const SUPABASE_URL = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
@@ -37,12 +41,19 @@ const SUPABASE_STORAGE_URL = SUPABASE_ENABLED ? `${SUPABASE_URL}/storage/v1` : "
 const SUPABASE_UPLOAD_BUCKET = normalizeString(process.env.SUPABASE_STORAGE_BUCKET || "techgear-assets") || "techgear-assets";
 const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/+$/, "");
 const RAILWAY_DEPLOYMENT = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID);
+const TRUST_PROXY = parseBooleanEnv(process.env.TRUST_PROXY, RAILWAY_DEPLOYMENT);
 const REQUIRE_PERSISTENT_ADMIN_STORAGE = parseBooleanEnv(
   process.env.REQUIRE_PERSISTENT_ADMIN_STORAGE,
   RAILWAY_DEPLOYMENT || process.env.NODE_ENV === "production"
 );
 const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
-const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+const CONFIGURED_TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+// The webhook always requires a secret. If none is configured, generate one
+// per start: configureTelegramBot registers it with Telegram via setWebhook.
+// Telegram only allows A-Z, a-z, 0-9, _ and - (1-256 chars).
+const TELEGRAM_WEBHOOK_SECRET = /^[A-Za-z0-9_-]{1,256}$/.test(CONFIGURED_TELEGRAM_WEBHOOK_SECRET)
+  ? CONFIGURED_TELEGRAM_WEBHOOK_SECRET
+  : crypto.randomBytes(32).toString("hex");
 const TELEGRAM_CHANNEL_URL = normalizeTelegramUrl(process.env.TELEGRAM_CHANNEL_URL || "https://t.me/techgear_uz");
 const TELEGRAM_MANAGER_URL = normalizeTelegramUrl(process.env.TELEGRAM_MANAGER_URL || "https://t.me/atomotin");
 const TELEGRAM_MANAGER_CHAT_IDS = normalizeChatIdList(
@@ -73,7 +84,7 @@ const UPLOAD_EXTENSIONS = new Map([
   ["image/jpeg", ".jpg"],
   ["image/png", ".png"],
   ["image/webp", ".webp"],
-  ["image/svg+xml", ".svg"],
+  // SVG is not accepted: it can contain scripts that would run on this origin.
   ["audio/mpeg", ".mp3"],
   ["audio/mp3", ".mp3"],
   ["audio/x-mpeg-3", ".mp3"],
@@ -382,30 +393,40 @@ function buildOrderRawText({ customer = {}, items = [], total = 0, telegram = {}
   return lines.filter(Boolean).join("\n");
 }
 
-function buildOrderRecord(payload, req) {
+// Order IDs stay timestamp-like (shown to customers as #id) but are
+// strictly increasing within the process, so two orders in the same
+// millisecond can no longer get the same ID.
+let lastOrderId = 0;
+function generateOrderId(minId = 0) {
+  const id = Math.max(Date.now(), lastOrderId + 1, Number(minId) || 0);
+  lastOrderId = id;
+  return id;
+}
+
+function buildOrderRecord(payload, req, { minId = 0 } = {}) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const customer = {
     name: sanitizePersonName(payload.name),
     phone: limitString(payload.phone, 32),
     username: sanitizeTelegramUsername(payload.username),
-    contactMethod: normalizeString(payload.contactMethod),
-    deliveryTime: normalizeString(payload.deliveryTime),
+    contactMethod: limitString(payload.contactMethod, 32),
+    deliveryTime: limitString(payload.deliveryTime, 32),
     delivery: sanitizeLongText(payload.delivery, 300),
     comment: sanitizeLongText(payload.comment, 500),
     location: sanitizeLongText(payload.location, 300)
   };
-  const normalizedItems = items.map((item) => ({
+  const normalizedItems = items.slice(0, 24).map((item) => ({
     id: Number(item.id) || 0,
-    name: normalizeString(item.name),
+    name: limitString(item.name, 200),
     qty: Number(item.qty) || 0,
-    variant: normalizeString(item.variant),
+    variant: limitString(item.variant, 160),
     price: Number(item.price) || 0
   }));
   const total = Number(payload.total) || 0;
   const telegram = payload.telegram || {};
 
   return {
-    id: Date.now(),
+    id: generateOrderId(minId),
     status: "new",
     createdAt: new Date().toISOString(),
     source: "miniapp",
@@ -416,7 +437,7 @@ function buildOrderRecord(payload, req) {
     telegram,
     requestMeta: {
       userAgent: req.headers["user-agent"] || "",
-      ip: req.socket.remoteAddress || ""
+      ip: getClientIp(req, { trustProxy: TRUST_PROXY })
     }
   };
 }
@@ -469,11 +490,39 @@ function sanitizePromoBanner(payload = {}, fallbackId) {
     secondary: normalizeString(payload?.secondary || payload?.secondaryLabel),
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : (id || 1),
     isActive: payload?.isActive !== false,
-    actionType: allowedActionTypes.includes(actionType) ? actionType : "reset",
-    actionValue: normalizeString(payload?.actionValue),
-    secondaryActionType: secondaryActionType && allowedActionTypes.includes(secondaryActionType) ? secondaryActionType : "",
-    secondaryActionValue: normalizeString(payload?.secondaryActionValue),
+    ...(() => {
+      const primary = sanitizeBannerAction(allowedActionTypes.includes(actionType) ? actionType : "reset", payload?.actionValue);
+      const secondary = secondaryActionType && allowedActionTypes.includes(secondaryActionType)
+        ? sanitizeBannerAction(secondaryActionType, payload?.secondaryActionValue)
+        : { type: "", value: normalizeString(payload?.secondaryActionValue) };
+      return {
+        actionType: primary.type,
+        actionValue: primary.value,
+        secondaryActionType: secondary.type,
+        secondaryActionValue: secondary.value
+      };
+    })(),
   };
+}
+
+// Banner links may only point to https:// pages (no javascript:, data: etc.).
+function sanitizeBannerLink(value) {
+  const raw = normalizeString(value);
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "https:" ? parsed.toString() : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function sanitizeBannerAction(type, value) {
+  if (type === "link") {
+    const href = sanitizeBannerLink(value);
+    return href ? { type, value: href } : { type: "reset", value: "" };
+  }
+  return { type, value: normalizeString(value) };
 }
 
 function sanitizePromoBanners(banners) {
@@ -562,32 +611,8 @@ const saveAdminUpload = createUploadService({
   uploadBinaryToSupabaseStorage
 });
 
-function signTokenPayload(payload) {
-  return crypto.createHmac("sha256", TOKEN_SECRET).update(payload).digest("base64url");
-}
-
-function createToken() {
-  const payload = Buffer.from(JSON.stringify({
-    role: "admin",
-    exp: Date.now() + TOKEN_TTL_MS
-  })).toString("base64url");
-
-  return `${payload}.${signTokenPayload(payload)}`;
-}
-
 function verifyToken(token) {
-  if (!token || typeof token !== "string" || !token.includes(".")) return false;
-
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
-  if (signTokenPayload(payload) !== signature) return false;
-
-  try {
-    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return decoded.role === "admin" && Number(decoded.exp) > Date.now();
-  } catch (error) {
-    return false;
-  }
+  return adminAuth.verifyToken(token);
 }
 
 function getAuthToken(req) {
@@ -607,8 +632,21 @@ function ensureAdmin(req, res) {
   return false;
 }
 
+const getVerifiedTelegramUser = createTelegramAuth({ botToken: TELEGRAM_BOT_TOKEN });
+const resolveClientIp = (req) => getClientIp(req, { trustProxy: TRUST_PROXY });
+const rateLimiters = {
+  // Orders: per client IP and per verified Telegram user.
+  ordersPerIp: createRateLimiter({ windowMs: 10 * 60 * 1000, max: 5 }),
+  ordersPerIpDaily: createRateLimiter({ windowMs: 24 * 60 * 60 * 1000, max: 30 }),
+  ordersPerTelegramUser: createRateLimiter({ windowMs: 10 * 60 * 1000, max: 5 }),
+  profileWrites: createRateLimiter({ windowMs: 10 * 60 * 1000, max: 20 })
+};
+
 const handleApi = createApiHandler({
   storage,
+  getVerifiedTelegramUser,
+  resolveClientIp,
+  rateLimiters,
   sendJson,
   readBody,
   normalizeString,
@@ -616,9 +654,9 @@ const handleApi = createApiHandler({
   sanitizeCustomerProfile,
   validateCustomerProfile,
   validateOrderPayload,
-  adminPassword: ADMIN_PASSWORD,
   adminAuthEnabled: ADMIN_AUTH_ENABLED,
-  createToken,
+  adminAuth,
+  getAuthToken,
   ensureAdmin,
   saveAdminUpload,
   supabaseEnabled: SUPABASE_ENABLED,
@@ -646,6 +684,12 @@ async function requestListener(req, res) {
     if (handled) return;
     serveStatic(res, url);
   } catch (error) {
+    if (error?.statusCode && error.expose === false) {
+      console.error("Storage error:", error.message);
+      sendJson(res, error.statusCode >= 500 ? 502 : error.statusCode, { error: "Ошибка хранилища данных. Попробуйте позже." });
+      return;
+    }
+
     if (error?.statusCode) {
       sendJson(res, error.statusCode, { error: error.message });
       return;
@@ -659,15 +703,18 @@ async function requestListener(req, res) {
 async function main() {
   ensureDataFiles();
   await storage.init();
-  await telegramService.configureTelegramBot({ telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET });
-
   http.createServer(requestListener).listen(PORT, HOST, () => {
+    // Configure the bot after listening, so a slow Telegram API cannot
+    // delay startup or fail the deploy health check.
+    telegramService.configureTelegramBot({ telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET })
+      .catch((error) => console.error("Failed to configure Telegram bot:", error));
+    if (CONFIGURED_TELEGRAM_WEBHOOK_SECRET && CONFIGURED_TELEGRAM_WEBHOOK_SECRET !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn("TELEGRAM_WEBHOOK_SECRET contains characters Telegram does not allow; using a generated secret instead");
+    }
     console.log(`TechGear server running at http://localhost:${PORT}`);
     console.log(`Admin panel: http://localhost:${PORT}/admin`);
     console.log(`Storage mode: ${storage.mode}`);
-    if (!ADMIN_AUTH_ENABLED) {
-      console.warn("Admin login is disabled: set ADMIN_PASSWORD to enable /admin access");
-    }
+    adminAuth.logStartupWarnings();
   });
 }
 

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "smoke": "node scripts/smoke.js"
+    "smoke": "node scripts/smoke.js",
+    "start:local": "powershell -NoProfile -ExecutionPolicy Bypass -File ./start-local.ps1"
   }
 }

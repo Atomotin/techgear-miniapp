@@ -4,6 +4,7 @@ const http = require("http");
 const net = require("net");
 const path = require("path");
 const { spawn } = require("child_process");
+const crypto = require("crypto");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const SERVER_PATH = path.join(ROOT_DIR, "server.js");
@@ -12,6 +13,18 @@ const CUSTOMERS_PATH = path.join(ROOT_DIR, "data", "customers.json");
 const BANNERS_PATH = path.join(ROOT_DIR, "data", "banners.json");
 const SETTINGS_PATH = path.join(ROOT_DIR, "data", "settings.json");
 const SMOKE_PASSWORD = "smoke-admin-password";
+const SMOKE_BOT_TOKEN = "123456:smoke-test-bot-token";
+
+function buildSignedInitData(user, botToken = SMOKE_BOT_TOKEN, authDate = Math.floor(Date.now() / 1000)) {
+  const params = new URLSearchParams();
+  params.set("auth_date", String(authDate));
+  params.set("query_id", "smoke-query");
+  params.set("user", JSON.stringify(user));
+  const dataCheckString = [...params.entries()].map(([key, value]) => `${key}=${value}`).sort().join("\n");
+  const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+  params.set("hash", crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex"));
+  return params.toString();
+}
 const BULLET_SEPARATOR = " \u2022 ";
 
 function delay(ms) {
@@ -62,7 +75,8 @@ function restoreFile(filePath, snapshot) {
 
 function request({ port, method = "GET", pathname = "/", headers = {}, body = null }) {
   return new Promise((resolve, reject) => {
-    const payload = body == null ? null : Buffer.from(JSON.stringify(body));
+    const isRawBody = Buffer.isBuffer(body);
+    const payload = body == null ? null : (isRawBody ? body : Buffer.from(JSON.stringify(body)));
     const req = http.request(
       {
         hostname: "127.0.0.1",
@@ -71,7 +85,7 @@ function request({ port, method = "GET", pathname = "/", headers = {}, body = nu
         method,
         headers: {
           ...(payload ? {
-            "Content-Type": "application/json",
+            ...(isRawBody ? {} : { "Content-Type": "application/json" }),
             "Content-Length": String(payload.length)
           } : {}),
           ...headers
@@ -222,11 +236,23 @@ async function stopServer(child) {
   }
 }
 
+const DATA_DIR = path.join(ROOT_DIR, "data");
+const CATALOG_PATH = path.join(ROOT_DIR, "data", "catalog.json");
+const SNAPSHOT_PATHS = [ORDERS_PATH, CUSTOMERS_PATH, BANNERS_PATH, SETTINGS_PATH, CATALOG_PATH]
+  .flatMap((filePath) => [filePath, `${filePath}.bak`]);
+
+function listDataArtifacts() {
+  return fs.readdirSync(DATA_DIR).filter((name) => /\.corrupt-\d+$|\.tmp$/.test(name));
+}
+
+const IMAGES_DIR = path.join(ROOT_DIR, "images.img");
+function listSmokeUploads() {
+  return fs.existsSync(IMAGES_DIR) ? fs.readdirSync(IMAGES_DIR).filter((name) => /^\d+-smoke-pixel\.png$/.test(name)) : [];
+}
+
 async function main() {
-  const ordersSnapshot = snapshotFile(ORDERS_PATH);
-  const customersSnapshot = snapshotFile(CUSTOMERS_PATH);
-  const bannersSnapshot = snapshotFile(BANNERS_PATH);
-  const settingsSnapshot = snapshotFile(SETTINGS_PATH);
+  const snapshots = SNAPSHOT_PATHS.map((filePath) => [filePath, snapshotFile(filePath)]);
+  const artifactsBefore = new Set(listDataArtifacts());
   const port = await getFreePort();
   const child = spawn(process.execPath, [SERVER_PATH], {
     cwd: ROOT_DIR,
@@ -235,8 +261,10 @@ async function main() {
       HOST: "127.0.0.1",
       PORT: String(port),
       ADMIN_PASSWORD: SMOKE_PASSWORD,
+      ADMIN_SECRET: "smoke-admin-token-secret",
       PUBLIC_BASE_URL: "",
-      TELEGRAM_BOT_TOKEN: "",
+      TRUST_PROXY: "true",
+      TELEGRAM_BOT_TOKEN: SMOKE_BOT_TOKEN,
       TELEGRAM_MANAGER_CHAT_ID: "",
       TELEGRAM_MANAGER_CHAT_IDS: "",
       NODE_ENV: process.env.NODE_ENV || "development"
@@ -306,6 +334,56 @@ async function main() {
     assert.ok(normalizeString(loginResponse.body && loginResponse.body.token), "Admin login should return a token");
 
     const adminToken = String(loginResponse.body.token);
+
+    // --- Admin login brute-force protection and logout ---
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const response = await request({
+        port,
+        method: "POST",
+        pathname: "/api/admin/login",
+        headers: { "X-Forwarded-For": "10.0.3.1" },
+        body: { password: `wrong-${attempt}` }
+      });
+      assert.equal(response.statusCode, 401, `Wrong admin password attempt ${attempt} should return 401`);
+    }
+    const blockedLoginResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/login",
+      headers: { "X-Forwarded-For": "10.0.3.1" },
+      body: { password: "wrong-6" }
+    });
+    assert.equal(blockedLoginResponse.statusCode, 429, "6th wrong admin password from one IP should return 429");
+    const blockedCorrectLoginResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/login",
+      headers: { "X-Forwarded-For": "10.0.3.1" },
+      body: { password: SMOKE_PASSWORD }
+    });
+    assert.equal(blockedCorrectLoginResponse.statusCode, 429, "Correct password from a blocked IP should still return 429");
+
+    const throwawayLoginResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/login",
+      headers: { "X-Forwarded-For": "10.0.3.2" },
+      body: { password: SMOKE_PASSWORD }
+    });
+    const throwawayToken = String(throwawayLoginResponse.body && throwawayLoginResponse.body.token);
+    const logoutResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/logout",
+      headers: { Authorization: `Bearer ${throwawayToken}` }
+    });
+    assert.equal(logoutResponse.statusCode, 200, "Admin logout should return 200");
+    const afterLogoutResponse = await request({
+      port,
+      pathname: "/api/admin/orders",
+      headers: { Authorization: `Bearer ${throwawayToken}` }
+    });
+    assert.equal(afterLogoutResponse.statusCode, 401, "Token should stop working after logout");
     const adminOrdersBeforeResponse = await request({
       port,
       pathname: "/api/admin/orders",
@@ -365,12 +443,156 @@ async function main() {
     });
     assert.equal(createOrderResponse.statusCode, 201, "Valid order should return 201");
     assert.ok(Number.isFinite(Number(createOrderResponse.body && createOrderResponse.body.orderId)), "Valid order should return orderId");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification), "object", "Valid order should return notification metadata");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.sent), "boolean", "Notification metadata should include sent flag");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.customer), "object", "Notification metadata should include customer delivery result");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.manager), "object", "Notification metadata should include manager delivery result");
+    assert.equal(createOrderResponse.body && createOrderResponse.body.notification, undefined, "Order response must not expose notification details (manager chat IDs)");
+    // Notifications run in the background; give them a moment to persist the snapshot.
+    await delay(300);
+
+    const idempotencyKey = "smoke-idempotency-key-0001";
+    const idempotentOrderBody = { name: "Ali", phone: "+998900001122", delivery: "Idempotent street", items: [{ id: product.id, qty: 1, variant: validVariant }], total: 0 };
+    const firstAttemptResponse = await request({ port, method: "POST", pathname: "/api/orders", headers: { "X-Idempotency-Key": idempotencyKey, "X-Forwarded-For": "10.0.4.1" }, body: idempotentOrderBody });
+    const retryAttemptResponse = await request({ port, method: "POST", pathname: "/api/orders", headers: { "X-Idempotency-Key": idempotencyKey, "X-Forwarded-For": "10.0.4.1" }, body: idempotentOrderBody });
+    assert.equal(firstAttemptResponse.statusCode, 201, "First attempt with idempotency key should return 201");
+    assert.equal(retryAttemptResponse.statusCode, 201, "Retry with the same idempotency key should return 201");
+    assert.equal(retryAttemptResponse.body.orderId, firstAttemptResponse.body.orderId, "Retry with the same idempotency key must return the same order, not a duplicate");
+    assert.equal(retryAttemptResponse.body.duplicate, true, "Retry should be marked as duplicate");
+
+    const parallelOrderResponses = await Promise.all(["10.0.5.1", "10.0.5.2", "10.0.5.3"].map((ip) => request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": ip },
+      body: { name: "Ali", phone: "+998900001122", delivery: "Parallel street", items: [{ id: product.id, qty: 1, variant: validVariant }], total: 0 }
+    })));
+    const parallelOrderIds = parallelOrderResponses.map((response) => response.body && response.body.orderId);
+    assert.equal(new Set(parallelOrderIds).size, 3, `Parallel orders must get unique IDs, got ${parallelOrderIds.join(", ")}`);
+
+    const splitQtyResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.5.4" },
+      body: {
+        name: "Ali",
+        phone: "+998900001122",
+        delivery: "Split street",
+        items: Array.from({ length: 3 }, () => ({ id: product.id, qty: 10, variant: validVariant })),
+        total: 0
+      }
+    });
+    assert.equal(splitQtyResponse.statusCode, 400, "Same item split across lines above the per-item limit should return 400");
 
     const createdOrderId = Number(createOrderResponse.body.orderId);
+
+    // --- Telegram identity checks ---
+    const smokeTelegramUser = { id: 777000111, username: "smoke_user", first_name: "Smoke" };
+    const signedInitData = buildSignedInitData(smokeTelegramUser);
+
+    const profileNoAuthResponse = await request({ port, pathname: "/api/profile?telegramId=123456" });
+    assert.equal(profileNoAuthResponse.statusCode, 401, "GET /api/profile without initData should return 401");
+
+    const profileByPhoneResponse = await request({ port, pathname: "/api/profile?phone=%2B998900001122" });
+    assert.equal(profileByPhoneResponse.statusCode, 401, "GET /api/profile by phone should return 401");
+
+    const forgedProfileResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/profile",
+      body: { telegramId: "123456", name: "Attacker", phone: "+998901111111" }
+    });
+    assert.equal(forgedProfileResponse.statusCode, 401, "POST /api/profile without initData should return 401");
+
+    const tamperedInitData = signedInitData.replace(encodeURIComponent('"id":777000111'), encodeURIComponent('"id":123456'));
+    assert.notEqual(tamperedInitData, signedInitData, "Tampered initData should differ from the signed one");
+    const tamperedProfileResponse = await request({
+      port,
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": tamperedInitData }
+    });
+    assert.equal(tamperedProfileResponse.statusCode, 401, "Tampered initData should return 401");
+
+    const expiredProfileResponse = await request({
+      port,
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": buildSignedInitData(smokeTelegramUser, SMOKE_BOT_TOKEN, Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60) }
+    });
+    assert.equal(expiredProfileResponse.statusCode, 401, "Expired initData should return 401");
+
+    const signedProfileSaveResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": signedInitData },
+      body: { telegramId: "123456", name: "Smoke", phone: "+998902222222", delivery: "Smoke street" }
+    });
+    assert.equal(signedProfileSaveResponse.statusCode, 200, "POST /api/profile with valid initData should return 200");
+    assert.equal(
+      String(signedProfileSaveResponse.body && signedProfileSaveResponse.body.customer && signedProfileSaveResponse.body.customer.telegramId),
+      String(smokeTelegramUser.id),
+      "Profile should be saved under the verified Telegram ID, not the one in the body"
+    );
+
+    const signedProfileLoadResponse = await request({
+      port,
+      pathname: "/api/profile",
+      headers: { "X-Telegram-Init-Data": signedInitData }
+    });
+    assert.equal(signedProfileLoadResponse.statusCode, 200, "GET /api/profile with valid initData should return 200");
+    assert.equal(
+      signedProfileLoadResponse.body && signedProfileLoadResponse.body.customer && signedProfileLoadResponse.body.customer.phone,
+      "+998902222222",
+      "GET /api/profile should return the verified user's own profile"
+    );
+
+    const signedOrderResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Telegram-Init-Data": signedInitData },
+      body: {
+        name: "Smoke",
+        phone: "+998902222222",
+        delivery: "Smoke street",
+        telegram: { id: "123456" },
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(signedOrderResponse.statusCode, 201, "Order with valid initData should return 201");
+
+    const overwriteAttemptResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      body: {
+        name: "Attacker",
+        phone: "+998900001122",
+        delivery: "Attacker address",
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(overwriteAttemptResponse.statusCode, 201, "Order without Telegram should still be accepted");
+
+    const identityOrdersResponse = await request({
+      port,
+      pathname: "/api/admin/orders",
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const identityOrders = (identityOrdersResponse.body && identityOrdersResponse.body.orders) || [];
+    const forgedTelegramOrder = identityOrders.find((item) => Number(item && item.id) === createdOrderId);
+    assert.equal(normalizeString(forgedTelegramOrder && forgedTelegramOrder.telegram && forgedTelegramOrder.telegram.id), "", "Telegram ID from the request body must be ignored");
+    const signedOrder = identityOrders.find((item) => Number(item && item.id) === Number(signedOrderResponse.body.orderId));
+    assert.equal(String(signedOrder && signedOrder.telegram && signedOrder.telegram.id), String(smokeTelegramUser.id), "Order should use the verified Telegram ID");
+
+    const identityCustomersResponse = await request({
+      port,
+      pathname: "/api/admin/customers",
+      headers: { Authorization: `Bearer ${adminToken}` }
+    });
+    const identityCustomers = (identityCustomersResponse.body && identityCustomersResponse.body.customers) || [];
+    const phoneCustomer = identityCustomers.find((item) => item && item.key === "phone:+998900001122");
+    assert.ok(phoneCustomer, "Order without Telegram should create a phone-keyed customer");
+    assert.equal(phoneCustomer.name, "Ali", "Order without Telegram must not overwrite an existing customer profile");
     const adminOrdersAfterResponse = await request({
       port,
       pathname: "/api/admin/orders",
@@ -447,6 +669,152 @@ async function main() {
       assert.equal(invalidVariantResponse.statusCode, 400, "Order with invalid variant should return 400");
     }
 
+    // --- Upload validation ---
+    const svgUploadResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/uploads?filename=evil.svg",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "image/svg+xml" },
+      body: Buffer.from("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>")
+    });
+    assert.equal(svgUploadResponse.statusCode, 400, "SVG upload should be rejected");
+
+    const fakePngUploadResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/uploads?filename=fake.png",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "image/png" },
+      body: Buffer.from("<html><script>alert(1)</script></html>")
+    });
+    assert.equal(fakePngUploadResponse.statusCode, 400, "Upload whose bytes do not match its type should be rejected");
+
+    const tinyPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    const pngUploadResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/uploads?filename=smoke-pixel.png",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "image/png" },
+      body: tinyPng
+    });
+    assert.equal(pngUploadResponse.statusCode, 201, "Real PNG upload should succeed");
+    const uploadedPath = String(pngUploadResponse.body && pngUploadResponse.body.path || "");
+    try {
+      const uploadedFileResponse = await request({ port, pathname: `/${uploadedPath}` });
+      assert.equal(uploadedFileResponse.statusCode, 200, "Uploaded file should be served");
+      assert.match(String(uploadedFileResponse.headers["content-security-policy"] || ""), /sandbox/, "Uploaded media should be served with a sandbox CSP");
+    } finally {
+      if (uploadedPath.startsWith("images.img/")) fs.rmSync(path.join(ROOT_DIR, uploadedPath), { force: true });
+    }
+
+    // --- Banner links and product IDs are sanitized ---
+    const unsafeBannerResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/banners",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: { title: "Smoke banner", image: "images.img/x.jpg", actionType: "link", actionValue: "javascript:alert(1)" }
+    });
+    assert.equal(unsafeBannerResponse.statusCode, 201, "Banner create should return 201");
+    const unsafeBanner = (unsafeBannerResponse.body.banners || []).find((banner) => banner.title === "Smoke banner");
+    assert.ok(unsafeBanner, "Created banner should be listed");
+    assert.notEqual(unsafeBanner.actionType, "link", "javascript: banner link must be dropped");
+    assert.ok(!String(unsafeBanner.actionValue || "").includes("javascript"), "javascript: URL must not be stored");
+
+    const existingProductId = Number(product.id);
+    const duplicateIdProductResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/products",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: { id: existingProductId, name: "Smoke duplicate id", category: product.category || "all", price: 1 }
+    });
+    assert.equal(duplicateIdProductResponse.statusCode, 201, "Product create should return 201");
+    const catalogAfterCreate = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8"));
+    const productsWithExistingId = catalogAfterCreate.products.filter((item) => Number(item.id) === existingProductId);
+    assert.equal(productsWithExistingId.length, 1, "Client-sent product id must not create a duplicate ID");
+
+    // --- Order spam protection ---
+    const crossSiteFormResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "Content-Type": "text/plain", "X-Forwarded-For": "10.0.2.1" },
+      body: { name: "Ali", phone: "+998900001122", delivery: "x", items: [{ id: product.id, qty: 1, variant: validVariant }] }
+    });
+    assert.equal(crossSiteFormResponse.statusCode, 415, "Order sent as text/plain (cross-site form) should return 415");
+
+    const oversizedOrderResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.2.2" },
+      body: { name: "Ali", phone: "+998900001122", delivery: "x", comment: "a".repeat(70 * 1024), items: [{ id: product.id, qty: 1, variant: validVariant }] }
+    }).catch((error) => ({ statusCode: 413, error }));
+    assert.equal(oversizedOrderResponse.statusCode, 413, "Order body over 64 KB should return 413");
+
+    let rateLimitedResponse = null;
+    for (let attempt = 1; attempt <= 6; attempt += 1) {
+      const response = await request({
+        port,
+        method: "POST",
+        pathname: "/api/orders",
+        headers: { "X-Forwarded-For": "10.0.2.3" },
+        body: { name: "Ali", phone: "+998900001122", delivery: "Rate limit street", items: [{ id: product.id, qty: 1, variant: validVariant }], total: 0 }
+      });
+      if (attempt <= 5) {
+        assert.equal(response.statusCode, 201, `Order ${attempt} from one IP should be accepted`);
+      } else {
+        rateLimitedResponse = response;
+      }
+    }
+    assert.equal(rateLimitedResponse.statusCode, 429, "6th order from one IP within 10 minutes should return 429");
+    assert.ok(Number(rateLimitedResponse.headers["retry-after"]) > 0, "429 should include Retry-After");
+
+    // --- Corrupt data file must not wipe order history ---
+    await delay(300); // let background notification snapshots finish writing
+    const ordersBeforeCorruption = JSON.parse(fs.readFileSync(ORDERS_PATH, "utf8"));
+    assert.ok(ordersBeforeCorruption.length >= 2, "Smoke should have created orders before the corruption check");
+    fs.writeFileSync(ORDERS_PATH, "[{\"id\": 1, \"broken", "utf8");
+    const orderAfterCorruptionResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.1.1" },
+      body: {
+        name: "Ali",
+        phone: "+998900001122",
+        delivery: "Tashkent smoke address",
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(orderAfterCorruptionResponse.statusCode, 201, "Order after corruption should recover from backup and return 201");
+    const ordersAfterCorruption = JSON.parse(fs.readFileSync(ORDERS_PATH, "utf8"));
+    assert.ok(
+      ordersAfterCorruption.length >= ordersBeforeCorruption.length,
+      "Corrupt orders.json must be recovered from backup, not replaced with an empty list"
+    );
+    assert.ok(listDataArtifacts().some((name) => name.startsWith("orders.json.corrupt-")), "A copy of the corrupt file should be kept");
+
+    await delay(300); // let background notification snapshots finish writing
+    fs.writeFileSync(ORDERS_PATH, "not json", "utf8");
+    fs.writeFileSync(`${ORDERS_PATH}.bak`, "not json either", "utf8");
+    const orderWithoutBackupResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.1.2" },
+      body: {
+        name: "Ali",
+        phone: "+998900001122",
+        delivery: "Tashkent smoke address",
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(orderWithoutBackupResponse.statusCode, 500, "Order must be refused when orders.json is corrupt and has no usable backup");
+    assert.equal(fs.readFileSync(ORDERS_PATH, "utf8"), "not json", "Corrupt orders.json must not be overwritten");
+
     console.log("Smoke checks passed");
     console.log(`Server: http://127.0.0.1:${port}`);
     console.log("Checked: /, /admin, /api/health, /api/catalog/public, paged catalog feed, catalog ids lookup, admin login, catalog import preview, trusted order create, invalid order validation");
@@ -462,10 +830,11 @@ async function main() {
     process.exitCode = 1;
   } finally {
     await stopServer(child);
-    restoreFile(ORDERS_PATH, ordersSnapshot);
-    restoreFile(CUSTOMERS_PATH, customersSnapshot);
-    restoreFile(BANNERS_PATH, bannersSnapshot);
-    restoreFile(SETTINGS_PATH, settingsSnapshot);
+    snapshots.forEach(([filePath, snapshot]) => restoreFile(filePath, snapshot));
+    listDataArtifacts()
+      .filter((name) => !artifactsBefore.has(name))
+      .forEach((name) => fs.rmSync(path.join(DATA_DIR, name), { force: true }));
+    listSmokeUploads().forEach((name) => fs.rmSync(path.join(IMAGES_DIR, name), { force: true }));
   }
 }
 

@@ -111,7 +111,7 @@ function createLocalStorageProvider() {
     return normalized;
   }
 
-  function upsertCustomerProfile(payload) {
+  function upsertCustomerProfile(payload, { overwrite = true } = {}) {
     const profile = sanitizeCustomerProfile(payload);
     if (!profile.key) {
       throw createHttpError(400, "Некорректный профиль клиента");
@@ -119,6 +119,10 @@ function createLocalStorageProvider() {
 
     const customers = getCustomers();
     const existingIndex = customers.findIndex((item) => item.key === profile.key);
+
+    if (existingIndex >= 0 && !overwrite) {
+      return customers[existingIndex];
+    }
 
     if (existingIndex >= 0) {
       const existing = customers[existingIndex];
@@ -217,16 +221,19 @@ function createLocalStorageProvider() {
     async upsertCustomerProfile(payload) {
       return upsertCustomerProfile(payload);
     },
-    async createOrder(payload, req) {
+    async createOrder(payload, req, { telegramVerified = false } = {}) {
       const orders = getOrders();
-      const order = buildOrderRecord(payload, req);
+      const maxExistingId = orders.reduce((max, item) => Math.max(max, Number(item?.id) || 0), 0);
+      const order = buildOrderRecord(payload, req, { minId: maxExistingId + 1 });
       orders.unshift(order);
       saveOrders(orders);
+      // Without a verified Telegram identity the profile key falls back to the
+      // phone number, so only create a new profile and never overwrite one.
       upsertCustomerProfile({
         ...order.customer,
         telegramId: order.telegram?.id,
         telegram: order.telegram
-      });
+      }, { overwrite: telegramVerified });
       return order;
     },
     async updateOrderStatus(orderId, status, options = {}) {
@@ -310,7 +317,10 @@ function createLocalStorageProvider() {
     async createProduct(body) {
       const catalog = getCatalog();
       const nextId = catalog.products.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
-      const product = sanitizeProduct(body, nextId);
+      // Always assign the ID on the server; a client-sent id could duplicate
+      // an existing product.
+      const { id: ignoredClientId, ...productFields } = body && typeof body === "object" ? body : {};
+      const product = sanitizeProduct(productFields, nextId);
 
       if (!product.name || !product.category) {
         throw createHttpError(400, "У товара должны быть name и category");

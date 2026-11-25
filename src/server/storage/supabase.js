@@ -55,19 +55,27 @@ function parseSupabaseError(payload, response) {
     }
   }
 
-  return createHttpError(response.status || 500, payload?.message || payload?.error || "Supabase request failed");
+  // Keep the PostgREST message for logs and fallback checks, but never send
+  // it to clients: it reveals table and column details.
+  return createInternalHttpError(response.status || 500, payload?.message || payload?.error || "Supabase request failed");
+}
+
+function createInternalHttpError(statusCode, message) {
+  const error = createHttpError(statusCode, message);
+  error.expose = false;
+  return error;
 }
 
 function parseSupabaseStorageError(payload, response) {
   if (payload && typeof payload === "object") {
     const statusCode = response?.status || 500;
-    return createHttpError(
+    return createInternalHttpError(
       statusCode,
       payload.message || payload.error || payload.msg || "Supabase Storage request failed"
     );
   }
 
-  return createHttpError(response?.status || 500, "Supabase Storage request failed");
+  return createInternalHttpError(response?.status || 500, "Supabase Storage request failed");
 }
 
 function isMissingBucketError(error) {
@@ -538,7 +546,7 @@ function createSupabaseStorageProvider() {
         throw error;
       }
     },
-    async upsertCustomerProfile(payload) {
+    async upsertCustomerProfile(payload, { overwrite = true } = {}) {
       const profile = sanitizeCustomerProfile(payload);
       if (!profile.key) {
         throw createHttpError(400, "Некорректный профиль клиента");
@@ -547,29 +555,44 @@ function createSupabaseStorageProvider() {
       try {
         const rows = await supabaseRequest("POST", "customers", {
           body: [customerModelToRow(profile, { includeKey: true })],
-          prefer: "return=representation,resolution=merge-duplicates"
+          prefer: `return=representation,resolution=${overwrite ? "merge-duplicates" : "ignore-duplicates"}`
         });
 
-        return customerRowToModel(Array.isArray(rows) ? rows[0] : rows);
+        const row = Array.isArray(rows) ? rows[0] : rows;
+        // ignore-duplicates returns no row when the profile already exists.
+        return row ? customerRowToModel(row) : null;
       } catch (error) {
         if (shouldUseCustomerFallback(error)) {
-          return upsertFallbackCustomerProfile(profile);
+          return upsertFallbackCustomerProfile(profile, { overwrite });
         }
         throw error;
       }
     },
-    async createOrder(payload, req) {
-      const order = buildOrderRecord(payload, req);
-      const rows = await supabaseRequest("POST", "orders", {
-        body: [orderModelToRow(order, { includeId: true })],
-        prefer: "return=representation"
-      });
+    async createOrder(payload, req, { telegramVerified = false } = {}) {
+      // IDs are unique within this process; retry with a new one if another
+      // instance already used it (409 duplicate key).
+      let order;
+      let rows;
+      for (let attempt = 1; ; attempt += 1) {
+        order = buildOrderRecord(payload, req);
+        try {
+          rows = await supabaseRequest("POST", "orders", {
+            body: [orderModelToRow(order, { includeId: true })],
+            prefer: "return=representation"
+          });
+          break;
+        } catch (error) {
+          if (error?.statusCode !== 409 || attempt >= 3) throw error;
+        }
+      }
 
+      // Without a verified Telegram identity the profile key falls back to the
+      // phone number, so only create a new profile and never overwrite one.
       await this.upsertCustomerProfile({
         ...order.customer,
         telegramId: order.telegram?.id,
         telegram: order.telegram
-      });
+      }, { overwrite: telegramVerified });
 
       return orderRowToModel(Array.isArray(rows) ? rows[0] : rows);
     },

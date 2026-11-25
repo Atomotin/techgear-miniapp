@@ -137,16 +137,16 @@ function ensureProfileNavigation() {
         throw new Error("В имени нельзя цифры и эмодзи");
       }
 
-      const telegramUser = getTelegramUser();
+      // Outside Telegram there is no verified identity: keep the profile on this device only.
+      if (!getTelegramInitData()) return;
+
       const response = await fetch("/api/profile", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...getTelegramAuthHeaders()
         },
-        body: JSON.stringify({
-          ...state.profile,
-          telegramId: telegramUser?.id ? String(telegramUser.id) : ""
-        })
+        body: JSON.stringify(state.profile)
       });
 
       const data = await response.json().catch(() => ({}));
@@ -161,15 +161,12 @@ function ensureProfileNavigation() {
     }
 
     async function loadProfileFromServer() {
-      const telegramUser = getTelegramUser();
-      const query = new URLSearchParams();
-      if (telegramUser?.id) query.set("telegramId", String(telegramUser.id));
-      if (state.profile.phone) query.set("phone", state.profile.phone);
-      if (state.profile.username) query.set("username", state.profile.username);
-      if (!query.toString()) return;
+      if (!getTelegramInitData()) return;
 
       try {
-        const response = await fetch(`/api/profile?${query.toString()}`);
+        const response = await fetch("/api/profile", {
+          headers: getTelegramAuthHeaders()
+        });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.customer) return;
 
@@ -241,6 +238,7 @@ function ensureProfileNavigation() {
       } else if (view === "cart") {
         cartView?.classList.remove("hidden");
         cartBtn?.classList.add("active");
+        void syncCartWithServer();
       } else if (view === "profile") {
         profileView?.classList.remove("hidden");
         profileBtn?.classList.add("active");
@@ -321,6 +319,7 @@ function ensureProfileNavigation() {
         renderCategories();
         renderProducts();
         renderFavorites();
+        void syncCartWithServer();
       });
 
       if (!state.profile.name && !state.profile.phone && !state.profile.username && !state.profile.delivery) {

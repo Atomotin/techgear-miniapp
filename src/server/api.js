@@ -6,6 +6,9 @@ const { createAdminRouteHandler } = require("./routes/admin");
 
 function createApiHandler({
   storage,
+  getVerifiedTelegramUser,
+  resolveClientIp,
+  rateLimiters,
   sendJson,
   readBody,
   normalizeString,
@@ -13,9 +16,9 @@ function createApiHandler({
   sanitizeCustomerProfile,
   validateCustomerProfile,
   validateOrderPayload,
-  adminPassword,
   adminAuthEnabled,
-  createToken,
+  adminAuth,
+  getAuthToken,
   ensureAdmin,
   saveAdminUpload,
   supabaseEnabled,
@@ -48,15 +51,20 @@ function createApiHandler({
       sendJson,
       readBody,
       validateOrderPayload,
-      notifyOrderCreated
+      notifyOrderCreated,
+      getVerifiedTelegramUser,
+      resolveClientIp,
+      rateLimiters
     }),
     createProfileRouteHandler({
       storage,
       sendJson,
       readBody,
-      normalizeString,
       sanitizeCustomerProfile,
-      validateCustomerProfile
+      validateCustomerProfile,
+      getVerifiedTelegramUser,
+      resolveClientIp,
+      rateLimiters
     }),
     createAdminRouteHandler({
       storage,
@@ -64,9 +72,10 @@ function createApiHandler({
       readBody,
       normalizeString,
       sanitizeLongText,
-      adminPassword,
       adminAuthEnabled,
-      createToken,
+      adminAuth,
+      getAuthToken,
+      resolveClientIp,
       ensureAdmin,
       saveAdminUpload,
       requirePersistentAdminStorage,

@@ -3,11 +3,93 @@ function createOrdersRouteHandler({
   sendJson,
   readBody,
   validateOrderPayload,
-  notifyOrderCreated
+  notifyOrderCreated,
+  getVerifiedTelegramUser,
+  resolveClientIp,
+  rateLimiters = {}
 }) {
+  const MAX_ORDER_BODY_BYTES = 64 * 1024;
+  const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+  const MAX_IDEMPOTENCY_ENTRIES = 5000;
+  const idempotentOrders = new Map(); // key -> { orderIdPromise, expiresAt }
+
+  function readIdempotencyKey(req) {
+    const header = req.headers["x-idempotency-key"];
+    const value = String(Array.isArray(header) ? header[0] : header || "").trim();
+    return /^[A-Za-z0-9_-]{16,100}$/.test(value) ? value : "";
+  }
+
+  function pruneIdempotentOrders(now = Date.now()) {
+    for (const [key, entry] of idempotentOrders) {
+      if (entry.expiresAt <= now) idempotentOrders.delete(key);
+    }
+    while (idempotentOrders.size > MAX_IDEMPOTENCY_ENTRIES) {
+      idempotentOrders.delete(idempotentOrders.keys().next().value);
+    }
+  }
+
+  function rememberIdempotentOrder(key, orderIdPromise) {
+    pruneIdempotentOrders();
+    idempotentOrders.set(key, { orderIdPromise, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+    orderIdPromise.catch(() => idempotentOrders.delete(key));
+  }
+
+  async function findIdempotentOrder(key) {
+    const entry = idempotentOrders.get(key);
+    if (!entry || entry.expiresAt <= Date.now()) return null;
+    try {
+      return await entry.orderIdPromise;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function sendCreationNotificationInBackground(order) {
+    (async () => {
+      let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+
+      if (typeof notifyOrderCreated === "function") {
+        try {
+          notification = await notifyOrderCreated(order);
+        } catch (notifyError) {
+          console.error(`Failed to send Telegram creation notification for order #${order.id}:`, notifyError);
+          notification = {
+            sent: false,
+            skipped: false,
+            error: notifyError?.message || "notification_failed"
+          };
+        }
+      }
+
+      if (typeof storage.updateOrderRequestMeta === "function") {
+        await storage.updateOrderRequestMeta(order.id, {
+          telegramCreationNotification: buildOrderCreationNotificationSnapshot(notification)
+        });
+      }
+    })().catch((error) => {
+      console.error(`Failed to save Telegram notification snapshot for order #${order.id}:`, error);
+    });
+  }
+
+  function checkOrderRateLimit(req, telegramUser) {
+    const ip = typeof resolveClientIp === "function" ? resolveClientIp(req) : "";
+    const checks = [
+      [rateLimiters.ordersPerIp, `ip:${ip}`],
+      [rateLimiters.ordersPerIpDaily, `ip:${ip}`],
+      telegramUser ? [rateLimiters.ordersPerTelegramUser, `tg:${telegramUser.id}`] : null
+    ].filter((check) => check && check[0]);
+
+    for (const [limiter, key] of checks) {
+      const result = limiter.consume(key);
+      if (!result.allowed) return result;
+    }
+
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
   const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
   const MAX_ORDER_LINES = 24;
   const MAX_ITEM_QTY = 20;
+  const MAX_ORDER_UNITS = 100;
 
   function normalizeOrderVariant(value) {
     return String(value || "").trim().slice(0, 160);
@@ -153,14 +235,35 @@ function createOrdersRouteHandler({
       }
 
       const trustedPrice = Number(product.price) || 0;
-      trustedItems.push({
-        id: productId,
-        name: String(product.name || "").trim(),
-        qty,
-        variant: productVariantGroups.length > 0 ? normalizedVariant : "",
-        price: trustedPrice
-      });
+      const trustedVariant = productVariantGroups.length > 0 ? normalizedVariant : "";
+
+      // Merge repeated lines of the same product and variant, so the per-item
+      // limit cannot be bypassed by sending the same item on many lines.
+      const existingItem = trustedItems.find((entry) => entry.id === productId && entry.variant === trustedVariant);
+      if (existingItem) {
+        existingItem.qty += qty;
+        if (existingItem.qty > MAX_ITEM_QTY) {
+          return {
+            error: `Слишком большое количество для товара "${product.name || "без названия"}". Максимум: ${MAX_ITEM_QTY}`
+          };
+        }
+      } else {
+        trustedItems.push({
+          id: productId,
+          name: String(product.name || "").trim(),
+          qty,
+          variant: trustedVariant,
+          price: trustedPrice
+        });
+      }
       trustedTotal += trustedPrice * qty;
+    }
+
+    const totalUnits = trustedItems.reduce((sum, entry) => sum + entry.qty, 0);
+    if (totalUnits > MAX_ORDER_UNITS) {
+      return {
+        error: `Слишком много товаров в одном заказе. Максимум: ${MAX_ORDER_UNITS} шт.`
+      };
     }
 
     return {
@@ -175,7 +278,11 @@ function createOrdersRouteHandler({
       return false;
     }
 
-    const body = await readBody(req);
+    const body = await readBody(req, { maxSize: MAX_ORDER_BODY_BYTES });
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      sendJson(res, 400, { error: "Некорректный заказ" });
+      return true;
+    }
     const error = validateOrderPayload(body);
 
     if (error) {
@@ -189,29 +296,45 @@ function createOrdersRouteHandler({
       return true;
     }
 
-    let order = await storage.createOrder(trustedPayload, req);
-    let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+    // Never trust a Telegram identity sent in the body: it decides which chat
+    // the bot messages and which customer profile the order is linked to.
+    const telegramUser = typeof getVerifiedTelegramUser === "function" ? getVerifiedTelegramUser(req) : null;
+    trustedPayload.telegram = telegramUser || {};
+    delete trustedPayload.telegramId;
 
-    if (typeof notifyOrderCreated === "function") {
-      try {
-        notification = await notifyOrderCreated(order);
-      } catch (notifyError) {
-        console.error(`Failed to send Telegram creation notification for order #${order.id}:`, notifyError);
-        notification = {
-          sent: false,
-          skipped: false,
-          error: notifyError?.message || "notification_failed"
-        };
+    // A retry of the same checkout (same idempotency key) returns the order
+    // that was already created instead of creating a duplicate.
+    const idempotencyKey = readIdempotencyKey(req);
+    if (idempotencyKey) {
+      const existingOrderId = await findIdempotentOrder(idempotencyKey);
+      if (existingOrderId) {
+        sendJson(res, 201, { ok: true, orderId: existingOrderId, duplicate: true });
+        return true;
       }
     }
 
-    if (typeof storage.updateOrderRequestMeta === "function") {
-      order = await storage.updateOrderRequestMeta(order.id, {
-        telegramCreationNotification: buildOrderCreationNotificationSnapshot(notification)
-      });
+    const rateLimit = checkOrderRateLimit(req, telegramUser);
+    if (!rateLimit.allowed) {
+      res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds));
+      sendJson(res, 429, { error: "Слишком много заказов подряд. Попробуйте позже или напишите менеджеру." });
+      return true;
     }
 
-    sendJson(res, 201, { ok: true, orderId: order.id, notification });
+    const creation = storage.createOrder(trustedPayload, req, {
+      telegramVerified: Boolean(telegramUser)
+    });
+    if (idempotencyKey) {
+      rememberIdempotentOrder(idempotencyKey, creation.then((created) => created.id));
+    }
+
+    const order = await creation;
+
+    // Answer right away. Notifications run in the background, so a slow or
+    // failing Telegram API can no longer turn a saved order into an error
+    // that makes the customer submit it again. The response carries no
+    // notification details (they included private manager chat IDs).
+    sendJson(res, 201, { ok: true, orderId: order.id, total: order.total });
+    sendCreationNotificationInBackground(order);
     return true;
   };
 }

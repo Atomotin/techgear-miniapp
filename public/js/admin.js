@@ -1882,6 +1882,13 @@
     function logout() {
       if (!confirmCurrentAdminSectionLeave("Выйти и потерять их")) return;
 
+      if (state.token) {
+        // Revoke on the server too, so a copied token stops working.
+        fetch("/api/admin/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${state.token}` }
+        }).catch(() => {});
+      }
       state.token = "";
       localStorage.removeItem("techgear_admin_token");
       document.getElementById("appView").classList.add("hidden");

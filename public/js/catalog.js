@@ -7,7 +7,7 @@ function buildPromoSlides() {
         .map((banner, index) => {
           const mapAction = (type, value) => {
             if (!type) return null;
-            if (type === "link") return value ? { type: "link", href: value } : null;
+            if (type === "link") return String(value || "").toLowerCase().startsWith("https://") ? { type: "link", href: value } : null;
             if (type === "category") return { type: "category", category: value || "all", sort: "manual" };
             if (type === "product") return { type: "product", productId: Number(value), sort: "manual" };
             return { type: "reset" };
@@ -61,8 +61,33 @@ function buildPromoSlides() {
     const productFeedState = {
       observer: null,
       autoLoading: false,
-      scrollHandler: null
+      scrollHandler: null,
+      // Back off after a failed page load: the sentinel stays on screen, so
+      // without this the observer would re-request the page in a tight loop.
+      failures: 0,
+      pausedUntil: 0,
+      retryTimerId: null
     };
+    const PRODUCT_FEED_MAX_AUTO_RETRIES = 5;
+
+    function handleProductFeedResult(ok) {
+      if (ok) {
+        productFeedState.failures = 0;
+        productFeedState.pausedUntil = 0;
+        return;
+      }
+
+      productFeedState.failures += 1;
+      const delay = Math.min(30000, 2000 * 2 ** (productFeedState.failures - 1));
+      productFeedState.pausedUntil = Date.now() + delay;
+
+      if (productFeedState.failures <= PRODUCT_FEED_MAX_AUTO_RETRIES && !productFeedState.retryTimerId) {
+        productFeedState.retryTimerId = setTimeout(() => {
+          productFeedState.retryTimerId = null;
+          loadNextProductPage(catalogPagination);
+        }, delay);
+      }
+    }
 
     function buildCatalogSkeletonCards(count = 4) {
       return Array.from({ length: count }, (_, index) => `
@@ -94,6 +119,13 @@ function buildPromoSlides() {
 
     function resetProductPage() {
       state.productPage = 1;
+      // A new search or filter starts a fresh feed: forget earlier failures.
+      productFeedState.failures = 0;
+      productFeedState.pausedUntil = 0;
+      if (productFeedState.retryTimerId) {
+        clearTimeout(productFeedState.retryTimerId);
+        productFeedState.retryTimerId = null;
+      }
     }
 
     function getProductPageCount(totalItems) {
@@ -146,7 +178,7 @@ function buildPromoSlides() {
         return false;
       }
 
-      if (productFeedState.autoLoading) {
+      if (productFeedState.autoLoading || Date.now() < productFeedState.pausedUntil) {
         return false;
       }
 
@@ -157,7 +189,7 @@ function buildPromoSlides() {
         void refreshCatalogFeed({
           append: true,
           page: paginationState.currentPage + 1
-        }).finally(() => {
+        }).then(handleProductFeedResult, () => handleProductFeedResult(false)).finally(() => {
           productFeedState.autoLoading = false;
           setProductFeedLoading(false);
         });
@@ -496,6 +528,18 @@ function buildPromoSlides() {
       const list = document.getElementById("productList");
       if (!list) return;
 
+      if (catalogLoadFailed && !normalizeProducts(PRODUCTS).length) {
+        list.innerHTML = `
+          <div class="empty-text empty-text-stack">
+            <strong>Не удалось загрузить каталог.</strong>
+            <span>Проверьте интернет. Мы попробуем ещё раз автоматически.</span>
+            <button class="btn btn-outline empty-reset-btn" type="button" data-retry-catalog>Повторить</button>
+          </div>
+        `;
+        list.querySelector("[data-retry-catalog]")?.addEventListener("click", () => retryCatalogLoad());
+        return;
+      }
+
       const hasProductsInCatalog = catalogUsesServerFeed
         ? Boolean(PRODUCT_CACHE.size || CATEGORIES.some((category) => category?.key && category.key !== "all"))
         : normalizeProducts(PRODUCTS).length > 0;
@@ -758,7 +802,15 @@ function buildPromoSlides() {
       const startAutoplay = () => {
         stopAutoplay();
         if (slides.length < 2) return;
-        autoplayId = setInterval(() => updateCarousel(currentIndex + 1), 3200);
+        autoplayId = setInterval(() => {
+          // Cards are rebuilt on every render; stop timers of removed cards
+          // instead of leaking one interval per card per render.
+          if (!carousel.isConnected) {
+            stopAutoplay();
+            return;
+          }
+          updateCarousel(currentIndex + 1);
+        }, 3200);
       };
 
       const stopAutoplay = () => {

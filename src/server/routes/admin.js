@@ -4,9 +4,10 @@ function createAdminRouteHandler({
   readBody,
   normalizeString,
   sanitizeLongText,
-  adminPassword,
   adminAuthEnabled,
-  createToken,
+  adminAuth,
+  getAuthToken,
+  resolveClientIp,
   ensureAdmin,
   saveAdminUpload,
   requirePersistentAdminStorage,
@@ -26,6 +27,20 @@ function createAdminRouteHandler({
       chatId: String(notification.chatId || "").trim(),
       status: String(notification.status || "").trim()
     };
+  }
+
+  // Serialize status changes per order: two quick clicks must not both read
+  // the old status and both notify the customer.
+  const orderLocks = new Map();
+  function withOrderLock(orderId, task) {
+    const previous = orderLocks.get(orderId) || Promise.resolve();
+    const current = previous.catch(() => {}).then(task);
+    const tail = current.catch(() => {});
+    orderLocks.set(orderId, tail);
+    tail.then(() => {
+      if (orderLocks.get(orderId) === tail) orderLocks.delete(orderId);
+    });
+    return current;
   }
 
   async function ensurePersistentStorage(res, areaKey, fallbackMessage) {
@@ -56,19 +71,33 @@ function createAdminRouteHandler({
     if (req.method === "POST" && url.pathname === "/api/admin/login") {
       if (!adminAuthEnabled) {
         sendJson(res, 503, {
-          error: "Админка отключена: задайте ADMIN_PASSWORD в переменных окружения и перезапустите сервер"
+          error: "Админка отключена: задайте надёжный ADMIN_PASSWORD (не значение из .env.example) и перезапустите сервер"
         });
         return true;
       }
 
-      const body = await readBody(req);
+      const body = await readBody(req, { maxSize: 4 * 1024 });
+      const clientIp = typeof resolveClientIp === "function" ? resolveClientIp(req) : "";
+      const result = adminAuth.attemptLogin(body?.password, clientIp);
 
-      if (normalizeString(body.password) !== adminPassword) {
+      if (result.status === 429) {
+        res.setHeader("Retry-After", String(result.retryAfterSeconds));
+        sendJson(res, 429, { error: "\u0421\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043f\u043e\u043f\u044b\u0442\u043e\u043a \u0432\u0445\u043e\u0434\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043f\u043e\u0437\u0436\u0435." });
+        return true;
+      }
+
+      if (!result.ok) {
         sendJson(res, 401, { error: "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c" });
         return true;
       }
 
-      sendJson(res, 200, { token: createToken() });
+      sendJson(res, 200, { token: result.token });
+      return true;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/admin/logout") {
+      adminAuth.revokeToken(getAuthToken(req));
+      sendJson(res, 200, { ok: true });
       return true;
     }
 
@@ -131,47 +160,49 @@ function createAdminRouteHandler({
         return true;
       }
 
-      const existingOrders = await storage.getOrders();
-      const existingOrder = existingOrders.find((item) => Number(item.id) === orderId) || null;
-      const previousStatus = normalizeString(existingOrder?.status);
-      let order = await storage.updateOrderStatus(
-        orderId,
-        hasStatus ? nextStatus : undefined,
-        {
-          ...(hasManagerNote ? { managerNote } : {}),
-          ...(hasManagerAssignee ? { managerAssignee } : {})
-        }
-      );
-
-      let notification = { sent: false, skipped: true, reason: "status_unchanged" };
-      if (hasStatus && previousStatus !== nextStatus) {
-        if (typeof notifyOrderStatusUpdate === "function") {
-          try {
-            notification = await notifyOrderStatusUpdate(order, { previousStatus });
-          } catch (error) {
-            console.error(`Failed to send Telegram status update for order #${orderId}:`, error);
-            notification = {
-              sent: false,
-              skipped: false,
-              error: error.message || "notification_failed"
-            };
+      return withOrderLock(orderId, async () => {
+        const existingOrders = await storage.getOrders();
+        const existingOrder = existingOrders.find((item) => Number(item.id) === orderId) || null;
+        const previousStatus = normalizeString(existingOrder?.status);
+        let order = await storage.updateOrderStatus(
+          orderId,
+          hasStatus ? nextStatus : undefined,
+          {
+            ...(hasManagerNote ? { managerNote } : {}),
+            ...(hasManagerAssignee ? { managerAssignee } : {})
           }
-        } else {
-          notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+        );
+
+        let notification = { sent: false, skipped: true, reason: "status_unchanged" };
+        if (hasStatus && previousStatus !== nextStatus) {
+          if (typeof notifyOrderStatusUpdate === "function") {
+            try {
+              notification = await notifyOrderStatusUpdate(order, { previousStatus });
+            } catch (error) {
+              console.error(`Failed to send Telegram status update for order #${orderId}:`, error);
+              notification = {
+                sent: false,
+                skipped: false,
+                error: error.message || "notification_failed"
+              };
+            }
+          } else {
+            notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+          }
         }
-      }
 
-      if (hasStatus && previousStatus !== nextStatus && typeof storage.updateOrderRequestMeta === "function") {
-        order = await storage.updateOrderRequestMeta(orderId, {
-          telegramStatusNotification: buildOrderStatusNotificationSnapshot(notification, {
-            previousStatus,
-            nextStatus
-          })
-        });
-      }
+        if (hasStatus && previousStatus !== nextStatus && typeof storage.updateOrderRequestMeta === "function") {
+          order = await storage.updateOrderRequestMeta(orderId, {
+            telegramStatusNotification: buildOrderStatusNotificationSnapshot(notification, {
+              previousStatus,
+              nextStatus
+            })
+          });
+        }
 
-      sendJson(res, 200, { ok: true, order, notification });
-      return true;
+        sendJson(res, 200, { ok: true, order, notification });
+        return true;
+      });
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/categories") {

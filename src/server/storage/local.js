@@ -223,7 +223,8 @@ function createLocalStorageProvider() {
     },
     async createOrder(payload, req, { telegramVerified = false } = {}) {
       const orders = getOrders();
-      const order = buildOrderRecord(payload, req);
+      const maxExistingId = orders.reduce((max, item) => Math.max(max, Number(item?.id) || 0), 0);
+      const order = buildOrderRecord(payload, req, { minId: maxExistingId + 1 });
       orders.unshift(order);
       saveOrders(orders);
       // Without a verified Telegram identity the profile key falls back to the

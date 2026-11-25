@@ -449,6 +449,31 @@ async function main() {
     assert.equal(retryAttemptResponse.body.orderId, firstAttemptResponse.body.orderId, "Retry with the same idempotency key must return the same order, not a duplicate");
     assert.equal(retryAttemptResponse.body.duplicate, true, "Retry should be marked as duplicate");
 
+    const parallelOrderResponses = await Promise.all(["10.0.5.1", "10.0.5.2", "10.0.5.3"].map((ip) => request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": ip },
+      body: { name: "Ali", phone: "+998900001122", delivery: "Parallel street", items: [{ id: product.id, qty: 1, variant: validVariant }], total: 0 }
+    })));
+    const parallelOrderIds = parallelOrderResponses.map((response) => response.body && response.body.orderId);
+    assert.equal(new Set(parallelOrderIds).size, 3, `Parallel orders must get unique IDs, got ${parallelOrderIds.join(", ")}`);
+
+    const splitQtyResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      headers: { "X-Forwarded-For": "10.0.5.4" },
+      body: {
+        name: "Ali",
+        phone: "+998900001122",
+        delivery: "Split street",
+        items: Array.from({ length: 3 }, () => ({ id: product.id, qty: 10, variant: validVariant })),
+        total: 0
+      }
+    });
+    assert.equal(splitQtyResponse.statusCode, 400, "Same item split across lines above the per-item limit should return 400");
+
     const createdOrderId = Number(createOrderResponse.body.orderId);
 
     // --- Telegram identity checks ---

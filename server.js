@@ -393,7 +393,17 @@ function buildOrderRawText({ customer = {}, items = [], total = 0, telegram = {}
   return lines.filter(Boolean).join("\n");
 }
 
-function buildOrderRecord(payload, req) {
+// Order IDs stay timestamp-like (shown to customers as #id) but are
+// strictly increasing within the process, so two orders in the same
+// millisecond can no longer get the same ID.
+let lastOrderId = 0;
+function generateOrderId(minId = 0) {
+  const id = Math.max(Date.now(), lastOrderId + 1, Number(minId) || 0);
+  lastOrderId = id;
+  return id;
+}
+
+function buildOrderRecord(payload, req, { minId = 0 } = {}) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const customer = {
     name: sanitizePersonName(payload.name),
@@ -416,7 +426,7 @@ function buildOrderRecord(payload, req) {
   const telegram = payload.telegram || {};
 
   return {
-    id: Date.now(),
+    id: generateOrderId(minId),
     status: "new",
     createdAt: new Date().toISOString(),
     source: "miniapp",

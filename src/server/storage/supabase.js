@@ -561,11 +561,22 @@ function createSupabaseStorageProvider() {
       }
     },
     async createOrder(payload, req, { telegramVerified = false } = {}) {
-      const order = buildOrderRecord(payload, req);
-      const rows = await supabaseRequest("POST", "orders", {
-        body: [orderModelToRow(order, { includeId: true })],
-        prefer: "return=representation"
-      });
+      // IDs are unique within this process; retry with a new one if another
+      // instance already used it (409 duplicate key).
+      let order;
+      let rows;
+      for (let attempt = 1; ; attempt += 1) {
+        order = buildOrderRecord(payload, req);
+        try {
+          rows = await supabaseRequest("POST", "orders", {
+            body: [orderModelToRow(order, { includeId: true })],
+            prefer: "return=representation"
+          });
+          break;
+        } catch (error) {
+          if (error?.statusCode !== 409 || attempt >= 3) throw error;
+        }
+      }
 
       // Without a verified Telegram identity the profile key falls back to the
       // phone number, so only create a new profile and never overwrite one.

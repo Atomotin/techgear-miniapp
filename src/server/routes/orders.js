@@ -89,6 +89,7 @@ function createOrdersRouteHandler({
   const PRODUCT_OPTION_GROUP_PREFIX = "__tg_option_groups__=";
   const MAX_ORDER_LINES = 24;
   const MAX_ITEM_QTY = 20;
+  const MAX_ORDER_UNITS = 100;
 
   function normalizeOrderVariant(value) {
     return String(value || "").trim().slice(0, 160);
@@ -234,14 +235,35 @@ function createOrdersRouteHandler({
       }
 
       const trustedPrice = Number(product.price) || 0;
-      trustedItems.push({
-        id: productId,
-        name: String(product.name || "").trim(),
-        qty,
-        variant: productVariantGroups.length > 0 ? normalizedVariant : "",
-        price: trustedPrice
-      });
+      const trustedVariant = productVariantGroups.length > 0 ? normalizedVariant : "";
+
+      // Merge repeated lines of the same product and variant, so the per-item
+      // limit cannot be bypassed by sending the same item on many lines.
+      const existingItem = trustedItems.find((entry) => entry.id === productId && entry.variant === trustedVariant);
+      if (existingItem) {
+        existingItem.qty += qty;
+        if (existingItem.qty > MAX_ITEM_QTY) {
+          return {
+            error: `Слишком большое количество для товара "${product.name || "без названия"}". Максимум: ${MAX_ITEM_QTY}`
+          };
+        }
+      } else {
+        trustedItems.push({
+          id: productId,
+          name: String(product.name || "").trim(),
+          qty,
+          variant: trustedVariant,
+          price: trustedPrice
+        });
+      }
       trustedTotal += trustedPrice * qty;
+    }
+
+    const totalUnits = trustedItems.reduce((sum, entry) => sum + entry.qty, 0);
+    if (totalUnits > MAX_ORDER_UNITS) {
+      return {
+        error: `Слишком много товаров в одном заказе. Максимум: ${MAX_ORDER_UNITS} шт.`
+      };
     }
 
     return {

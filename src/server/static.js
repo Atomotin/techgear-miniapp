@@ -54,11 +54,15 @@ function createStaticHandler({ rootDir, publicDir, mimeTypes, sendText }) {
     }
 
     const ext = path.extname(filePath).toLowerCase();
+    // Uploaded media must never run as a page on this origin (for example a
+    // script inside an image file opened directly).
+    const isUploadedMedia = /^\/(images\.img|songs)\//i.test(url.pathname);
     res.writeHead(200, {
       "Content-Type": mimeTypes[ext] || "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      "X-Frame-Options": "SAMEORIGIN"
+      "X-Frame-Options": "SAMEORIGIN",
+      ...(isUploadedMedia ? { "Content-Security-Policy": "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'" } : {})
     });
     fs.createReadStream(filePath).pipe(res);
   }

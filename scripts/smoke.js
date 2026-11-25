@@ -75,7 +75,8 @@ function restoreFile(filePath, snapshot) {
 
 function request({ port, method = "GET", pathname = "/", headers = {}, body = null }) {
   return new Promise((resolve, reject) => {
-    const payload = body == null ? null : Buffer.from(JSON.stringify(body));
+    const isRawBody = Buffer.isBuffer(body);
+    const payload = body == null ? null : (isRawBody ? body : Buffer.from(JSON.stringify(body)));
     const req = http.request(
       {
         hostname: "127.0.0.1",
@@ -84,7 +85,7 @@ function request({ port, method = "GET", pathname = "/", headers = {}, body = nu
         method,
         headers: {
           ...(payload ? {
-            "Content-Type": "application/json",
+            ...(isRawBody ? {} : { "Content-Type": "application/json" }),
             "Content-Length": String(payload.length)
           } : {}),
           ...headers
@@ -660,6 +661,43 @@ async function main() {
         }
       });
       assert.equal(invalidVariantResponse.statusCode, 400, "Order with invalid variant should return 400");
+    }
+
+    // --- Upload validation ---
+    const svgUploadResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/uploads?filename=evil.svg",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "image/svg+xml" },
+      body: Buffer.from("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>")
+    });
+    assert.equal(svgUploadResponse.statusCode, 400, "SVG upload should be rejected");
+
+    const fakePngUploadResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/uploads?filename=fake.png",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "image/png" },
+      body: Buffer.from("<html><script>alert(1)</script></html>")
+    });
+    assert.equal(fakePngUploadResponse.statusCode, 400, "Upload whose bytes do not match its type should be rejected");
+
+    const tinyPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    const pngUploadResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/uploads?filename=smoke-pixel.png",
+      headers: { Authorization: `Bearer ${adminToken}`, "Content-Type": "image/png" },
+      body: tinyPng
+    });
+    assert.equal(pngUploadResponse.statusCode, 201, "Real PNG upload should succeed");
+    const uploadedPath = String(pngUploadResponse.body && pngUploadResponse.body.path || "");
+    try {
+      const uploadedFileResponse = await request({ port, pathname: `/${uploadedPath}` });
+      assert.equal(uploadedFileResponse.statusCode, 200, "Uploaded file should be served");
+      assert.match(String(uploadedFileResponse.headers["content-security-policy"] || ""), /sandbox/, "Uploaded media should be served with a sandbox CSP");
+    } finally {
+      if (uploadedPath.startsWith("images.img/")) fs.rmSync(path.join(ROOT_DIR, uploadedPath), { force: true });
     }
 
     // --- Order spam protection ---

@@ -84,7 +84,7 @@ const UPLOAD_EXTENSIONS = new Map([
   ["image/jpeg", ".jpg"],
   ["image/png", ".png"],
   ["image/webp", ".webp"],
-  ["image/svg+xml", ".svg"],
+  // SVG is not accepted: it can contain scripts that would run on this origin.
   ["audio/mpeg", ".mp3"],
   ["audio/mp3", ".mp3"],
   ["audio/x-mpeg-3", ".mp3"],

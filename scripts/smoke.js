@@ -237,11 +237,17 @@ async function stopServer(child) {
 }
 
 const DATA_DIR = path.join(ROOT_DIR, "data");
-const SNAPSHOT_PATHS = [ORDERS_PATH, CUSTOMERS_PATH, BANNERS_PATH, SETTINGS_PATH]
+const CATALOG_PATH = path.join(ROOT_DIR, "data", "catalog.json");
+const SNAPSHOT_PATHS = [ORDERS_PATH, CUSTOMERS_PATH, BANNERS_PATH, SETTINGS_PATH, CATALOG_PATH]
   .flatMap((filePath) => [filePath, `${filePath}.bak`]);
 
 function listDataArtifacts() {
   return fs.readdirSync(DATA_DIR).filter((name) => /\.corrupt-\d+$|\.tmp$/.test(name));
+}
+
+const IMAGES_DIR = path.join(ROOT_DIR, "images.img");
+function listSmokeUploads() {
+  return fs.existsSync(IMAGES_DIR) ? fs.readdirSync(IMAGES_DIR).filter((name) => /^\d+-smoke-pixel\.png$/.test(name)) : [];
 }
 
 async function main() {
@@ -700,6 +706,33 @@ async function main() {
       if (uploadedPath.startsWith("images.img/")) fs.rmSync(path.join(ROOT_DIR, uploadedPath), { force: true });
     }
 
+    // --- Banner links and product IDs are sanitized ---
+    const unsafeBannerResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/banners",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: { title: "Smoke banner", image: "images.img/x.jpg", actionType: "link", actionValue: "javascript:alert(1)" }
+    });
+    assert.equal(unsafeBannerResponse.statusCode, 201, "Banner create should return 201");
+    const unsafeBanner = (unsafeBannerResponse.body.banners || []).find((banner) => banner.title === "Smoke banner");
+    assert.ok(unsafeBanner, "Created banner should be listed");
+    assert.notEqual(unsafeBanner.actionType, "link", "javascript: banner link must be dropped");
+    assert.ok(!String(unsafeBanner.actionValue || "").includes("javascript"), "javascript: URL must not be stored");
+
+    const existingProductId = Number(product.id);
+    const duplicateIdProductResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/admin/products",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: { id: existingProductId, name: "Smoke duplicate id", category: product.category || "all", price: 1 }
+    });
+    assert.equal(duplicateIdProductResponse.statusCode, 201, "Product create should return 201");
+    const catalogAfterCreate = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8"));
+    const productsWithExistingId = catalogAfterCreate.products.filter((item) => Number(item.id) === existingProductId);
+    assert.equal(productsWithExistingId.length, 1, "Client-sent product id must not create a duplicate ID");
+
     // --- Order spam protection ---
     const crossSiteFormResponse = await request({
       port,
@@ -801,6 +834,7 @@ async function main() {
     listDataArtifacts()
       .filter((name) => !artifactsBefore.has(name))
       .forEach((name) => fs.rmSync(path.join(DATA_DIR, name), { force: true }));
+    listSmokeUploads().forEach((name) => fs.rmSync(path.join(IMAGES_DIR, name), { force: true }));
   }
 }
 

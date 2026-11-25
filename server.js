@@ -490,11 +490,39 @@ function sanitizePromoBanner(payload = {}, fallbackId) {
     secondary: normalizeString(payload?.secondary || payload?.secondaryLabel),
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : (id || 1),
     isActive: payload?.isActive !== false,
-    actionType: allowedActionTypes.includes(actionType) ? actionType : "reset",
-    actionValue: normalizeString(payload?.actionValue),
-    secondaryActionType: secondaryActionType && allowedActionTypes.includes(secondaryActionType) ? secondaryActionType : "",
-    secondaryActionValue: normalizeString(payload?.secondaryActionValue),
+    ...(() => {
+      const primary = sanitizeBannerAction(allowedActionTypes.includes(actionType) ? actionType : "reset", payload?.actionValue);
+      const secondary = secondaryActionType && allowedActionTypes.includes(secondaryActionType)
+        ? sanitizeBannerAction(secondaryActionType, payload?.secondaryActionValue)
+        : { type: "", value: normalizeString(payload?.secondaryActionValue) };
+      return {
+        actionType: primary.type,
+        actionValue: primary.value,
+        secondaryActionType: secondary.type,
+        secondaryActionValue: secondary.value
+      };
+    })(),
   };
+}
+
+// Banner links may only point to https:// pages (no javascript:, data: etc.).
+function sanitizeBannerLink(value) {
+  const raw = normalizeString(value);
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "https:" ? parsed.toString() : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function sanitizeBannerAction(type, value) {
+  if (type === "link") {
+    const href = sanitizeBannerLink(value);
+    return href ? { type, value: href } : { type: "reset", value: "" };
+  }
+  return { type, value: normalizeString(value) };
 }
 
 function sanitizePromoBanners(banners) {
@@ -656,6 +684,12 @@ async function requestListener(req, res) {
     if (handled) return;
     serveStatic(res, url);
   } catch (error) {
+    if (error?.statusCode && error.expose === false) {
+      console.error("Storage error:", error.message);
+      sendJson(res, error.statusCode >= 500 ? 502 : error.statusCode, { error: "Ошибка хранилища данных. Попробуйте позже." });
+      return;
+    }
+
     if (error?.statusCode) {
       sendJson(res, error.statusCode, { error: error.message });
       return;

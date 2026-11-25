@@ -317,7 +317,10 @@ function createLocalStorageProvider() {
     async createProduct(body) {
       const catalog = getCatalog();
       const nextId = catalog.products.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
-      const product = sanitizeProduct(body, nextId);
+      // Always assign the ID on the server; a client-sent id could duplicate
+      // an existing product.
+      const { id: ignoredClientId, ...productFields } = body && typeof body === "object" ? body : {};
+      const product = sanitizeProduct(productFields, nextId);
 
       if (!product.name || !product.category) {
         throw createHttpError(400, "У товара должны быть name и category");

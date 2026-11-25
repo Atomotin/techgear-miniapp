@@ -55,19 +55,27 @@ function parseSupabaseError(payload, response) {
     }
   }
 
-  return createHttpError(response.status || 500, payload?.message || payload?.error || "Supabase request failed");
+  // Keep the PostgREST message for logs and fallback checks, but never send
+  // it to clients: it reveals table and column details.
+  return createInternalHttpError(response.status || 500, payload?.message || payload?.error || "Supabase request failed");
+}
+
+function createInternalHttpError(statusCode, message) {
+  const error = createHttpError(statusCode, message);
+  error.expose = false;
+  return error;
 }
 
 function parseSupabaseStorageError(payload, response) {
   if (payload && typeof payload === "object") {
     const statusCode = response?.status || 500;
-    return createHttpError(
+    return createInternalHttpError(
       statusCode,
       payload.message || payload.error || payload.msg || "Supabase Storage request failed"
     );
   }
 
-  return createHttpError(response?.status || 500, "Supabase Storage request failed");
+  return createInternalHttpError(response?.status || 500, "Supabase Storage request failed");
 }
 
 function isMissingBucketError(error) {

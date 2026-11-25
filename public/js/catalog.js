@@ -7,7 +7,7 @@ function buildPromoSlides() {
         .map((banner, index) => {
           const mapAction = (type, value) => {
             if (!type) return null;
-            if (type === "link") return value ? { type: "link", href: value } : null;
+            if (type === "link") return String(value || "").toLowerCase().startsWith("https://") ? { type: "link", href: value } : null;
             if (type === "category") return { type: "category", category: value || "all", sort: "manual" };
             if (type === "product") return { type: "product", productId: Number(value), sort: "manual" };
             return { type: "reset" };

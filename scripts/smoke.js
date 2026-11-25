@@ -235,11 +235,17 @@ async function stopServer(child) {
   }
 }
 
+const DATA_DIR = path.join(ROOT_DIR, "data");
+const SNAPSHOT_PATHS = [ORDERS_PATH, CUSTOMERS_PATH, BANNERS_PATH, SETTINGS_PATH]
+  .flatMap((filePath) => [filePath, `${filePath}.bak`]);
+
+function listDataArtifacts() {
+  return fs.readdirSync(DATA_DIR).filter((name) => /\.corrupt-\d+$|\.tmp$/.test(name));
+}
+
 async function main() {
-  const ordersSnapshot = snapshotFile(ORDERS_PATH);
-  const customersSnapshot = snapshotFile(CUSTOMERS_PATH);
-  const bannersSnapshot = snapshotFile(BANNERS_PATH);
-  const settingsSnapshot = snapshotFile(SETTINGS_PATH);
+  const snapshots = SNAPSHOT_PATHS.map((filePath) => [filePath, snapshotFile(filePath)]);
+  const artifactsBefore = new Set(listDataArtifacts());
   const port = await getFreePort();
   const child = spawn(process.execPath, [SERVER_PATH], {
     cwd: ROOT_DIR,
@@ -571,6 +577,47 @@ async function main() {
       assert.equal(invalidVariantResponse.statusCode, 400, "Order with invalid variant should return 400");
     }
 
+    // --- Corrupt data file must not wipe order history ---
+    const ordersBeforeCorruption = JSON.parse(fs.readFileSync(ORDERS_PATH, "utf8"));
+    assert.ok(ordersBeforeCorruption.length >= 2, "Smoke should have created orders before the corruption check");
+    fs.writeFileSync(ORDERS_PATH, "[{\"id\": 1, \"broken", "utf8");
+    const orderAfterCorruptionResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      body: {
+        name: "Ali",
+        phone: "+998900001122",
+        delivery: "Tashkent smoke address",
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(orderAfterCorruptionResponse.statusCode, 201, "Order after corruption should recover from backup and return 201");
+    const ordersAfterCorruption = JSON.parse(fs.readFileSync(ORDERS_PATH, "utf8"));
+    assert.ok(
+      ordersAfterCorruption.length >= ordersBeforeCorruption.length,
+      "Corrupt orders.json must be recovered from backup, not replaced with an empty list"
+    );
+    assert.ok(listDataArtifacts().some((name) => name.startsWith("orders.json.corrupt-")), "A copy of the corrupt file should be kept");
+
+    fs.writeFileSync(ORDERS_PATH, "not json", "utf8");
+    fs.writeFileSync(`${ORDERS_PATH}.bak`, "not json either", "utf8");
+    const orderWithoutBackupResponse = await request({
+      port,
+      method: "POST",
+      pathname: "/api/orders",
+      body: {
+        name: "Ali",
+        phone: "+998900001122",
+        delivery: "Tashkent smoke address",
+        items: [{ id: product.id, qty: 1, variant: validVariant }],
+        total: 0
+      }
+    });
+    assert.equal(orderWithoutBackupResponse.statusCode, 500, "Order must be refused when orders.json is corrupt and has no usable backup");
+    assert.equal(fs.readFileSync(ORDERS_PATH, "utf8"), "not json", "Corrupt orders.json must not be overwritten");
+
     console.log("Smoke checks passed");
     console.log(`Server: http://127.0.0.1:${port}`);
     console.log("Checked: /, /admin, /api/health, /api/catalog/public, paged catalog feed, catalog ids lookup, admin login, catalog import preview, trusted order create, invalid order validation");
@@ -586,10 +633,10 @@ async function main() {
     process.exitCode = 1;
   } finally {
     await stopServer(child);
-    restoreFile(ORDERS_PATH, ordersSnapshot);
-    restoreFile(CUSTOMERS_PATH, customersSnapshot);
-    restoreFile(BANNERS_PATH, bannersSnapshot);
-    restoreFile(SETTINGS_PATH, settingsSnapshot);
+    snapshots.forEach(([filePath, snapshot]) => restoreFile(filePath, snapshot));
+    listDataArtifacts()
+      .filter((name) => !artifactsBefore.has(name))
+      .forEach((name) => fs.rmSync(path.join(DATA_DIR, name), { force: true }));
   }
 }
 

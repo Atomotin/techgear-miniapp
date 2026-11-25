@@ -21,16 +21,84 @@ function buildSharedStorageModule({
   bannersPath,
   settingsPath
 }) {
+function getBackupPath(filePath) {
+  return `${filePath}.bak`;
+}
+
+function parseJsonFile(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+// A missing file returns the fallback. A file that exists but cannot be parsed
+// is never treated as empty: we restore the last good backup, or refuse the
+// request, so the next write cannot silently replace real data with [] or {}.
 function readJson(filePath, fallback) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
+  if (!fs.existsSync(filePath)) {
     return fallback;
+  }
+
+  try {
+    return parseJsonFile(filePath);
+  } catch (error) {
+    const backupPath = getBackupPath(filePath);
+    const corruptCopyPath = `${filePath}.corrupt-${Date.now()}`;
+
+    try {
+      fs.copyFileSync(filePath, corruptCopyPath);
+    } catch (copyError) {
+      console.error(`Failed to keep a copy of corrupt ${filePath}:`, copyError.message);
+    }
+
+    if (fs.existsSync(backupPath)) {
+      try {
+        const restored = parseJsonFile(backupPath);
+        fs.copyFileSync(backupPath, filePath);
+        console.error(`Recovered ${filePath} from backup after parse error: ${error.message}. Corrupt copy: ${corruptCopyPath}`);
+        return restored;
+      } catch (backupError) {
+        console.error(`Backup ${backupPath} is also unreadable:`, backupError.message);
+      }
+    }
+
+    console.error(`Data file ${filePath} is corrupt and has no usable backup. Corrupt copy: ${corruptCopyPath}`);
+    throw createHttpError(500, "Файл данных повреждён. Запись остановлена, чтобы не потерять данные.");
   }
 }
 
+// Write to a temporary file and rename it over the target, so a crash or a
+// full disk mid-write leaves the previous version intact. The previous
+// version is also kept as <file>.bak for recovery.
 function writeJson(filePath, value) {
-  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  const content = JSON.stringify(value, null, 2);
+
+  try {
+    const fd = fs.openSync(tempPath, "w");
+    try {
+      fs.writeFileSync(fd, content, "utf8");
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+
+    if (fs.existsSync(filePath)) {
+      try {
+        parseJsonFile(filePath);
+        fs.copyFileSync(filePath, getBackupPath(filePath));
+      } catch (error) {
+        // Do not overwrite a good backup with a corrupt current file.
+      }
+    }
+
+    fs.renameSync(tempPath, filePath);
+  } catch (error) {
+    try {
+      fs.rmSync(tempPath, { force: true });
+    } catch (cleanupError) {
+      // ignore
+    }
+    throw error;
+  }
 }
 
 function ensureDataFiles() {

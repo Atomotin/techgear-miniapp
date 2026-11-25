@@ -9,6 +9,67 @@ function createOrdersRouteHandler({
   rateLimiters = {}
 }) {
   const MAX_ORDER_BODY_BYTES = 64 * 1024;
+  const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+  const MAX_IDEMPOTENCY_ENTRIES = 5000;
+  const idempotentOrders = new Map(); // key -> { orderIdPromise, expiresAt }
+
+  function readIdempotencyKey(req) {
+    const header = req.headers["x-idempotency-key"];
+    const value = String(Array.isArray(header) ? header[0] : header || "").trim();
+    return /^[A-Za-z0-9_-]{16,100}$/.test(value) ? value : "";
+  }
+
+  function pruneIdempotentOrders(now = Date.now()) {
+    for (const [key, entry] of idempotentOrders) {
+      if (entry.expiresAt <= now) idempotentOrders.delete(key);
+    }
+    while (idempotentOrders.size > MAX_IDEMPOTENCY_ENTRIES) {
+      idempotentOrders.delete(idempotentOrders.keys().next().value);
+    }
+  }
+
+  function rememberIdempotentOrder(key, orderIdPromise) {
+    pruneIdempotentOrders();
+    idempotentOrders.set(key, { orderIdPromise, expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+    orderIdPromise.catch(() => idempotentOrders.delete(key));
+  }
+
+  async function findIdempotentOrder(key) {
+    const entry = idempotentOrders.get(key);
+    if (!entry || entry.expiresAt <= Date.now()) return null;
+    try {
+      return await entry.orderIdPromise;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function sendCreationNotificationInBackground(order) {
+    (async () => {
+      let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
+
+      if (typeof notifyOrderCreated === "function") {
+        try {
+          notification = await notifyOrderCreated(order);
+        } catch (notifyError) {
+          console.error(`Failed to send Telegram creation notification for order #${order.id}:`, notifyError);
+          notification = {
+            sent: false,
+            skipped: false,
+            error: notifyError?.message || "notification_failed"
+          };
+        }
+      }
+
+      if (typeof storage.updateOrderRequestMeta === "function") {
+        await storage.updateOrderRequestMeta(order.id, {
+          telegramCreationNotification: buildOrderCreationNotificationSnapshot(notification)
+        });
+      }
+    })().catch((error) => {
+      console.error(`Failed to save Telegram notification snapshot for order #${order.id}:`, error);
+    });
+  }
 
   function checkOrderRateLimit(req, telegramUser) {
     const ip = typeof resolveClientIp === "function" ? resolveClientIp(req) : "";
@@ -219,6 +280,17 @@ function createOrdersRouteHandler({
     trustedPayload.telegram = telegramUser || {};
     delete trustedPayload.telegramId;
 
+    // A retry of the same checkout (same idempotency key) returns the order
+    // that was already created instead of creating a duplicate.
+    const idempotencyKey = readIdempotencyKey(req);
+    if (idempotencyKey) {
+      const existingOrderId = await findIdempotentOrder(idempotencyKey);
+      if (existingOrderId) {
+        sendJson(res, 201, { ok: true, orderId: existingOrderId, duplicate: true });
+        return true;
+      }
+    }
+
     const rateLimit = checkOrderRateLimit(req, telegramUser);
     if (!rateLimit.allowed) {
       res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds));
@@ -226,31 +298,21 @@ function createOrdersRouteHandler({
       return true;
     }
 
-    let order = await storage.createOrder(trustedPayload, req, {
+    const creation = storage.createOrder(trustedPayload, req, {
       telegramVerified: Boolean(telegramUser)
     });
-    let notification = { sent: false, skipped: true, reason: "notifier_unavailable" };
-
-    if (typeof notifyOrderCreated === "function") {
-      try {
-        notification = await notifyOrderCreated(order);
-      } catch (notifyError) {
-        console.error(`Failed to send Telegram creation notification for order #${order.id}:`, notifyError);
-        notification = {
-          sent: false,
-          skipped: false,
-          error: notifyError?.message || "notification_failed"
-        };
-      }
+    if (idempotencyKey) {
+      rememberIdempotentOrder(idempotencyKey, creation.then((created) => created.id));
     }
 
-    if (typeof storage.updateOrderRequestMeta === "function") {
-      order = await storage.updateOrderRequestMeta(order.id, {
-        telegramCreationNotification: buildOrderCreationNotificationSnapshot(notification)
-      });
-    }
+    const order = await creation;
 
-    sendJson(res, 201, { ok: true, orderId: order.id, notification });
+    // Answer right away. Notifications run in the background, so a slow or
+    // failing Telegram API can no longer turn a saved order into an error
+    // that makes the customer submit it again. The response carries no
+    // notification details (they included private manager chat IDs).
+    sendJson(res, 201, { ok: true, orderId: order.id });
+    sendCreationNotificationInBackground(order);
     return true;
   };
 }

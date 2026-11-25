@@ -47,7 +47,13 @@ const REQUIRE_PERSISTENT_ADMIN_STORAGE = parseBooleanEnv(
   RAILWAY_DEPLOYMENT || process.env.NODE_ENV === "production"
 );
 const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
-const TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+const CONFIGURED_TELEGRAM_WEBHOOK_SECRET = String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+// The webhook always requires a secret. If none is configured, generate one
+// per start: configureTelegramBot registers it with Telegram via setWebhook.
+// Telegram only allows A-Z, a-z, 0-9, _ and - (1-256 chars).
+const TELEGRAM_WEBHOOK_SECRET = /^[A-Za-z0-9_-]{1,256}$/.test(CONFIGURED_TELEGRAM_WEBHOOK_SECRET)
+  ? CONFIGURED_TELEGRAM_WEBHOOK_SECRET
+  : crypto.randomBytes(32).toString("hex");
 const TELEGRAM_CHANNEL_URL = normalizeTelegramUrl(process.env.TELEGRAM_CHANNEL_URL || "https://t.me/techgear_uz");
 const TELEGRAM_MANAGER_URL = normalizeTelegramUrl(process.env.TELEGRAM_MANAGER_URL || "https://t.me/atomotin");
 const TELEGRAM_MANAGER_CHAT_IDS = normalizeChatIdList(
@@ -653,9 +659,14 @@ async function requestListener(req, res) {
 async function main() {
   ensureDataFiles();
   await storage.init();
-  await telegramService.configureTelegramBot({ telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET });
-
   http.createServer(requestListener).listen(PORT, HOST, () => {
+    // Configure the bot after listening, so a slow Telegram API cannot
+    // delay startup or fail the deploy health check.
+    telegramService.configureTelegramBot({ telegramWebhookSecret: TELEGRAM_WEBHOOK_SECRET })
+      .catch((error) => console.error("Failed to configure Telegram bot:", error));
+    if (CONFIGURED_TELEGRAM_WEBHOOK_SECRET && CONFIGURED_TELEGRAM_WEBHOOK_SECRET !== TELEGRAM_WEBHOOK_SECRET) {
+      console.warn("TELEGRAM_WEBHOOK_SECRET contains characters Telegram does not allow; using a generated secret instead");
+    }
     console.log(`TechGear server running at http://localhost:${PORT}`);
     console.log(`Admin panel: http://localhost:${PORT}/admin`);
     console.log(`Storage mode: ${storage.mode}`);

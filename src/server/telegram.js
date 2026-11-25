@@ -41,17 +41,22 @@ function createTelegramService({
       .filter(Boolean)
   )];
 
+  const TELEGRAM_API_TIMEOUT_MS = 10000;
+
   async function telegramApi(method, payload) {
     if (!telegramBotEnabled) {
       throw new Error("Telegram bot is not configured");
     }
 
+    // Without a timeout a hung api.telegram.org request would block
+    // checkout and admin status changes indefinitely.
     const response = await fetch(`${telegramApiBase}/${method}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(TELEGRAM_API_TIMEOUT_MS)
     });
 
     const data = await response.json().catch(() => ({}));
@@ -204,7 +209,7 @@ function createTelegramService({
 
   function buildTelegramStartMessage() {
     return [
-      `<b>${telegramBotName}</b>`,
+      `<b>${escapeHtml(telegramBotName)}</b>`,
       "",
       "Добро пожаловать.",
       "",

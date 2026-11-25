@@ -436,10 +436,18 @@ async function main() {
     });
     assert.equal(createOrderResponse.statusCode, 201, "Valid order should return 201");
     assert.ok(Number.isFinite(Number(createOrderResponse.body && createOrderResponse.body.orderId)), "Valid order should return orderId");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification), "object", "Valid order should return notification metadata");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.sent), "boolean", "Notification metadata should include sent flag");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.customer), "object", "Notification metadata should include customer delivery result");
-    assert.equal(typeof (createOrderResponse.body && createOrderResponse.body.notification && createOrderResponse.body.notification.manager), "object", "Notification metadata should include manager delivery result");
+    assert.equal(createOrderResponse.body && createOrderResponse.body.notification, undefined, "Order response must not expose notification details (manager chat IDs)");
+    // Notifications run in the background; give them a moment to persist the snapshot.
+    await delay(300);
+
+    const idempotencyKey = "smoke-idempotency-key-0001";
+    const idempotentOrderBody = { name: "Ali", phone: "+998900001122", delivery: "Idempotent street", items: [{ id: product.id, qty: 1, variant: validVariant }], total: 0 };
+    const firstAttemptResponse = await request({ port, method: "POST", pathname: "/api/orders", headers: { "X-Idempotency-Key": idempotencyKey, "X-Forwarded-For": "10.0.4.1" }, body: idempotentOrderBody });
+    const retryAttemptResponse = await request({ port, method: "POST", pathname: "/api/orders", headers: { "X-Idempotency-Key": idempotencyKey, "X-Forwarded-For": "10.0.4.1" }, body: idempotentOrderBody });
+    assert.equal(firstAttemptResponse.statusCode, 201, "First attempt with idempotency key should return 201");
+    assert.equal(retryAttemptResponse.statusCode, 201, "Retry with the same idempotency key should return 201");
+    assert.equal(retryAttemptResponse.body.orderId, firstAttemptResponse.body.orderId, "Retry with the same idempotency key must return the same order, not a duplicate");
+    assert.equal(retryAttemptResponse.body.duplicate, true, "Retry should be marked as duplicate");
 
     const createdOrderId = Number(createOrderResponse.body.orderId);
 
@@ -667,6 +675,7 @@ async function main() {
     assert.ok(Number(rateLimitedResponse.headers["retry-after"]) > 0, "429 should include Retry-After");
 
     // --- Corrupt data file must not wipe order history ---
+    await delay(300); // let background notification snapshots finish writing
     const ordersBeforeCorruption = JSON.parse(fs.readFileSync(ORDERS_PATH, "utf8"));
     assert.ok(ordersBeforeCorruption.length >= 2, "Smoke should have created orders before the corruption check");
     fs.writeFileSync(ORDERS_PATH, "[{\"id\": 1, \"broken", "utf8");
@@ -691,6 +700,7 @@ async function main() {
     );
     assert.ok(listDataArtifacts().some((name) => name.startsWith("orders.json.corrupt-")), "A copy of the corrupt file should be kept");
 
+    await delay(300); // let background notification snapshots finish writing
     fs.writeFileSync(ORDERS_PATH, "not json", "utf8");
     fs.writeFileSync(`${ORDERS_PATH}.bak`, "not json either", "utf8");
     const orderWithoutBackupResponse = await request({

@@ -570,31 +570,56 @@
       return lines.filter(Boolean).join("\n");
     }
 
-    async function submitOrderToBackend(payload) {
-      const user = getTelegramUser();
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getTelegramAuthHeaders(),
-        },
-        body: JSON.stringify({
-          ...payload,
-          items: state.cart.map((item) => ({
-            id: item.id,
-            name: item.name,
-            qty: item.qty,
-            variant: item.selectedVariant || "",
-            price: item.price || 0,
-          })),
-          telegram: {
-            id: user?.id || "",
-            username: user?.username || "",
-            first_name: user?.first_name || "",
-            last_name: user?.last_name || "",
+    const ORDER_REQUEST_TIMEOUT_MS = 25000;
+    let pendingOrderAttempt = null;
+
+    function createIdempotencyKey() {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID().replace(/-/g, "");
+      return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+    }
+
+    // Reuse the same key while the customer retries the same order, so the
+    // server returns the already created order instead of a duplicate.
+    function getOrderIdempotencyKey(fingerprint) {
+      if (!pendingOrderAttempt || pendingOrderAttempt.fingerprint !== fingerprint) {
+        pendingOrderAttempt = { fingerprint, key: createIdempotencyKey() };
+      }
+      return pendingOrderAttempt.key;
+    }
+
+    async function submitOrderToBackend(payload, cartItems = state.cart) {
+      const items = cartItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        qty: item.qty,
+        variant: item.selectedVariant || "",
+        price: item.price || 0,
+      }));
+      // The server takes the Telegram identity only from the signed initData header.
+      const body = JSON.stringify({ ...payload, items });
+      const idempotencyKey = getOrderIdempotencyKey(body);
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), ORDER_REQUEST_TIMEOUT_MS) : null;
+
+      let response;
+      try {
+        response = await fetch("/api/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": idempotencyKey,
+            ...getTelegramAuthHeaders(),
           },
-        }),
-      });
+          body,
+          ...(controller ? { signal: controller.signal } : {}),
+        });
+      } catch (error) {
+        throw new Error(error?.name === "AbortError"
+          ? "Сервер долго не отвечает. Нажмите «Оформить» ещё раз — повторный заказ не создастся."
+          : "Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.");
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data?.ok === false) {
@@ -667,10 +692,14 @@
       saveStorage(STORAGE_KEYS.checkout, state.checkout);
 
       const orderText = buildOrderText(payload);
+      // Snapshot the cart: items added while the request is in flight must not
+      // be sent with this order or wiped when it succeeds.
+      const submittedCart = state.cart.map((item) => ({ ...item }));
       setSubmitOrderState(true);
 
       try {
-        const result = await submitOrderToBackend(payload);
+        const result = await submitOrderToBackend(payload, submittedCart);
+        pendingOrderAttempt = null;
 
         if (tg) {
           try {
@@ -682,7 +711,7 @@
           trackEvent("order_submitted", {
             order_id: result?.orderId || "",
             total,
-            items: state.cart.map((item) => ({
+            items: submittedCart.map((item) => ({
               id: item.id,
               name: item.name,
               qty: item.qty,
@@ -694,7 +723,14 @@
           console.log(orderText);
         }
 
-        state.cart = [];
+        const submittedQty = new Map(submittedCart.map((item) => [item.cartKey || String(item.id), item.qty]));
+        state.cart = state.cart
+          .map((item) => {
+            const key = item.cartKey || String(item.id);
+            const remainingQty = item.qty - (submittedQty.get(key) || 0);
+            return remainingQty > 0 ? { ...item, qty: remainingQty } : null;
+          })
+          .filter(Boolean);
         persistCart();
         renderCart();
         updateCartButton();

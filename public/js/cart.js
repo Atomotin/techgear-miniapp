@@ -160,17 +160,24 @@
               ${item.selectedVariant ? `<div class="hint">${escapeHtml(item.selectedVariant)}</div>` : ""}
               <div class="cart-price">${formatPrice(item.price)}</div>
             </div>
-            <button class="btn btn-danger cart-remove-btn" type="button" onclick="removeItem('${escapeHtml(itemKey)}')">✕</button>
+            <button class="btn btn-danger cart-remove-btn" type="button" data-cart-action="remove">✕</button>
           </div>
           <div class="cart-actions">
             <div class="qty-controls">
-              <button type="button" onclick="decreaseQty('${escapeHtml(itemKey)}')">-</button>
+              <button type="button" data-cart-action="decrease">-</button>
               <span>${item.qty}</span>
-              <button type="button" onclick="increaseQty('${escapeHtml(itemKey)}')">+</button>
+              <button type="button" data-cart-action="increase">+</button>
             </div>
             <div><strong>${formatPrice((item.price || 0) * item.qty)}</strong></div>
           </div>
         `;
+        // Bind handlers with the key in a closure instead of inline onclick:
+        // HTML-escaping does not protect a value inside a JS string in an attribute.
+        const cartActions = { remove: removeItem, decrease: decreaseQty, increase: increaseQty };
+        div.querySelectorAll("[data-cart-action]").forEach((button) => {
+          const action = cartActions[button.dataset.cartAction];
+          button.addEventListener("click", () => action(itemKey));
+        });
         wrap.appendChild(div);
       });
     }

@@ -1,6 +1,9 @@
 {
   "routes": [
     { "src": "^/$", "has": [{ "type": "host", "value": "asror-dev.vercel.app" }], "dest": "/portfolio/index.html" },
-    { "src": "^/media/(.*)$", "has": [{ "type": "host", "value": "asror-dev.vercel.app" }], "dest": "/portfolio/media/$1" }
+    { "src": "^/media/(.*)$", "has": [{ "type": "host", "value": "asror-dev.vercel.app" }], "dest": "/portfolio/media/$1" },
+    { "src": "^/$", "has": [{ "type": "host", "value": "medclinic-demo.vercel.app" }], "dest": "/medsite-demo/index.html" },
+    { "src": "^/([a-z-]+)$", "has": [{ "type": "host", "value": "medclinic-demo.vercel.app" }], "dest": "/medsite-demo/$1.html" },
+    { "src": "^/(.+)$", "has": [{ "type": "host", "value": "medclinic-demo.vercel.app" }], "dest": "/medsite-demo/$1" }
   ]
 }

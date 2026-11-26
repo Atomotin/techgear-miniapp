@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Профиль врача PROMEDCENTRE: специализация, стаж, описание приема и запись."
+    />
+    <title>PROMEDCENTRE | Врач</title>
+    <script>
+      document.documentElement.classList.add("content-pending");
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Onest:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="/styles/main.css?v=20261126-1" />
+    <script defer src="/scripts/default-content.js?v=20260407-1"></script>
+    <script defer src="/scripts/locales.js?v=20260404-2"></script>
+    <script defer src="/scripts/content-store.js?v=20260407-1"></script>
+    <script defer src="/scripts/site.js?v=20261126-1"></script>
+  </head>
+  <body data-nav="doctors" data-page-title="Врач" data-page-kind="doctor-detail">
+    <header class="site-header">
+      <div class="header-utility">
+        <div class="container header-utility__inner">
+          <div class="utility-meta">
+            <div class="utility-social" aria-label="Социальные сети клиники">
+              <a id="socialTelegram" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">TG</a>
+              <a id="socialInstagram" href="https://instagram.com/promedcentre.kz" target="_blank" rel="noreferrer">IG</a>
+              <a id="socialWhatsapp" href="https://wa.me/77473420101" target="_blank" rel="noreferrer">WA</a>
+              <a id="socialTiktok" href="https://www.tiktok.com/@promedcentre.kz" target="_blank" rel="noreferrer">TT</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container site-header__inner">
+        <a class="brand" href="/" aria-label="На главную">
+          <img id="brandLogo" src="/assets/logo.svg?v=20260407-1" alt="Логотип PROMEDCENTRE" class="brand__logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.classList.add('brand--fallback');">
+          <div class="brand__logo-fallback" id="brandLogoFallback" aria-hidden="true">PMC</div>
+          <span class="brand__copy">
+            <strong id="brandName">PROMEDCENTRE</strong>
+            <small id="brandTag">Клиника для взрослых и детей</small>
+          </span>
+        </a>
+
+        <nav class="utility-nav" aria-label="Основная навигация">
+            <a href="/" data-nav="home">главная</a>
+            <a href="/about" data-nav="about">о нас</a>
+            <a href="/services" data-nav="services">услуги</a>
+            <a href="/doctors" data-nav="doctors">специалисты</a>
+            <a href="/contacts" data-nav="contacts">контакты</a>
+        </nav>
+
+        <button class="utility-lang" type="button" aria-pressed="false">RU / KZ</button>
+
+
+        <div class="header-contact-stack">
+          <a class="header-phone" id="headerPhone" href="tel:+77473420101">+7 (747) 342-01-01</a>
+          <a class="header-email" id="headerSecondaryContact" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">@promedcentrekz</a>
+        </div>
+
+        <div class="header-actions">
+          <a class="btn btn--primary" id="headerPrimaryCta" href="/contacts">записаться</a>
+          <a class="btn btn--outline" id="headerSecondaryCta" href="/doctors">все специалисты</a>
+        </div>
+
+        <button class="utility-menu-toggle" type="button" aria-expanded="false">Меню</button>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-hero container">
+        <div class="page-hero__panel doctor-detail-hero">
+          <div class="doctor-detail-hero__layout">
+            <div class="page-hero__copy">
+              <span class="section-pill" id="doctorDetailEyebrow">Специалист</span>
+              <h1 id="doctorDetailTitle">Профиль врача</h1>
+              <p class="doctor-detail__specialty" id="doctorDetailSpecialty">
+                Специализация врача
+              </p>
+              <p class="doctor-detail__experience" id="doctorDetailExperience">
+                Стаж
+              </p>
+              <p class="doctor-detail__note" id="doctorDetailAbout">
+                Здесь будет подробное описание врача и его подхода к приему.
+              </p>
+
+              <div class="page-hero__actions">
+                <a class="btn btn--primary" id="doctorDetailPrimaryLink" href="/contacts">Оставить заявку</a>
+                <a class="btn btn--outline" id="doctorDetailSecondaryLink" href="/doctors">Вернуться к специалистам</a>
+              </div>
+            </div>
+
+            <div class="doctor-detail__visual" id="doctorDetailVisual" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section container" id="doctorDetailState" hidden>
+        <div class="page-bridge">
+          <div>
+            <span class="section-pill section-pill--light" id="doctorDetailMissingBadge">Врач не найден</span>
+            <h2 id="doctorDetailMissingTitle">Такой страницы пока нет в текущем списке специалистов.</h2>
+            <p id="doctorDetailMissingDescription">Вернитесь к общему списку врачей и выберите актуального специалиста.</p>
+          </div>
+          <div class="page-bridge__actions">
+            <a class="btn btn--light" id="doctorDetailMissingPrimaryLink" href="/doctors">Все специалисты</a>
+            <a class="btn btn--ghost-light" id="doctorDetailMissingSecondaryLink" href="/contacts">Связаться</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section container">
+        <div class="contact-overview">
+          <article class="contact-overview__card">
+            <span class="contact-overview__label">Телефон</span>
+            <p class="contact-overview__value" id="doctorDetailPhone">+7 (747) 342-01-01</p>
+          </article>
+          <article class="contact-overview__card">
+            <span class="contact-overview__label">График</span>
+            <p class="contact-overview__value" id="doctorDetailHours">Ежедневно 08:00-20:00</p>
+          </article>
+          <article class="contact-overview__card">
+            <span class="contact-overview__label">Адрес</span>
+            <p class="contact-overview__value" id="doctorDetailAddress">Туркестанская область. Сайрамский район, село Аксукент, улица Жандарбекова 9а.</p>
+          </article>
+          <article class="contact-overview__card">
+            <span class="contact-overview__label" id="doctorDetailFormatLabel">Формат</span>
+            <p class="contact-overview__value" id="doctorDetailFormatText">Запись к врачу, обследования и следующий шаг в одной системе.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta-section" id="contacts">
+        <div class="container">
+          <div class="cta-card">
+            <div class="cta-card__copy">
+              <span class="section-pill" id="doctorLeadBadge">Запись к врачу</span>
+              <h2 id="doctorLeadTitle">Оставьте заявку на консультацию.</h2>
+              <p id="doctorLeadDescription">
+                Администратор свяжется с вами и поможет согласовать время приема.
+              </p>
+            </div>
+
+            <div class="cta-card__actions">
+              <form class="lead-form" id="leadForm">
+                <label>
+                  Имя
+                  <input type="text" name="name" placeholder="Как к вам обращаться" required />
+                </label>
+                <label>
+                  Телефон
+                  <input type="tel" name="phone" placeholder="+7 (___) ___-__-__" required />
+                </label>
+                <label>
+                  Направление
+                  <select name="service" id="leadService"></select>
+                </label>
+                <label class="lead-form__wide">
+                  Комментарий
+                  <textarea name="message" rows="4" placeholder="Кратко опишите, что хотите уточнить перед приемом"></textarea>
+                </label>
+
+                <label class="lead-form__honeypot" aria-hidden="true">
+                  Website
+                  <input type="text" name="website" tabindex="-1" autocomplete="off" />
+                </label>
+
+                <div class="lead-form__actions">
+                  <button class="btn btn--light" type="submit">Отправить заявку</button>
+                  <a class="btn btn--ghost-light" id="ctaButton" href="https://wa.me/77473420101" target="_blank" rel="noreferrer">Написать в WhatsApp</a>
+                </div>
+
+                <p class="lead-form__message" id="leadFormMessage" role="status" aria-live="polite"></p>
+              </form>
+
+              <div class="cta-card__meta">
+                <span id="footerAddress">Туркестанская область. Сайрамский район, село Аксукент, улица Жандарбекова 9а.</span>
+                <span id="footerHours">Ежедневно 08:00-20:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <span class="section-pill" id="doctorRelatedBadge">Команда</span>
+            <h2 id="doctorRelatedTitle">Другие специалисты клиники</h2>
+          </div>
+          <p id="doctorRelatedDescription">Чтобы пациент не упирался в тупик, на профиле врача оставили переходы к другим специалистам команды.</p>
+        </div>
+
+        <div class="cards-grid cards-grid--doctors" id="relatedDoctorsGrid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div>
+          <strong id="footerBrandName">PROMEDCENTRE</strong>
+          <p id="footerBrandTag">Клиника для взрослых и детей</p>
+          <p class="site-footer__copyright" id="footerCopyright">© PROMEDCENTRE. Все права защищены.</p>
+        </div>
+
+        <div class="site-footer__links">
+          <a href="/">Главная</a>
+          <a href="/about">О клинике</a>
+          <a href="/services">Услуги</a>
+          <a href="/contacts">Контакты</a>
+          <a id="footerPhone" href="tel:+77473420101">Позвонить</a>
+          <a id="footerSecondaryLink" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">Telegram</a>
+        </div>
+
+        <div class="site-footer__socials">
+          <a id="footerTelegram" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">Telegram</a>
+          <a id="footerInstagram" href="https://instagram.com/promedcentre.kz" target="_blank" rel="noreferrer">Instagram</a>
+          <a id="footerWhatsapp" href="https://wa.me/77473420101" target="_blank" rel="noreferrer">WhatsApp</a>
+          <a id="footerTiktok" href="https://www.tiktok.com/@promedcentre.kz" target="_blank" rel="noreferrer">TikTok</a>
+        </div>
+      </div>
+    </footer>
+  <div style="position:fixed;left:12px;bottom:12px;z-index:9999;background:#211a2e;color:#fff;font:500 12px/1.3 Onest,system-ui,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 24px -8px #0006;pointer-events:none">Демо для портфолио · заявки не отправляются</div>
+</body>
+</html>

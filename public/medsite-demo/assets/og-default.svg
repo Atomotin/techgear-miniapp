@@ -1,0 +1,13 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#F6F7F3"/>
+  <rect x="66" y="66" width="1068" height="498" rx="42" fill="white"/>
+  <rect x="120" y="120" width="120" height="120" rx="30" fill="#4FCFBB"/>
+  <path d="M154 206V154H181.2C196.912 154 204.8 160.795 204.8 174.384C204.8 187.995 196.912 194.8 181.2 194.8H167.12V206H154ZM167.12 184.192H180.16C188.843 184.192 193.184 180.923 193.184 174.384C193.184 167.867 188.843 164.608 180.16 164.608H167.12V184.192Z" fill="white"/>
+  <text x="278" y="180" fill="#111111" font-family="Onest, Arial, sans-serif" font-size="62" font-weight="800">PROMEDCENTRE</text>
+  <text x="278" y="236" fill="#0D6A63" font-family="Onest, Arial, sans-serif" font-size="28" font-weight="600">Частная клиника для взрослых и детей</text>
+  <text x="120" y="356" fill="#111111" font-family="Onest, Arial, sans-serif" font-size="78" font-weight="800">Консультации, диагностика</text>
+  <text x="120" y="440" fill="#111111" font-family="Onest, Arial, sans-serif" font-size="78" font-weight="800">и понятная запись на прием</text>
+  <text x="120" y="510" fill="#697B80" font-family="Onest, Arial, sans-serif" font-size="30" font-weight="500">Услуги, специалисты, контакты и запись в одном месте.</text>
+  <rect x="842" y="392" width="190" height="64" rx="32" fill="#4FCFBB"/>
+  <text x="885" y="434" fill="white" font-family="Onest, Arial, sans-serif" font-size="28" font-weight="700">promedcentre</text>
+</svg>

@@ -1,0 +1,52 @@
+<svg width="900" height="260" viewBox="0 0 900 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(20 18)">
+    <path
+      d="M118 18C100 18 86 26 77 38C68 26 54 18 36 18C15 18 0 34 0 56C0 112 77 156 77 156S154 112 154 56C154 34 139 18 118 18Z"
+      fill="#D50000"
+    />
+    <path
+      d="M32 86H56L70 68L82 108L96 84L108 96H132"
+      stroke="#FFFFFF"
+      stroke-width="10"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+  </g>
+
+  <text
+    x="240"
+    y="130"
+    fill="#D50000"
+    font-family="Arial Black, Arial, Helvetica, sans-serif"
+    font-size="126"
+    font-weight="900"
+    letter-spacing="-7"
+  >
+    PMC
+  </text>
+
+  <text
+    x="250"
+    y="188"
+    fill="#1F4FC8"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="40"
+    font-weight="800"
+    letter-spacing="1.2"
+  >
+    PROMED CENTRE
+  </text>
+
+  <text
+    x="76"
+    y="236"
+    fill="#1F4FC8"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="28"
+    font-weight="500"
+    letter-spacing="0.9"
+  >
+    ЦЕНТР ПРОФЕССИОНАЛЬНОЙ МЕДИЦИНЫ
+  </text>
+</svg>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VerbSpark AI | English That Sticks</title>
+  <meta
+    id="metaDescription"
+    name="description"
+    content="VerbSpark AI is a bold, AI-style English learning site with level testing, speaking drills, writing feedback, vocabulary training, and progress tracking."
+  >
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f1c18'/%3E%3Ctext x='15' y='23' font-family='Georgia,serif' font-style='italic' font-size='20' fill='%23f8f4ec' text-anchor='middle'%3EV%3C/text%3E%3Ccircle cx='24' cy='23' r='2.4' fill='%23c63f26'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..600&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dream-ui" data-theme="day" data-page="practice">
+
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">V</span>
+      <span class="brand-text">VerbSpark</span>
+    </a>
+
+    <nav class="nav">
+      <a href="index.html">Start Here</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a class="is-current" href="practice.html">Practice Lab</a>
+      <a href="plan.html">Daily Plan</a>
+    </nav>
+
+    <div class="language-switch" id="languageSwitch" aria-label="Language switch">
+      <button class="language-pill is-active" data-locale="en" type="button">EN</button>
+      <button class="language-pill" data-locale="ru" type="button">RU</button>
+      <button class="language-pill" data-locale="uz" type="button">UZ</button>
+    </div>
+
+    <div class="theme-switch" id="themeSwitch" aria-label="Theme switch">
+      <span class="theme-switch-label" id="themeSwitchLabel">Theme</span>
+      <button class="theme-pill" data-theme-choice="space" type="button">Dark</button>
+      <button class="theme-pill is-active" data-theme-choice="day" type="button">Light</button>
+    </div>
+
+    <a class="button button-secondary" href="roadmap.html">Start Placement</a>
+  </header>
+
+  <main>
+    <section class="section guide-section">
+      <div class="section-heading section-heading-split" data-motion="heading">
+        <div class="section-heading-main">
+          <p class="eyebrow" id="pageLeadEyebrow">Practice Lab</p>
+          <h2 id="pageLeadHeading">Train speaking, writing, and vocabulary without scrolling through the whole site.</h2>
+          <p class="section-text" id="pageLeadText">
+            This page is your active training zone. Choose a track, answer in English,
+            get feedback, and move straight into the next drill.
+          </p>
+          <div class="journey-strip" id="journeyStrip"></div>
+        </div>
+        <aside class="section-note-card" data-motion="card">
+          <span class="mini-title" id="pageLeadAsideTitle">Use It With</span>
+          <p class="section-note-text" id="pageLeadAsideText">
+            Run placement in Roadmap first if you are new, then use Daily Plan after feedback to keep momentum.
+          </p>
+          <div class="guide-action-row">
+            <a class="button button-small" href="roadmap.html" id="pageLeadPrimaryAction">Open Roadmap</a>
+            <a class="button button-secondary button-small" href="plan.html" id="pageLeadSecondaryAction">Daily Plan</a>
+          </div>
+        </aside>
+      </div>
+
+      <div class="goal-strip">
+        <span class="goal-label">Choose your track</span>
+        <div class="goal-chips" id="goalChips">
+          <button class="chip is-active" data-goal="interview" type="button">Interview</button>
+          <button class="chip" data-goal="travel" type="button">Travel</button>
+          <button class="chip" data-goal="it" type="button">IT English</button>
+          <button class="chip" data-goal="daily" type="button">Daily Life</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section lab-section" id="lab">
+      <div class="section-heading" data-motion="heading">
+        <p class="eyebrow">Practice Lab</p>
+        <h2>Train speaking, writing, and vocabulary inside one rhythm.</h2>
+      </div>
+
+      <div class="lesson-builder" data-motion="card">
+        <div class="lesson-builder-main">
+          <div class="lesson-builder-topline">
+            <span class="mini-title" id="lessonEyebrow">Personal lesson</span>
+            <span class="tag" id="lessonFocusTag">Focus now: specificity</span>
+          </div>
+          <h3 id="lessonHeading">Train the exact issue your tutor keeps seeing.</h3>
+          <p class="section-note-text lesson-builder-text" id="lessonText">
+            This mini-lesson is assembled from your level, active track, and tutor memory so you can stop guessing what to do next.
+          </p>
+          <div class="lesson-meta" id="lessonMeta"></div>
+          <div class="lesson-actions">
+            <button class="button button-secondary button-small" id="generateLessonButton" type="button">Generate another lesson</button>
+            <button class="button button-small" id="applyLessonButton" type="button">Load into Practice</button>
+          </div>
+        </div>
+
+        <div class="lesson-step-grid" id="lessonStepGrid"></div>
+      </div>
+
+      <div class="practice-showcase" data-motion="card">
+        <div class="practice-showcase-main">
+          <div class="practice-showcase-topline">
+            <span class="mini-title" id="practiceShowcaseEyebrow">Session Flow</span>
+            <span class="tag" id="practiceShowcaseTag">Speaking now</span>
+          </div>
+          <h3 id="practiceShowcaseHeading">One loop: answer, improve, lock the phrase.</h3>
+          <p class="section-note-text practice-showcase-text" id="practiceShowcaseText">
+            Practice feels stronger when you keep one clear rhythm instead of jumping randomly between tools.
+          </p>
+
+          <div class="practice-session-card">
+            <div class="practice-session-topline">
+              <span class="mini-title" id="practiceScenarioLabel">Current scenario</span>
+              <span class="tag" id="practiceScenarioTrack">Interview English</span>
+            </div>
+            <p class="practice-session-title" id="practiceScenarioTitle">Impact Story</p>
+            <p class="practice-session-prompt" id="practiceScenarioPrompt">Answer like a candidate: Tell me about a time you improved a process or result.</p>
+            <div class="practice-target-block">
+              <span class="mini-title" id="practiceTargetsLabel">Focus words</span>
+              <div class="practice-target-list" id="practiceTargetList"></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="practice-rhythm-card">
+          <span class="mini-title" id="practiceRhythmLabel">Session rhythm</span>
+          <div class="practice-rhythm-list" id="practiceRhythmList"></div>
+          <p class="section-note-text practice-rhythm-note" id="practiceRhythmNote">
+            Keep the first answer real. The tutor is here to refine your English, not replace your voice.
+          </p>
+        </aside>
+      </div>
+
+      <div class="lab-grid">
+        <article class="card lab-card" data-motion="card">
+          <div class="card-topline">
+            <span class="label-dot"></span>
+            <span>Conversation Arena</span>
+          </div>
+          <div class="scenario-tabs" id="scenarioTabs"></div>
+          <p class="scenario-prompt" id="coachPrompt"></p>
+          <label class="input-label" for="coachInput">Write your answer in English</label>
+          <textarea id="coachInput" rows="6" placeholder="Type the answer you would say in real life..."></textarea>
+          <button class="button" id="coachButton" type="button">Get AI Feedback</button>
+          <div class="feedback-panel" id="coachFeedback"></div>
+        </article>
+
+        <article class="card lab-card" data-motion="card">
+          <div class="card-topline">
+            <span class="label-dot accent-three"></span>
+            <span>Writing Doctor</span>
+          </div>
+          <label class="input-label" for="writingPromptSelect">Prompt</label>
+          <select id="writingPromptSelect"></select>
+          <label class="input-label" for="writingInput">Write 4 to 8 sentences</label>
+          <textarea id="writingInput" rows="7" placeholder="Describe an experience, opinion, or plan..."></textarea>
+          <button class="button" id="writingButton" type="button">Review My Writing</button>
+          <div class="feedback-panel" id="writingFeedback"></div>
+        </article>
+
+        <article class="card lab-card vocab-card" data-motion="card">
+          <div class="card-topline">
+            <span class="label-dot accent-two"></span>
+            <span>Word Forge</span>
+          </div>
+          <div class="flashcard" id="flashcard">
+            <span class="flashcard-type" id="vocabType">noun</span>
+            <h3 id="vocabWord">deadline</h3>
+            <p id="vocabDefinition">A time when something must be finished.</p>
+            <p class="flashcard-example hidden" id="vocabExample">We moved faster because the client deadline was on Friday.</p>
+          </div>
+          <div class="flashcard-actions">
+            <button class="button button-secondary button-small" id="revealExampleButton" type="button">Reveal Example</button>
+            <button class="button button-small" id="markLearnedButton" type="button">Mark Learned</button>
+            <button class="button button-secondary button-small" id="nextWordButton" type="button">Next Word</button>
+          </div>
+          <p class="flashcard-counter" id="vocabCounter">Word 1 of 6</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footer-brand">VerbSpark</span>
+    <p>VerbSpark AI MVP. Built for focused English practice with track-based feedback and local progress memory.</p>
+  </footer>
+
+  <script src="demo-api.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+<div style="position:fixed;left:12px;bottom:12px;z-index:9999;background:#211a2e;color:#fff;font:500 12px/1.3 system-ui,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 24px -8px #0006;pointer-events:none">Demo · data stays in your browser</div>
+</body>
+</html>

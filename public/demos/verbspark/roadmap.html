@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VerbSpark AI | English That Sticks</title>
+  <meta
+    id="metaDescription"
+    name="description"
+    content="VerbSpark AI is a bold, AI-style English learning site with level testing, speaking drills, writing feedback, vocabulary training, and progress tracking."
+  >
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f1c18'/%3E%3Ctext x='15' y='23' font-family='Georgia,serif' font-style='italic' font-size='20' fill='%23f8f4ec' text-anchor='middle'%3EV%3C/text%3E%3Ccircle cx='24' cy='23' r='2.4' fill='%23c63f26'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..600&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dream-ui" data-theme="day" data-page="roadmap">
+
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">V</span>
+      <span class="brand-text">VerbSpark</span>
+    </a>
+
+    <nav class="nav">
+      <a href="index.html">Start Here</a>
+      <a class="is-current" href="roadmap.html">Roadmap</a>
+      <a href="practice.html">Practice Lab</a>
+      <a href="plan.html">Daily Plan</a>
+    </nav>
+
+    <div class="language-switch" id="languageSwitch" aria-label="Language switch">
+      <button class="language-pill is-active" data-locale="en" type="button">EN</button>
+      <button class="language-pill" data-locale="ru" type="button">RU</button>
+      <button class="language-pill" data-locale="uz" type="button">UZ</button>
+    </div>
+
+    <div class="theme-switch" id="themeSwitch" aria-label="Theme switch">
+      <span class="theme-switch-label" id="themeSwitchLabel">Theme</span>
+      <button class="theme-pill" data-theme-choice="space" type="button">Dark</button>
+      <button class="theme-pill is-active" data-theme-choice="day" type="button">Light</button>
+    </div>
+
+    <a class="button button-secondary" href="roadmap.html">Start Placement</a>
+  </header>
+
+  <main>
+    <section class="section guide-section">
+      <div class="section-heading section-heading-split" data-motion="heading">
+        <div class="section-heading-main">
+          <p class="eyebrow" id="pageLeadEyebrow">Learning Roadmap</p>
+          <h2 id="pageLeadHeading">See your level, profile, tutor memory, and AI status in one focused page.</h2>
+          <p class="section-text" id="pageLeadText">
+            This is your control center: run placement, save your learner profile,
+            and see what the tutor wants you to improve next.
+          </p>
+          <div class="journey-strip" id="journeyStrip"></div>
+        </div>
+        <aside class="section-note-card" data-motion="card">
+          <span class="mini-title" id="pageLeadAsideTitle">Next Step</span>
+          <p class="section-note-text" id="pageLeadAsideText">
+            After placement, jump into Practice Lab to train answers, then finish your Daily Plan.
+          </p>
+          <div class="guide-action-row">
+            <a class="button button-small" href="practice.html" id="pageLeadPrimaryAction">Open Practice</a>
+            <a class="button button-secondary button-small" href="plan.html" id="pageLeadSecondaryAction">Daily Plan</a>
+          </div>
+        </aside>
+      </div>
+
+      <div class="goal-strip">
+        <span class="goal-label">Choose your track</span>
+        <div class="goal-chips" id="goalChips">
+          <button class="chip is-active" data-goal="interview" type="button">Interview</button>
+          <button class="chip" data-goal="travel" type="button">Travel</button>
+          <button class="chip" data-goal="it" type="button">IT English</button>
+          <button class="chip" data-goal="daily" type="button">Daily Life</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section dashboard-section" id="learn">
+      <div class="section-heading section-heading-split" data-motion="heading">
+        <div class="section-heading-main">
+          <p class="eyebrow">Learning Roadmap</p>
+          <h2>Start with your level, then train like a guided product.</h2>
+          <p class="section-text" id="learnText">This area becomes your learning cockpit: placement, profile, tutor memory and live AI status in one place.</p>
+        </div>
+        <aside class="section-note-card" data-motion="card">
+          <span class="mini-title" id="learnNoteTag">Learning cockpit</span>
+          <p class="section-note-text" id="learnNoteText">After placement, this block updates your level, confidence, memory focus and daily direction.</p>
+        </aside>
+      </div>
+
+      <div class="dashboard-spotlight" data-motion="card">
+        <div class="dashboard-spotlight-topline">
+          <span class="mini-title" id="learnSpotlightTitle">What updates after placement</span>
+          <span class="tag" id="learnSpotlightTag">Live learning system</span>
+        </div>
+        <div class="dashboard-spotlight-grid">
+          <article class="spotlight-card">
+            <strong>01</strong>
+            <span id="learnSpotlightOne">Level estimate</span>
+          </article>
+          <article class="spotlight-card">
+            <strong>02</strong>
+            <span id="learnSpotlightTwo">Track-based roadmap</span>
+          </article>
+          <article class="spotlight-card">
+            <strong>03</strong>
+            <span id="learnSpotlightThree">Tutor memory and next drill</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="card placement-card" data-motion="card">
+          <div class="card-topline">
+            <span class="label-dot"></span>
+            <span>Placement Sprint</span>
+          </div>
+          <div class="assessment-progress">
+            <span id="assessmentStep">Question 1 of 5</span>
+            <div class="progress-track">
+              <div class="progress-bar" id="assessmentBar"></div>
+            </div>
+          </div>
+          <h3 id="assessmentQuestion">Choose the most natural sentence.</h3>
+          <div class="option-list" id="assessmentOptions"></div>
+          <div class="assessment-summary hidden" id="assessmentSummary"></div>
+        </article>
+
+        <article class="card profile-card" data-motion="card">
+          <div class="card-topline">
+            <span class="label-dot accent-two"></span>
+            <span>Profile Console</span>
+          </div>
+          <div class="profile-form">
+            <label class="input-label" for="nameInput">Learner name</label>
+            <div class="name-row">
+              <input id="nameInput" type="text" maxlength="20" placeholder="Type your name">
+              <button class="button button-small" id="saveNameButton" type="button">Save</button>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <span class="metric-number" id="levelBadge">A2</span>
+              <span class="metric-label">Level</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-number" id="streakValue">0</span>
+              <span class="metric-label">Streak</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-number" id="lessonValue">0</span>
+              <span class="metric-label">Sessions</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-number" id="vocabValue">0</span>
+              <span class="metric-label">Words</span>
+            </div>
+          </div>
+
+          <div class="confidence-card">
+            <div class="confidence-header">
+              <span>Confidence meter</span>
+              <strong id="confidenceValue">36%</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar warm-bar" id="confidenceBar"></div>
+            </div>
+            <p id="confidenceNote">Practice 2 drills today to move your confidence above 40%.</p>
+          </div>
+
+          <div class="recommendation-box" id="recommendationBox">
+            Your roadmap: short answers, clean grammar, and one connector in every response.
+          </div>
+
+          <div class="memory-box" id="memoryBox"></div>
+
+          <div class="runtime-box">
+            <div class="runtime-topline">
+              <span class="label-dot" id="runtimeDot"></span>
+              <strong id="runtimeStatus">Checking AI server...</strong>
+            </div>
+            <p id="runtimeNote">Run the local server to unlock OpenAI-powered feedback.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footer-brand">VerbSpark</span>
+    <p>VerbSpark AI MVP. Built for focused English practice with track-based feedback and local progress memory.</p>
+  </footer>
+
+  <script src="demo-api.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+<div style="position:fixed;left:12px;bottom:12px;z-index:9999;background:#211a2e;color:#fff;font:500 12px/1.3 system-ui,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 24px -8px #0006;pointer-events:none">Demo · data stays in your browser</div>
+</body>
+</html>

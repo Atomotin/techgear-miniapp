@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KAGE // Video New Tab</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f8fafc;
+      background: #070508;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(7, 5, 8, 0.25), rgba(7, 5, 8, 0.72));
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .hud {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 680px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #fca5a5;
+      background: rgba(15, 10, 14, 0.65);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .clock {
+      font-size: clamp(56px, 11vw, 98px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      text-shadow: 0 8px 32px rgba(0, 0, 0, 0.85);
+    }
+
+    .date {
+      margin-top: 8px;
+      font-size: 15px;
+      color: rgba(248, 250, 252, 0.82);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+    }
+
+    .search-box {
+      margin: 26px auto 28px;
+      max-width: 520px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 15px 22px;
+      font-size: 15px;
+      color: #ffffff;
+      background: rgba(15, 12, 18, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      outline: none;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .search-box input:focus {
+      border-color: rgba(248, 113, 113, 0.85);
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.24);
+    }
+
+    .links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+      gap: 12px;
+    }
+
+    .link-card {
+      text-decoration: none;
+      color: #f8fafc;
+      background: rgba(15, 12, 18, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      padding: 13px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .link-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(248, 113, 113, 0.7);
+      background: rgba(34, 16, 24, 0.85);
+    }
+  </style>
+</head>
+<body>
+  <video class="bg-video" autoplay loop muted playsinline>
+    <source src="samurai.mp4" type="video/mp4" />
+  </video>
+  <div class="bg-overlay"></div>
+
+  <main class="hud">
+    <div class="tag">Samurai // Live Video</div>
+    <div class="clock" id="clock">00:00</div>
+    <div class="date" id="date">Среда, 25 ноября</div>
+
+    <form class="search-box" id="searchForm">
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Найти в Google..."
+        autocomplete="off"
+        autofocus
+      />
+    </form>
+
+    <nav class="links">
+      <a class="link-card" href="https://www.youtube.com" target="_blank" rel="noreferrer">YouTube</a>
+      <a class="link-card" href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
+      <a class="link-card" href="https://web.telegram.org" target="_blank" rel="noreferrer">Telegram</a>
+      <a class="link-card" href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
+    </nav>
+  </main>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      document.getElementById("clock").textContent = `${hh}:${mm}`;
+
+      const dateText = now.toLocaleDateString("ru-RU", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      });
+      document.getElementById("date").textContent =
+        dateText.charAt(0).toUpperCase() + dateText.slice(1);
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    document.getElementById("searchForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const q = document.getElementById("searchInput").value.trim();
+      if (q) {
+        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+      }
+    });
+  </script>
+</body>
+</html>

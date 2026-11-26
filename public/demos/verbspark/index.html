@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VerbSpark | English That Sticks</title>
+  <meta
+    id="metaDescription"
+    name="description"
+    content="VerbSpark is an English trainer with a level check, track-based practice, answer-by-answer feedback, flashcards and a daily plan."
+  >
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f1c18'/%3E%3Ctext x='15' y='23' font-family='Georgia,serif' font-style='italic' font-size='20' fill='%23f8f4ec' text-anchor='middle'%3EV%3C/text%3E%3Ccircle cx='24' cy='23' r='2.4' fill='%23c63f26'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Literata:ital,opsz,wght@0,7..72,400..700;1,7..72,400..600&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dream-ui" data-theme="day" data-page="home">
+  <header class="topbar">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true">V</span>
+      <span class="brand-text">VerbSpark</span>
+    </a>
+
+    <nav class="nav">
+      <a class="is-current" href="index.html">Start Here</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="practice.html">Practice Lab</a>
+      <a href="plan.html">Daily Plan</a>
+    </nav>
+
+    <div class="language-switch" id="languageSwitch" aria-label="Language switch">
+      <button class="language-pill is-active" data-locale="en" type="button">EN</button>
+      <button class="language-pill" data-locale="ru" type="button">RU</button>
+      <button class="language-pill" data-locale="uz" type="button">UZ</button>
+    </div>
+
+    <div class="theme-switch" id="themeSwitch" aria-label="Theme switch">
+      <span class="theme-switch-label" id="themeSwitchLabel">Theme</span>
+      <button class="theme-pill" data-theme-choice="space" type="button">Dark</button>
+      <button class="theme-pill is-active" data-theme-choice="day" type="button">Light</button>
+    </div>
+
+    <a class="button button-secondary" href="roadmap.html">Start Placement</a>
+  </header>
+
+  <main>
+    <section class="hero section" id="hero">
+      <div class="hero-copy" data-motion="hero-copy">
+        <p class="eyebrow">English for work, travel and everyday life</p>
+        <h1>Answer in English. <em>We’ll show you how to say it better.</em></h1>
+        <p class="hero-text">
+          A quick level check, tasks built around your goal, and a breakdown of every answer:
+          what to fix, how it sounds stronger, and what to train tomorrow.
+        </p>
+
+        <div class="goal-strip">
+          <span class="goal-label">What do you need English for?</span>
+          <div class="goal-chips" id="goalChips">
+            <button class="chip is-active" data-goal="interview" type="button">Interview</button>
+            <button class="chip" data-goal="travel" type="button">Travel</button>
+            <button class="chip" data-goal="it" type="button">IT English</button>
+            <button class="chip" data-goal="daily" type="button">Daily Life</button>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <a class="button" href="roadmap.html">Start Placement</a>
+          <a class="button button-secondary" href="plan.html">See Daily Plan</a>
+        </div>
+
+        <ul class="hero-badges">
+          <li class="hero-badge hero-badge-main">5 questions to find your level</li>
+          <li class="hero-badge">feedback on every answer</li>
+          <li class="hero-badge">no sign-up needed</li>
+        </ul>
+      </div>
+
+      <div class="hero-panel" data-motion="hero-panel">
+        <div class="hero-flashcard" aria-hidden="true">
+          <div class="hero-flashcard-top">
+            <span>noun</span>
+            <span>7 / 24</span>
+          </div>
+          <strong>deadline</strong>
+          <span class="hero-flashcard-ipa">/ˈded.laɪn/</span>
+          <p>“We moved faster because the client deadline was on Friday.”</p>
+        </div>
+
+        <article class="hero-card hero-card-main">
+          <div class="hero-card-header">
+            <span class="pulse" aria-hidden="true"></span>
+            <span>Answer review</span>
+          </div>
+          <p class="hero-card-question" id="previewPrompt">
+            Tell me about a project where you improved a process.
+          </p>
+          <div class="hero-card-answer">
+            <span class="tag">Your answer</span>
+            <p id="previewAnswer">I improved our support flow because users waited too long for answers.</p>
+          </div>
+          <div class="hero-card-revision">
+            <span class="tag" id="previewRevisionLabel">Stronger version</span>
+            <p id="previewRevision">I <del>improved</del> <ins>rebuilt</ins> our support flow because users waited <del>too long</del> <ins>up to two days</ins> for answers.</p>
+          </div>
+          <div class="feedback-grid">
+            <div class="feedback-chip" style="--score: 82">
+              <span class="feedback-number">82</span>
+              <span class="feedback-name">Clarity</span>
+            </div>
+            <div class="feedback-chip" style="--score: 78">
+              <span class="feedback-number">78</span>
+              <span class="feedback-name">Grammar</span>
+            </div>
+            <div class="feedback-chip" style="--score: 86">
+              <span class="feedback-number">86</span>
+              <span class="feedback-name">Confidence</span>
+            </div>
+          </div>
+        </article>
+
+        <div class="hero-card hero-card-stack">
+          <div class="mini-card">
+            <span class="mini-title">Today</span>
+            <p id="miniMission">Use one answer with "because", one with a past-tense verb, and one follow-up question.</p>
+          </div>
+          <div class="mini-card accent-card">
+            <span class="mini-title">AI note</span>
+            <p id="miniHint">Strong answers sound specific. Add one measurable detail or one real example.</p>
+            <svg class="margin-arrow" viewBox="0 0 80 46" aria-hidden="true"><path d="M76 6c-14 2-32 9-44 20-6 5-11 11-16 17m0 0 1-12m-1 12 11-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <dl class="hero-stats">
+        <div class="stat-pill">
+          <dt class="stat-label">Current level</dt>
+          <dd class="stat-value" id="heroLevel">A2</dd>
+        </div>
+        <div class="stat-pill">
+          <dt class="stat-label">Active track</dt>
+          <dd class="stat-value" id="heroFocus">Interview English</dd>
+        </div>
+        <div class="stat-pill">
+          <dt class="stat-label">Day streak</dt>
+          <dd class="stat-value" id="heroStreak">0</dd>
+        </div>
+        <div class="stat-pill">
+          <dt class="stat-label">Tutor engine</dt>
+          <dd class="stat-value stat-value-small" id="heroMode">Local</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="section guide-section" id="guide">
+      <div class="section-heading guide-section-heading" data-motion="heading">
+        <p class="eyebrow" id="guideEyebrow">Start Here</p>
+        <h2 id="guideHeading">What this site does and where to click first.</h2>
+        <p class="section-text" id="guideText">VerbSpark is an AI English tutor: it checks your level, gives practice, explains mistakes, and builds a daily plan.</p>
+      </div>
+
+      <div class="guide-layout">
+        <div class="focus-grid">
+          <article class="focus-card" data-motion="card">
+            <span class="focus-index">01</span>
+            <h2>Choose a goal</h2>
+            <p>Pick Interview, Travel, IT or Daily Life so the tasks and vocabulary match your real use case.</p>
+          </article>
+          <article class="focus-card" data-motion="card">
+            <span class="focus-index">02</span>
+            <h2>Take the quick placement</h2>
+            <p>Answer 5 short questions. VerbSpark estimates your level and shows what to train first.</p>
+          </article>
+          <article class="focus-card" data-motion="card">
+            <span class="focus-index">03</span>
+            <h2>Practice with AI feedback</h2>
+            <p>Open Practice Lab, answer in English, then get corrections, a stronger version, and your next step.</p>
+          </article>
+        </div>
+
+        <aside class="guide-aside" data-motion="card">
+          <div class="guide-window">
+            <div class="guide-window-bar">
+              <span class="mini-title" id="guideWindowLabel">First session flow</span>
+              <span class="guide-window-time" aria-hidden="true"></span>
+            </div>
+            <div class="guide-flow-list" id="guideFlowList"></div>
+          </div>
+          <span class="mini-title" id="guideAsideTitle">If you are new</span>
+          <p class="guide-aside-text" id="guideAsideText">First choose your language on top, then choose a track in the hero block, then press Start Placement.</p>
+          <div class="guide-action-row">
+            <a class="button button-small" href="roadmap.html" id="guidePrimaryAction">Start with placement</a>
+            <a class="button button-secondary button-small" href="practice.html" id="guideSecondaryAction">Open practice</a>
+          </div>
+          <button class="chip onboarding-launch-chip" id="onboardingLaunchButton" type="button">Open setup wizard</button>
+        </aside>
+      </div>
+
+      <div class="hero-start-card" hidden>
+        <span class="mini-title" id="heroStartTitle">What to do first</span>
+        <div class="hero-checklist" id="heroChecklist"></div>
+        <div class="journey-strip" id="journeyStrip"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="footer-brand">VerbSpark</span>
+    <p>VerbSpark AI MVP. Built for focused English practice with track-based feedback and local progress memory.</p>
+  </footer>
+
+  <div class="onboarding-overlay" id="onboardingOverlay" aria-hidden="true">
+    <div class="onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle" aria-describedby="onboardingText">
+      <div class="onboarding-shell">
+        <aside class="onboarding-sidebar">
+          <div class="onboarding-sidebar-topline">
+            <span class="mini-title" id="onboardingEyebrow">First-time setup</span>
+            <span class="tag" id="onboardingProgressText">Step 1 of 4</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="onboardingProgressBar"></div>
+          </div>
+          <div class="onboarding-step-list" id="onboardingStepList"></div>
+        </aside>
+
+        <section class="onboarding-main">
+          <div class="onboarding-topbar">
+            <span class="mini-title" id="onboardingTopTag">Quick setup</span>
+            <button class="button button-secondary button-small onboarding-close-button" id="onboardingCloseButton" type="button">Skip for now</button>
+          </div>
+
+          <h2 id="onboardingTitle">Choose the site language first.</h2>
+          <p class="section-note-text onboarding-text" id="onboardingText">
+            Start with the interface language so every next step is easy to understand.
+          </p>
+
+          <div class="onboarding-stage" id="onboardingStage"></div>
+          <p class="onboarding-hint" id="onboardingHint">You can change this later in the header.</p>
+
+          <div class="onboarding-footer-actions">
+            <button class="button button-secondary button-small" id="onboardingBackButton" type="button">Back</button>
+            <button class="button button-small" id="onboardingNextButton" type="button">Continue</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="demo-api.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+<div style="position:fixed;left:12px;bottom:12px;z-index:9999;background:#211a2e;color:#fff;font:500 12px/1.3 system-ui,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 24px -8px #0006;pointer-events:none">Demo · data stays in your browser</div>
+</body>
+</html>

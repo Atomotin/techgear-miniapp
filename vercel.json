@@ -1,0 +1,6 @@
+{
+  "routes": [
+    { "src": "^/$", "has": [{ "type": "host", "value": "asror-dev.vercel.app" }], "dest": "/portfolio/index.html" },
+    { "src": "^/media/(.*)$", "has": [{ "type": "host", "value": "asror-dev.vercel.app" }], "dest": "/portfolio/media/$1" }
+  ]
+}

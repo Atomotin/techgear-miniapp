@@ -138,7 +138,7 @@ function ensureProfileNavigation() {
       }
 
       // Outside Telegram there is no verified identity: keep the profile on this device only.
-      if (!getTelegramInitData()) return;
+      if (!getTelegramInitData() || window.TECHGEAR_DEMO) return;
 
       const response = await fetch("/api/profile", {
         method: "POST",
@@ -161,7 +161,7 @@ function ensureProfileNavigation() {
     }
 
     async function loadProfileFromServer() {
-      if (!getTelegramInitData()) return;
+      if (!getTelegramInitData() || window.TECHGEAR_DEMO) return;
 
       try {
         const response = await fetch("/api/profile", {

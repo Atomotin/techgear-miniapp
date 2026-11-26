@@ -697,20 +697,130 @@ const tg = window.Telegram?.WebApp || null;
       return `/api/catalog/public${query ? `?${query}` : ""}`;
     }
 
-    async function requestCatalogData(options = {}) {
-      const response = await fetch(buildCatalogApiUrl(options), {
-        method: "GET",
-        headers: {
-          "Accept": "application/json",
-        },
-        cache: "no-store",
-      });
+    // ---- Demo mode -------------------------------------------------------
+    // On static hosting (Vercel) there is no /api, so the storefront falls back
+    // to a bundled sample catalog. The real server never triggers this: demo
+    // mode needs a 404 / network error AND a *.vercel.app host or ?demo=1.
+    let demoCatalogPromise = null;
+    let demoModeActive = false;
 
-      if (!response.ok) {
-        throw new Error("catalog_request_failed");
+    function demoModeAllowed() {
+      const host = String(location.hostname || "");
+      return host.endsWith(".vercel.app") || new URLSearchParams(location.search).get("demo") === "1";
+    }
+
+    function loadDemoCatalog() {
+      if (!demoCatalogPromise) {
+        demoCatalogPromise = fetch("/demo/catalog.json", { cache: "no-store" })
+          .then((response) => {
+            if (!response.ok) throw new Error("demo_catalog_unavailable");
+            return response.json();
+          })
+          .catch((error) => {
+            demoCatalogPromise = null;
+            throw error;
+          });
+      }
+      return demoCatalogPromise;
+    }
+
+    function enableDemoMode() {
+      if (demoModeActive) return;
+      demoModeActive = true;
+      window.TECHGEAR_DEMO = true;
+      const banner = document.createElement("div");
+      banner.className = "demo-banner";
+      banner.textContent = "Демо-версия магазина · заказы не отправляются";
+      banner.style.cssText = "position:sticky;top:0;z-index:1000;padding:6px 12px;text-align:center;"
+        + "font:600 12px/1.4 system-ui,sans-serif;color:#fff;background:linear-gradient(90deg,#7c3aed,#db2777);";
+      document.body.prepend(banner);
+    }
+
+    function buildDemoCatalogResponse(catalog, options = {}) {
+      const ids = [...new Set((Array.isArray(options.ids) ? options.ids : [])
+        .map(Number).filter((id) => Number.isFinite(id) && id > 0))];
+      let products = (Array.isArray(catalog.products) ? catalog.products : [])
+        .filter((product) => product && product.isVisible !== false);
+
+      if (ids.length) {
+        products = products.filter((product) => ids.includes(Number(product.id)));
+      } else {
+        const search = String(state.search || "").trim().toLowerCase();
+        products = products.filter((product) => {
+          if (state.activeCategory && state.activeCategory !== "all" && product.category !== state.activeCategory) return false;
+          if (state.availability === "available" && product.isSoon) return false;
+          if (state.availability === "soon" && !product.isSoon) return false;
+          if (!search) return true;
+          return [product.name, product.desc, product.stock, ...(product.variants || [])]
+            .filter(Boolean).join(" ").toLowerCase().includes(search);
+        });
+        const byOrder = (a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0);
+        const sorters = {
+          "price-asc": (a, b) => (Number(a.price) || Infinity) - (Number(b.price) || Infinity),
+          "price-desc": (a, b) => (Number(b.price) || 0) - (Number(a.price) || 0),
+          name: (a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"),
+        };
+        products.sort(sorters[state.sort] || byOrder);
       }
 
-      return response.json();
+      const pageSize = ids.length ? Math.max(1, products.length) : PRODUCTS_PER_PAGE;
+      const totalItems = products.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      let currentPage = ids.length ? 1 : Math.max(1, Number(options.page) || 1);
+      const focusId = Number(options.focusProductId) || 0;
+      const focusIndex = focusId ? products.findIndex((product) => Number(product.id) === focusId) : -1;
+      if (focusIndex >= 0) currentPage = Math.floor(focusIndex / pageSize) + 1;
+      currentPage = Math.min(currentPage, totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const items = products.slice(start, start + pageSize);
+
+      const response = {
+        products: items,
+        pagination: {
+          currentPage, pageSize, totalItems, totalPages,
+          endIndex: start + items.length,
+          hasMorePages: currentPage < totalPages,
+          focusProductId: focusId || null,
+          focusFound: focusIndex >= 0,
+        },
+        updatedAt: catalog.updatedAt,
+      };
+      if (options.includeMeta) {
+        response.categories = catalog.categories;
+        response.banners = Array.isArray(catalog.banners) ? catalog.banners : [];
+      }
+      return response;
+    }
+
+    async function requestCatalogData(options = {}) {
+      let status = 0;
+      if (!demoModeActive) {
+        try {
+          const response = await fetch(buildCatalogApiUrl(options), {
+            method: "GET",
+            headers: {
+              "Accept": "application/json",
+            },
+            cache: "no-store",
+          });
+          if (response.ok) {
+            return response.json();
+          }
+          status = response.status;
+        } catch (error) {
+          status = 0; // network error
+        }
+      }
+
+      if (demoModeActive || ((status === 404 || status === 0) && demoModeAllowed())) {
+        const catalog = await loadDemoCatalog().catch(() => null);
+        if (catalog) {
+          enableDemoMode();
+          return buildDemoCatalogResponse(catalog, options);
+        }
+      }
+
+      throw new Error("catalog_request_failed");
     }
 
     function applyCatalogMeta(data = {}) {

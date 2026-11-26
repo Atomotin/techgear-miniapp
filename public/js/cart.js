@@ -652,6 +652,15 @@
         variant: item.selectedVariant || "",
         price: item.price || 0,
       }));
+      if (window.TECHGEAR_DEMO) {
+        // Static demo: nothing is sent anywhere, just show the success flow.
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        return {
+          ok: true,
+          orderId: `DEMO-${String(Date.now()).slice(-4)}`,
+          total: items.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1), 0),
+        };
+      }
       // The server takes the Telegram identity only from the signed initData header.
       const body = JSON.stringify({ ...payload, items });
       const idempotencyKey = getOrderIdempotencyKey(body);

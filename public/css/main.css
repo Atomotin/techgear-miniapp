@@ -2963,3 +2963,49 @@
       margin-top: 4px;
     }
   
+
+    /* ---- Wide screens (demo link opened on a laptop / desktop) ----------
+       Inside Telegram on a phone nothing changes: 2 columns as before. */
+    @media (min-width: 760px) {
+      .container {
+        max-width: 920px;
+      }
+
+      .product-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+    }
+
+    @media (min-width: 1180px) {
+      .container {
+        max-width: 1240px;
+        padding-left: 28px;
+        padding-right: 28px;
+      }
+
+      .product-list {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+      }
+    }
+
+    @media (min-width: 1560px) {
+      .container {
+        max-width: 1480px;
+      }
+
+      .product-list {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+    }
+
+    /* Forms stay readable on wide screens; only the catalog goes wide. */
+    @media (min-width: 760px) {
+      #cartView,
+      #profileView {
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }

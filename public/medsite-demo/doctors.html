@@ -30,10 +30,10 @@
         <div class="container header-utility__inner">
           <div class="utility-meta">
             <div class="utility-social" aria-label="Социальные сети клиники">
-              <a id="socialTelegram" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">TG</a>
-              <a id="socialInstagram" href="https://instagram.com/promedcentre.kz" target="_blank" rel="noreferrer">IG</a>
-              <a id="socialWhatsapp" href="https://wa.me/77473420101" target="_blank" rel="noreferrer">WA</a>
-              <a id="socialTiktok" href="https://www.tiktok.com/@promedcentre.kz" target="_blank" rel="noreferrer">TT</a>
+              <a id="socialTelegram" href="#" target="_blank" rel="noreferrer">TG</a>
+              <a id="socialInstagram" href="#" target="_blank" rel="noreferrer">IG</a>
+              <a id="socialWhatsapp" href="#" target="_blank" rel="noreferrer">WA</a>
+              <a id="socialTiktok" href="#" target="_blank" rel="noreferrer">TT</a>
             </div>
           </div>
         </div>
@@ -61,8 +61,8 @@
 
 
         <div class="header-contact-stack">
-          <a class="header-phone" id="headerPhone" href="tel:+77473420101">+7 (747) 342-01-01</a>
-          <a class="header-email" id="headerSecondaryContact" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">@promedcentrekz</a>
+          <a class="header-phone" id="headerPhone" href="#">+7 (700) 000-00-00</a>
+          <a class="header-email" id="headerSecondaryContact" href="#" target="_blank" rel="noreferrer">@demo_clinic</a>
         </div>
 
         <div class="header-actions">
@@ -155,18 +155,19 @@
           <a href="/about">О клинике</a>
           <a href="/services">Услуги</a>
           <a href="/contacts">Контакты</a>
-          <a id="footerPhone" href="tel:+77473420101">Позвонить</a>
-          <a id="footerSecondaryLink" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">Telegram</a>
+          <a id="footerPhone" href="#">Позвонить</a>
+          <a id="footerSecondaryLink" href="#" target="_blank" rel="noreferrer">Telegram</a>
         </div>
 
         <div class="site-footer__socials">
-          <a id="footerTelegram" href="https://t.me/promedcentrekz" target="_blank" rel="noreferrer">Telegram</a>
-          <a id="footerInstagram" href="https://instagram.com/promedcentre.kz" target="_blank" rel="noreferrer">Instagram</a>
-          <a id="footerWhatsapp" href="https://wa.me/77473420101" target="_blank" rel="noreferrer">WhatsApp</a>
-          <a id="footerTiktok" href="https://www.tiktok.com/@promedcentre.kz" target="_blank" rel="noreferrer">TikTok</a>
+          <a id="footerTelegram" href="#" target="_blank" rel="noreferrer">Telegram</a>
+          <a id="footerInstagram" href="#" target="_blank" rel="noreferrer">Instagram</a>
+          <a id="footerWhatsapp" href="#" target="_blank" rel="noreferrer">WhatsApp</a>
+          <a id="footerTiktok" href="#" target="_blank" rel="noreferrer">TikTok</a>
         </div>
       </div>
     </footer>
-  <div style="position:fixed;left:12px;bottom:12px;z-index:9999;background:#211a2e;color:#fff;font:500 12px/1.3 Onest,system-ui,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 24px -8px #0006;pointer-events:none">Демо для портфолио · заявки не отправляются</div>
+  <div id="demo-note" style="position:fixed;left:12px;bottom:12px;z-index:9999;background:#211a2e;color:#fff;font:500 12px/1.3 Onest,system-ui,sans-serif;padding:8px 12px;border-radius:999px;box-shadow:0 8px 24px -8px #0006;pointer-events:none">Демо для портфолио · заявки не отправляются</div>
+<script>document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[href]");if(!a)return;var h=a.getAttribute("href");if(h==="#"||/^(tel:|mailto:)|wa.me|t.me|instagram|tiktok|whatsapp/i.test(h)){e.preventDefault();var t=document.getElementById("demo-note");t.textContent="Это демо: контакты клиники отключены";clearTimeout(t._x);t._x=setTimeout(function(){t.textContent="Демо для портфолио · заявки не отправляются"},2500)}},true)</script>
 </body>
 </html>

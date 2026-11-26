@@ -2,13 +2,13 @@ globalThis.DefaultContent = {
   "brand": {
     "logo": "/assets/logo.svg?v=20260328",
     "name": "PROMEDCENTRE",
-    "phone": "+7 (747) 342-01-01",
+    "phone": "+7 (700) 000-00-00",
     "email": "",
     "socials": {
-      "telegram": "@promedcentrekz",
-      "instagram": "promedcentre.kz",
-      "whatsapp": "+7 (747) 342-01-01",
-      "tiktok": "@promedcentre.kz"
+      "telegram": "@demo_clinic",
+      "instagram": "demo_clinic",
+      "whatsapp": "+7 (700) 000-00-00",
+      "tiktok": "@demo_clinic"
     },
     "tag": "Клиника для взрослых и детей",
     "address": "Туркестанская область. Сайрамский район, село Аксукент, улица Жандарбекова 9а.",
@@ -794,7 +794,7 @@ globalThis.DefaultContent = {
     }
   },
   "cta": {
-    "buttonLink": "https://wa.me/77473420101",
+    "buttonLink": "#",
     "title": "Оставьте заявку, и администратор подберет удобное время записи.",
     "description": "Можно записаться на прием, узнать по анализам, check-up, УЗИ и другим направлениям клиники.",
     "buttonLabel": "Написать в WhatsApp",
